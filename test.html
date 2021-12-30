@@ -21,8 +21,8 @@
 		<input type="file" id="zip" onchange="selectZip(this)" />
 		
 		
-		<input type="number" value="0" id="judgeLine" />
-		<!--
+		<!--input type="number" value="0" id="judgeLine" />
+		
 		<input
 			type="range"
 			min="-360"
@@ -30,7 +30,7 @@
 			style="width:100%"
 			oninput="sprites[glid('judgeLine').value].angle = this.value"
 		/>
-		-->
+		
 		<input
 			type="range"
 			min="0"
@@ -43,7 +43,7 @@
 				if (sprites.containers[glid('judgeLine').value].children[2])
 					sprites.containers[glid('judgeLine').value].children[2].position.y = -this.value
 			"
-		/>
+		/-->
 		<input
 			type="range"
 			min="5000"
@@ -75,10 +75,15 @@
 		<button onclick="pixi.ticker.add(CalculateChartActualTime)">Start Ticker</button>
 		<button
 			onclick="
-				_chart.audio.start();
-				global.startTime = Date.now();
+				sprites = CreateChartSprites(_chart.data, true);
+				pixi.ticker.add(CalculateChartActualTime);
+				global.audio = _chart.audio.play();
 			"
 		>Play</button>
+		<br>
+		<select id="select" onchange="SwitchChart(this.value)">
+			<option value="-1" selected>请先选择一个文件</option>
+		</select>
 		<!--
 		<audio src="" id="audio" style="width:100%" controls></audio>
 		-->
