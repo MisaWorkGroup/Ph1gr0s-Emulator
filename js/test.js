@@ -5,7 +5,6 @@ let pixi = new PIXI.Application({
 	width     : document.body.offsetWidth,
 	height    : document.body.offsetWidth / 16 * 9,
 	antialias : true, // 抗锯齿
-	backgroundColor: 0x1099bb,
 	autoDensity: true, // 配合 resolution 使用
 	resolution : window.devicePixelRatio // 默认是设备的像素密度
 	/* view: glid('canvas') */
@@ -37,11 +36,11 @@ let settings = {
 	noteScale: 8e3, // 按键缩放比
 	multiNotesHighlight : true,  // 多押高亮
 	disableJudgeLineAlpha: false,
-	autoPlay: false
+	autoPlay: false,
+	backgroundBlur: true
 }
 
 // ========此处声明监听器=========
-
 // ==Windows 对象 事件监听器==
 // 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
 window.onresize = (e) => {
@@ -193,7 +192,7 @@ function selectZip(input) {
 		
 		// 清空之前加载的谱面信息
 		for (let i in chartData) {
-			chartData[i].length = 0;
+			chartData[i] = {};
 		}
 		
 		for (let name in e.files) { // 预处理文件信息
@@ -216,7 +215,7 @@ function selectZip(input) {
 		for (let file of zipFiles) {
 			let format = file.format;
 			
-			if (file.realName == 'info.csv') { // 读取谱面信息
+			if (file.name == 'info.csv') { // 读取谱面信息
 				let infos = [];
 				let _infos = await file.async('text');
 				_infos = Csv2Array(_infos, true);
@@ -229,7 +228,7 @@ function selectZip(input) {
 				
 				chartData.infos = infos;
 				
-			} else if (file.realName == 'line.csv') { // 读取判定线贴图信息
+			} else if (file.name == 'line.csv') { // 读取判定线贴图信息
 				let lines = [];
 				let _lines = await file.async('text');
 				_lines = Csv2Array(_lines, true);
@@ -244,21 +243,52 @@ function selectZip(input) {
 				
 			} else if (imageFormat.indexOf(format.toLowerCase()) !== -1) { // 处理图片
 				try {
-					let image = { name : file.realName };
 					let texture = await PIXI.Texture.fromURL('data:image/' + format + ';base64,' + (await file.async('base64')));
 					
-					image.data = texture;
-					chartData.images.push(image);
+					chartData.images[file.name] = texture;
 					
 				} catch (e) {
 					console.log('Not an image', file.name);
 				}
 				
 			} else if (audioFormat.indexOf(format.toLowerCase()) !== -1) {
-				console.log('audio file', file.realName);
+				try {
+					let audio = PIXI.sound.Sound.from({
+						source : await file.async('arraybuffer'),
+						preload : true
+					});
+					
+					chartData.audios[file.name] = audio;
+					
+				} catch (e) {
+					console.log('Not an audio', file.name);
+				}
+				
 			} else if (format === 'json') {
+				try {
+					let chart = await file.async('text');
+					
+					chart = JSON.parse(chart);
+					chart = CalculateChartData(chart);
+					
+					chartData.charts[file.name] = chart;
+					
+				} catch (e) {
+					console.log('not a chart', file.name);
+				}
 				
 			} else if (format === 'pec') {
+				try {
+					let chart = await file.async('text');
+					
+					chart = ConvertPEC2Json(chart, file.name);
+					chart = CalculateChartData(chart);
+					
+					chartData.charts[file.name] = chart;
+					
+				} catch (e) {
+					console.log('not a chart', file.name);
+				}
 				
 			} else {
 				console.warn('不支持的文件：' + file.name + '，将不会载入该文件。');
@@ -267,6 +297,18 @@ function selectZip(input) {
 			loadedFiles++;
 			console.log(loadedFiles / zipFiles.length);
 		}
+		
+		glid('select').innerHTML = '';
+		
+		for (let i = 0; i < chartData.infos.length; i++) {
+			let chart = chartData.infos[i];
+			let option = document.createElement('option');
+			option.innerHTML = chart.Chart;
+			option.value = i;
+			glid('select').appendChild(option);
+		}
+		
+		SwitchChart(0);
 		
 		console.log(zipFiles);
 		console.log(chartData);
@@ -277,117 +319,22 @@ function selectZip(input) {
 		return arr[arr.length - 1];
 	}
 }
-/***
-function selectZip(input) {
-	let reader = new FileReader();
+
+
+function SwitchChart(chartId) {
+	if (chartId < 0) return;
 	
-	if (input.files[0].name.split('.')[1] === 'pec') {
-		reader.readAsText(input.files[0]);
-	} else {
-		reader.readAsArrayBuffer(input.files[0]);
-	}
-	
-	reader.onprogress = (e) => {
-		console.log(e.loaded / input.files[0].size);
+	let chartInfo = chartData.infos[chartId];
+	let chart = {
+		data : chartData.charts[chartInfo.Chart],
+		audio : chartData.audios[chartInfo.Music],
+		image : chartData.images[chartInfo.Image]
 	};
 	
-	reader.onloadend = (e) => {
-		if (input.files[0].name.split('.')[1] === 'pec') {
-			console.log(ConvertPEC2Json(reader.result, input.files[0].name));
-			return;
-		}
-		
-		zip.loadAsync(reader.result, {})
-			.then(async (e) => {
-				let files = e.files;
-				
-				for (let file in files) {
-					file = files[file];
-					// console.log(file);
-					if (file.dir) continue; // 过滤文件夹
-					
-					if (file.name == 'line.csv') { // 读取判定线信息
-						let chartLine = file;
-						chartLine = await chartLine.async('string');
-						
-						chartLine = Csv2Array(chartLine, true);
-						// console.log(...chartLine);
-						console.log('chart line loaded');
-						
-					} else if (file.name == 'info.csv') { // 读取谱面信息
-						let chartInfo = file;
-						chartInfo = await chartInfo.async('string');
-						
-						chartInfo = Csv2Array(chartInfo, true);
-						// console.log(chartInfo);
-						console.log('chart info loaded');
-						
-					} else {
-						let audio = await file.async('arraybuffer');
-						let audioCtx = (new Audio()).canPlayType('audio/ogg') != '' ? new AudioContext() : {};
-						
-						try { // 读取谱面音频文件
-							let _audio = await audioCtx.decodeAudioData(audio);
-							// audio = PIXI.sound.Sound.from(_audio);
-							// console.log(audio);
-							if (!_chart.audio) {
-								_chart.audio = global.audioContext.createBufferSource();
-								_chart.audio.buffer = _audio;
-								_chart.audio.connect(global.audioGain);
-								
-								console.log('audio loaded');
-							}
-							
-						} catch (e) { // 读取谱面图片文件
-							let img = new Image();
-							let reader = new FileReader();
-							let blob = null;
-							// console.log(img);
-							
-							reader.onerror = img.onerror = async (e) => {
-								
-								try {
-									if (!_chart.data) {
-										let json = await file.async('text');
-										json = JSON.parse(json);
-										console.log('chart file loaded');
-										_chart.data = json;
-										_chart.data = CalculateChartData(_chart.data);
-										sprites = CreateChartSprites(_chart.data, !sprites.fps);
-									}
-								} catch (e) {
-									try {
-										
-									} catch (e) {
-										console.log('不支持的文件:', file.name);
-										console.log(e);
-									}
-								}
-							}
-							
-							img.onload = (e) => {
-								console.log('image loaded');
-							}
-								
-							blob = await file.async('blob');
-							reader.readAsDataURL(blob);
-							
-							reader.onloadend = () => {
-								img.src = reader.result;
-							}
-							
-						}
-					}
-				}
-				
-			})
-			.catch((e) => {
-				console.log('不是zip文件');
-			}
-		);
-	}
+	_chart = chart;
+	
+	
 }
-***/
 
 /***
  * @function 该方法会将传入的谱面对象进行处理，使其更加合乎规范
@@ -478,7 +425,8 @@ function CalculateChartData (chart) {
 	
 	return {
 		judgeLines: judgeLines,
-		notes: notes
+		notes: notes,
+		offset: chart.offset
 	};
 	
 	/***
@@ -695,6 +643,21 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		totalNotes: []
 	};
 	
+	let background = new PIXI.Sprite(_chart.image);
+	let blur = new PIXI.filters.BlurFilter();
+	
+	blur.repeatEdgePixels = true;
+	
+	if (settings.backgroundBlur)
+		background.filters = [blur];
+	
+	background.position.set(0, 0);
+	background.width = pixi.renderer.width / pixi.renderer.resolution;
+	background.height = pixi.renderer.height / pixi.renderer.resolution;
+	
+	output.background = background;
+	pixi.stage.addChild(background);
+	
 	for (let _judgeLine of chart.judgeLines) {
 		let container = new PIXI.Container();
 		let judgeLine = new PIXI.Sprite(textures.judgeLine);
@@ -710,8 +673,6 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		
 		// 调整判定线位置
 		judgeLine.position.set(0, 0);
-		
-		notesBelow.angle = 180; // 目前还是不确定官方是否也是这个做法
 		
 		for (let _note of _judgeLine.notes) {
 			let note;
@@ -752,7 +713,9 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 			
 			note.scale.set(pixi.renderer.width / settings.noteScale / pixi.renderer.resolution);
 			note.position.x = (_note.positionX.toFixed(6) * 0.109) * (pixi.renderer.width / 2) / pixi.renderer.resolution;
-			note.position.y = -_note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
+			
+			if (_note.isAbove) note.position.y = -_note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
+			else note.position.y = _note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
 			
 			note.raw = _note;
 			note.id = _note.id;
@@ -865,7 +828,9 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
 function CalculateChartActualTime(delta) {
-	let currentTime = global.startTime ? (Date.now() - global.startTime) / 1000 : 0;
+	let currentTime = global.audio ? (_chart.audio.duration * global.audio.progress) - _chart.data.offset : 0;
+	
+	if (!sprites.containers) return;
 	
 	for (let container of sprites.containers) {
 		let judgeLine = container.children[0];
