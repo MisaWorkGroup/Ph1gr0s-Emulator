@@ -38,7 +38,8 @@ let settings = {
 	disableJudgeLineAlpha: false,
 	autoPlay: true,
 	backgroundBlur: false,
-	backgroundDim: 0.5
+	backgroundDim: 0.5,
+	developMode: false
 }
 
 // ========此处声明监听器=========
@@ -72,11 +73,11 @@ pixi.view.addEventListener('touchstart', (e) => {
 pixi.view.addEventListener('touchmove', (e) => {
 	// 这里可以直接把 touches 传出去
 	touches = e.touches;
-	
+	/**
 	for (let touch of touches) {
 		CreateClickAnimation(touch.clientX, touch.clientY)
 	}
-	
+	**/
 	
 });
 
@@ -274,8 +275,8 @@ function selectZip(input) {
 				try {
 					let chart = await file.async('text');
 					
-					chart = ConvertChartVersion(JSON.parse(chart));
-					chart = CalculateChartData(chart);
+					chart = await ConvertChartVersion(JSON.parse(chart));
+					chart = await CalculateChartData(chart);
 					
 					chartData.charts[file.name] = chart;
 					
@@ -287,8 +288,8 @@ function selectZip(input) {
 				try {
 					let chart = await file.async('text');
 					
-					chart = ConvertChartVersion(ConvertPEC2Json(chart, file.name));
-					chart = CalculateChartData(chart);
+					chart = await ConvertChartVersion(await ConvertPEC2Json(chart, file.name));
+					chart = await CalculateChartData(chart);
 					
 					chartData.charts[file.name] = chart;
 					
@@ -682,6 +683,13 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		// 调整判定线位置
 		judgeLine.position.set(0, 0);
 		
+		if (settings.developMode) {
+			let judgeLineName = new PIXI.Text(_judgeLine.id, { fill: 'rgba(255,236,160,0.8823529)' });
+			judgeLineName.anchor.set(0.5);
+			judgeLineName.position.set(0);
+			judgeLine.addChild(judgeLineName);
+		}
+		
 		notesAbove.noteDirection = 1;
 		notesBelow.noteDirection = -1;
 		
@@ -723,6 +731,14 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 				if (_note.type == 1) note.texture = textures['tap' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
 				else if (_note.type == 2) note.texture = textures['drag' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
 				else if (_note.type == 4) note.texture = textures['flick' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
+			}
+			
+			if (settings.developMode) {
+				let noteName = new PIXI.Text(_note.lineId + '+' + _note.id, { fill: 'rgba(180,225,255,0.9215686)' });
+				noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
+				noteName.anchor.set(0.5);
+				noteName.position.set(0);
+				note.addChild(noteName);
 			}
 			
 			note.scale.set(pixi.renderer.width / settings.noteScale / pixi.renderer.resolution);
@@ -955,8 +971,8 @@ function CreateClickAnimation(x, y, type = 4, performance = false) {
 		
 		// obj.alpha = type == 4 ? 0.88 : 0.92;
 		obj.tint = type == 4 ? 0xFFECA0 : 0xB4E1FF;
-		
 		obj.loop = false;
+		
 		obj.onComplete = function () {
 			this.destroy();
 		};
@@ -965,8 +981,6 @@ function CreateClickAnimation(x, y, type = 4, performance = false) {
 	}
 	
 	// ffeca0
-	
-	sprites.clickAnimate.push(obj);
 	pixi.stage.addChild(obj);
 	obj.play();
 }
