@@ -139,8 +139,8 @@ class Judgements extends Array {
 				}
 			}
 			
-			for (let i in inputs.touch) { // 遍历触摸事件
-				let touch = inputs.touch[i];
+			for (let i in inputs.touches) { // 遍历触摸事件
+				let touch = inputs.touches[i];
 				
 				if (touch instanceof Click) {
 					if (touch.time) this.push(new Judgement(touch.offsetX, touch.offsetY, 2));
@@ -185,13 +185,12 @@ class Judgements extends Array {
 	// 计算 Note 的判定
 	judgeNote(notes, realTime, width) {
 		for (const i of notes) { // 遍历所有 Note
-			if (i.scored) continue; // 如果该 Note 已被打击，则忽略
+			if (i.score > 0) continue; // 如果该 Note 已被打击，则忽略
 			
 			if (i.realTime - realTime < -0.16 && !i.status2) { // 是否 Miss
 				//console.log("Miss", i.name);
-				i.status = 4;
-				stat.addCombo(4, i.type);
-				i.scored = true;
+				// stat.addCombo(4, i.type);
+				i.score = 1;
 				
 			} else if (i.type == 1) { // Note 类型为 Tap。在这个分支中，判定和动画是一起执行的
 				for (let j = 0; j < this.length; j++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数

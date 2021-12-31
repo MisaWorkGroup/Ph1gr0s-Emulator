@@ -614,7 +614,7 @@ function ConvertChartVersion(chart) {
 				
 				for (const x of i.speedEvents) {
 					if (x.startTime < 0) x.startTime = 0;
-					x.floorPosition = y;
+					x.floorPosition = floorPosition;
 					floorPosition += (x.endTime - x.startTime) * x.value / i.bpm * 1.875;
 				}
 				

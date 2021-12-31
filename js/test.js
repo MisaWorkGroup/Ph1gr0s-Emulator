@@ -17,6 +17,12 @@ let textures = {};
 
 // 触摸手指信息
 let touches = {};
+var inputs = {
+	taps: [],
+	touches: [],
+	mouse: [],
+	keyboard: []
+};
 
 // 谱面信息
 var chartData = {
@@ -282,6 +288,7 @@ function selectZip(input) {
 					
 				} catch (e) {
 					console.log('not a chart', file.name);
+					console.log(e);
 				}
 				
 			} else if (format === 'pec') {
@@ -295,6 +302,7 @@ function selectZip(input) {
 					
 				} catch (e) {
 					console.log('not a chart', file.name);
+					console.log(e);
 				}
 				
 			} else {
@@ -651,6 +659,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		clickAnimate: []
 	};
 	
+	// 创建背景图
 	let background = new PIXI.Sprite(_chart.image);
 	let blur = new PIXI.filters.BlurFilter();
 	
@@ -823,6 +832,12 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	let noteScale = width / _noteScale / pixi.renderer.resolution;
 	let noteSpeed = height * 0.6 / pixi.renderer.resolution;
 	
+	// 处理背景图
+	if (sprites.background) {
+		sprites.background.width = pixi.renderer.width / pixi.renderer.resolution;
+		sprites.background.height = pixi.renderer.height / pixi.renderer.resolution;
+	}
+	
 	// 不处理没有判定线和 Note 的精灵对象
 	if (!sprites.containers || !sprites.totalNotes) {
 		return;
@@ -856,6 +871,12 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	if (sprites.fps) {
 		sprites.fps.fontSize = lineScale * 0.8 + 'px';
 		sprites.fps.position.set(width / pixi.renderer.resolution - sprites.fps.width - 2, 1 / pixi.renderer.resolution);
+	}
+	
+	// 处理准度指示器
+	if (sprites.accIndicator) {
+		sprites.accIndicator.container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
+		sprites.accIndicator.container.scale.set(pixi.renderer.width / sprites.accIndicator.scale / pixi.renderer.resolution);
 	}
 }
 
@@ -941,6 +962,8 @@ function CalculateChartActualTime(delta) {
 					i.alpha = 0;
 					i.raw.score = 4;
 					
+					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, currentTime);
+					
 					CreateClickAnimation(i.getGlobalPosition().x, i.getGlobalPosition().y, 4);
 					continue;
 				}
@@ -980,7 +1003,94 @@ function CreateClickAnimation(x, y, type = 4, performance = false) {
 		
 	}
 	
-	// ffeca0
 	pixi.stage.addChild(obj);
 	obj.play();
+}
+
+function CreateAccurateIndicator(scale = 500) {
+	let container = new PIXI.Container();
+	let graphic   = new PIXI.Graphics();
+	let accurates = [];
+	
+	// 绘制白色打底
+	graphic.beginFill(0xFFFFFF, 0.4);
+	graphic.drawRect(0, 2, 200, 16);
+	graphic.endFill();
+	// 绘制 Bad(Early) 区域
+	graphic.beginFill(0x8E0000, 0.8);
+	graphic.drawRect(0, 6, 20, 8);
+	graphic.endFill();
+	// 绘制 Good(Early) 区域
+	graphic.beginFill(0xB4E1FF, 0.8);
+	graphic.drawRect(20, 6, 40, 8);
+	graphic.endFill();
+	// 绘制 Perfect 区域
+	graphic.beginFill(0xFFECA0, 0.8);
+	graphic.drawRect(60, 6, 80, 8);
+	graphic.endFill();
+	// 绘制 Good(Late) 区域
+	graphic.beginFill(0xB4E1FF, 0.8);
+	graphic.drawRect(140, 6, 40, 8);
+	graphic.endFill();
+	// 绘制 Bad(Early) 区域
+	graphic.beginFill(0x8E0000, 0.8);
+	graphic.drawRect(180, 6, 20, 8);
+	graphic.endFill();
+	// 绘制白色准心
+	graphic.beginFill(0xFFFFFF, 0.8);
+	graphic.drawRect(99, 0, 2, 20);
+	graphic.endFill();
+	
+	container.addChild(graphic);
+	
+	// 手动居中 x 轴
+	graphic.position.x = -(graphic.width / 2);
+	
+	// 设定指示器缩放和位置
+	container.scale.set(pixi.renderer.width / scale / pixi.renderer.resolution);
+	container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
+	
+	pixi.stage.addChild(container);
+	
+	// 指示器刻度淡出
+	pixi.ticker.add(() => {
+		if (container.children.length > 1) {
+			for (let i = 1, length = container.children.length; i < length; i++) {
+				let accurate = container.children[i];
+				if (!accurate) continue;
+				
+				accurate.alpha -= 0.5 / 60;
+				if (accurate.alpha <= 0) {
+					if (accurate.destroy) accurate.destroy();
+				}
+			}
+		}
+	});
+	
+	return {
+		container,
+		scale,
+		pushAccurate
+	};
+	
+	
+	function pushAccurate(noteTime, currentTime) {
+		let accContainer = new PIXI.Container();
+		let accGraphic = new PIXI.Graphics();
+		let time = (currentTime - noteTime) * 1000;
+		let rankColor = time > 0 ? time : -time;
+		
+		rankColor = rankColor > 160 ? 0x8E0000 : rankColor;
+		rankColor = rankColor > 80 ? 0xB4E1FF : 0xFFECA0;
+		
+		accGraphic.beginFill(rankColor);
+		accGraphic.drawRect(0, 0, 2, 20);
+		accGraphic.endFill();
+		
+		accGraphic.position.x = time / 2;
+		
+		container.addChild(accGraphic);
+		
+		return accGraphic;
+	}
 }
