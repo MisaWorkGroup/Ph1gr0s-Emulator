@@ -20,11 +20,11 @@ let touches = {};
 
 // 谱面信息
 var chartData = {
-	images : [],
-	audios : [],
-	charts : [],
-	infos  : [],
-	lines  : []
+	images : undefined,
+	audios : undefined,
+	charts : undefined,
+	infos  : undefined,
+	lines  : undefined
 };
 	
 var _chart = {};
@@ -36,7 +36,7 @@ let settings = {
 	noteScale: 8e3, // 按键缩放比
 	multiNotesHighlight : true,  // 多押高亮
 	disableJudgeLineAlpha: false,
-	autoPlay: false,
+	autoPlay: true,
 	backgroundBlur: false,
 	backgroundDim: 0.5
 }
@@ -72,6 +72,11 @@ pixi.view.addEventListener('touchstart', (e) => {
 pixi.view.addEventListener('touchmove', (e) => {
 	// 这里可以直接把 touches 传出去
 	touches = e.touches;
+	
+	for (let touch of touches) {
+		CreateClickAnimation(touch.clientX, touch.clientY)
+	}
+	
 	
 });
 
@@ -641,7 +646,8 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 	let lineScale = pixi.renderer.width > pixi.renderer.height * 0.75 ? pixi.renderer.height / 18.75 : pixi.renderer.width / 14.0625;
 	let output = {
 		containers: [],
-		totalNotes: []
+		totalNotes: [],
+		clickAnimate: []
 	};
 	
 	let background = new PIXI.Sprite(_chart.image);
@@ -895,37 +901,17 @@ function CalculateChartActualTime(delta) {
 				
 				if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
 					for (let note of noteContainer.speedNotes) {
-						note.position.y = ((note.raw.offsetY * noteSpeed) + (note.raw.realTime - currentTime) * noteSpeed * note.raw.speed) * noteContainer.noteDirection * -1;
+						// 处理自身速度不为 1 的 Note。怀疑如此处理有性能问题，暂时未知其他解法
+						note.position.y = (
+							noteContainer.position.y + (
+								(note.raw.offsetY * noteSpeed) - 
+								(noteContainer.position.y > 0 ? noteContainer.position.y : noteContainer.position.y * -1)
+							) * note.raw.speed
+						) * noteContainer.noteDirection * -1;
 					}
 				}
 			}
-			/**
-			if (container.children[1]) {
-				container.children[1].position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * container.children[1].noteDirection;
-				
-				/**
-				if (container.children[1].speedNotes && container.children[1].speedNotes.length > 0) {
-					for (let note of container.children[1].speedNotes) {
-						note.position.y = ((note.raw.offsetY * noteSpeed) + (note.raw.startRealTime - currentTime) * note.raw.speed * noteSpeed) * container.children[1].noteDirection * -1;
-					}
-				}
-				
-			}
-			
-			if (container.children[2]) {
-				container.children[2].position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * container.children[2].noteDirection;
-				
-				/**
-				if (container.children[2].speedNotes && container.children[2].speedNotes.length > 0) {
-					for (let note of container.children[2].speedNotes) {
-						note.position.y = ((note.raw.offsetY * noteSpeed) + (note.raw.startRealTime - currentTime) * note.raw.speed * noteSpeed) * container.children[2].noteDirection * -1;
-					}
-				}
-				
-			}
-			**/
 		}
-		
 	}
 	
 	for (let i of sprites.totalNotes) {
@@ -939,6 +925,7 @@ function CalculateChartActualTime(delta) {
 					i.alpha = 0;
 					i.raw.score = 4;
 					
+					CreateClickAnimation(i.getGlobalPosition().x, i.getGlobalPosition().y, 4);
 					continue;
 				}
 			}
@@ -952,4 +939,34 @@ function CalculateChartActualTime(delta) {
 			}
 		}
 	}
+}
+
+function CreateClickAnimation(x, y, type = 4, performance = false) {
+	let obj = undefined;
+	
+	if (type <= 1) return;
+	
+	if (type == 4 || type == 3) {
+		obj = new PIXI.AnimatedSprite(textures.clickRaw);
+		
+		obj.anchor.set(0.5);
+		obj.scale.set((pixi.renderer.width / settings.noteScale) * (256 / obj.width) * pixi.renderer.resolution);
+		obj.position.set(x, y);
+		
+		// obj.alpha = type == 4 ? 0.88 : 0.92;
+		obj.tint = type == 4 ? 0xFFECA0 : 0xB4E1FF;
+		
+		obj.loop = false;
+		obj.onComplete = function () {
+			this.destroy();
+		};
+	} else {
+		
+	}
+	
+	// ffeca0
+	
+	sprites.clickAnimate.push(obj);
+	pixi.stage.addChild(obj);
+	obj.play();
 }
