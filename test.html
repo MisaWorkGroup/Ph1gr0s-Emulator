@@ -75,11 +75,22 @@
 		<button onclick="pixi.ticker.add(CalculateChartActualTime)">Start Ticker</button>
 		<button
 			onclick="
-				sprites = CreateChartSprites(_chart.data, true);
-				pixi.ticker.add(CalculateChartActualTime);
-				global.audio = _chart.audio.play();
+				if (!global.audio) {
+					sprites = CreateChartSprites(_chart.data, true);
+					pixi.ticker.add(CalculateChartActualTime);
+					global.audio = _chart.audio.play({start: 60});
+				} else {
+					global.audio = _chart.audio.play({start: (_chart.audio.duration * global.audio.progress)});
+				}
 			"
 		>Play</button>
+		<button
+			onclick="
+				if (global.audio) {
+					_chart.audio.pause();
+				}
+			"
+		>Pause</button>
 		<br>
 		<select id="select" onchange="SwitchChart(this.value)">
 			<option value="-1" selected>请先选择一个文件</option>
