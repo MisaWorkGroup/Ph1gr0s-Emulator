@@ -37,7 +37,8 @@ let settings = {
 	multiNotesHighlight : true,  // 多押高亮
 	disableJudgeLineAlpha: false,
 	autoPlay: false,
-	backgroundBlur: true
+	backgroundBlur: false,
+	backgroundDim: 0.5
 }
 
 // ========此处声明监听器=========
@@ -268,7 +269,7 @@ function selectZip(input) {
 				try {
 					let chart = await file.async('text');
 					
-					chart = JSON.parse(chart);
+					chart = ConvertChartVersion(JSON.parse(chart));
 					chart = CalculateChartData(chart);
 					
 					chartData.charts[file.name] = chart;
@@ -281,7 +282,7 @@ function selectZip(input) {
 				try {
 					let chart = await file.async('text');
 					
-					chart = ConvertPEC2Json(chart, file.name);
+					chart = ConvertChartVersion(ConvertPEC2Json(chart, file.name));
 					chart = CalculateChartData(chart);
 					
 					chartData.charts[file.name] = chart;
@@ -651,6 +652,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 	if (settings.backgroundBlur)
 		background.filters = [blur];
 	
+	background.alpha = settings.backgroundDim;
 	background.position.set(0, 0);
 	background.width = pixi.renderer.width / pixi.renderer.resolution;
 	background.height = pixi.renderer.height / pixi.renderer.resolution;
@@ -673,6 +675,12 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		
 		// 调整判定线位置
 		judgeLine.position.set(0, 0);
+		
+		notesAbove.noteDirection = 1;
+		notesBelow.noteDirection = -1;
+		
+		notesAbove.speedNotes = [];
+		notesBelow.speedNotes = [];
 		
 		for (let _note of _judgeLine.notes) {
 			let note;
@@ -722,7 +730,12 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 			note.lineId = _note.lineId;
 			
 			if (_note.isAbove) notesAbove.addChild(note);
-			else notesBelow.addChild(note);
+			else note.angle = 180,notesBelow.addChild(note);
+			
+			if (_note.speed != 1 && _note.type != 3) {
+				if (_note.isAbove) notesAbove.speedNotes.push(note);
+				else notesBelow.speedNotes.push(note);
+			}
 			
 			output.totalNotes.push(note);
 		}
@@ -829,6 +842,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 ***/
 function CalculateChartActualTime(delta) {
 	let currentTime = global.audio ? (_chart.audio.duration * global.audio.progress) - _chart.data.offset : 0;
+	let noteSpeed = pixi.renderer.height * 0.6 / pixi.renderer.resolution;
 	
 	if (!sprites.containers) return;
 	
@@ -874,11 +888,42 @@ function CalculateChartActualTime(delta) {
 			if (currentTime < i.startRealTime) break;
 			if (currentTime > i.endRealTime) continue;
 			
-			if (container.children[1])
-				container.children[1].position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
+			for (let x = 1; x < container.children.length; x++) {
+				let noteContainer = container.children[x];
+				
+				noteContainer.position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
+				
+				if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
+					for (let note of noteContainer.speedNotes) {
+						note.position.y = ((note.raw.offsetY * noteSpeed) + (note.raw.realTime - currentTime) * noteSpeed * note.raw.speed) * noteContainer.noteDirection * -1;
+					}
+				}
+			}
+			/**
+			if (container.children[1]) {
+				container.children[1].position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * container.children[1].noteDirection;
+				
+				/**
+				if (container.children[1].speedNotes && container.children[1].speedNotes.length > 0) {
+					for (let note of container.children[1].speedNotes) {
+						note.position.y = ((note.raw.offsetY * noteSpeed) + (note.raw.startRealTime - currentTime) * note.raw.speed * noteSpeed) * container.children[1].noteDirection * -1;
+					}
+				}
+				
+			}
 			
-			if (container.children[2])
-				container.children[2].position.y = -((currentTime - i.startRealTime) * i.value + i.floorPosition) * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
+			if (container.children[2]) {
+				container.children[2].position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * container.children[2].noteDirection;
+				
+				/**
+				if (container.children[2].speedNotes && container.children[2].speedNotes.length > 0) {
+					for (let note of container.children[2].speedNotes) {
+						note.position.y = ((note.raw.offsetY * noteSpeed) + (note.raw.startRealTime - currentTime) * note.raw.speed * noteSpeed) * container.children[2].noteDirection * -1;
+					}
+				}
+				
+			}
+			**/
 		}
 		
 	}
