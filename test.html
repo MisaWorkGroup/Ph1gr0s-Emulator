@@ -11,6 +11,7 @@
 		<script src="./js/pixi.min.js"></script>
 		<script src="./js/pixi-sound.js"></script>
 		
+		<script src="./js/class.js"></script>
 		<script src="./js/convert.js"></script>
 	</head>
 	<body>
@@ -75,10 +76,15 @@
 		<button onclick="pixi.ticker.add(CalculateChartActualTime)">Start Ticker</button>
 		<button
 			onclick="
+				if (!_chart.audio.isLoaded) {
+					alert('Audio is not loaded, please wait');
+					return;
+				}
+				
 				if (!global.audio) {
 					sprites = CreateChartSprites(_chart.data, true);
 					pixi.ticker.add(CalculateChartActualTime);
-					global.audio = _chart.audio.play({start: 60});
+					global.audio = _chart.audio.play({start: 0});
 				} else {
 					global.audio = _chart.audio.play({start: (_chart.audio.duration * global.audio.progress)});
 				}
