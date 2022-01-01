@@ -82,8 +82,8 @@
 				}
 				
 				if (!global.audio) {
-					sprites = CreateChartSprites(_chart.data, true);
 					pixi.ticker.add(CalculateChartActualTime);
+					sprites = CreateChartSprites(_chart.data, true);
 					global.audio = _chart.audio.play({start: 0});
 				} else {
 					global.audio = _chart.audio.play({start: (_chart.audio.duration * global.audio.progress)});
