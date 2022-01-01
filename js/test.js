@@ -688,6 +688,19 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 	output.background = background;
 	pixi.stage.addChild(background);
 	
+	// 创建水印
+	let watermark = new PIXI.Text('PhigrosEmulator v1.0.0 Beta By MisaLiu OriginBy lzhch', {
+		fontFamily : 'Mina',
+		fontSize: lineScale / pixi.renderer.resolution * 0.6 + 'px',
+		fill: 'rgba(255, 255, 255, 0.5)',
+		align: 'right'
+	});
+	
+	pixi.stage.addChild(watermark);
+	watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - watermark.height - 1);
+	
+	output.watermark = watermark;
+	
 	for (let _judgeLine of chart.judgeLines) {
 		let container = new PIXI.Container();
 		let judgeLine = new PIXI.Sprite(textures.judgeLine);
@@ -799,7 +812,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		output.containers.push(container);
 	}
 	
-	if (requireFPSCounter) {
+	if (requireFPSCounter && !sprites.fps) {
 		let fps = new PIXI.Text('00.00', {
 			fontFamily : 'Mina',
 			fontSize: lineScale / pixi.renderer.resolution * 0.8 + 'px',
@@ -893,6 +906,12 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	if (sprites.accIndicator) {
 		sprites.accIndicator.container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
 		sprites.accIndicator.container.scale.set(pixi.renderer.width / sprites.accIndicator.scale / pixi.renderer.resolution);
+	}
+	
+	// 处理水印
+	if (sprites.watermark) {
+		sprites.watermark.fontSize = lineScale * 0.6 + 'px';
+		sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
 	}
 }
 
