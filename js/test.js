@@ -19,10 +19,12 @@ let textures = {};
 let touches = {};
 var inputs = {
 	taps: [],
-	touches: [],
-	mouse: [],
-	keyboard: []
+	touches: {},
+	mouse: {},
+	keyboard: {}
 };
+
+var judgements = new Judgements();
 
 // 谱面信息
 var chartData = {
@@ -42,7 +44,7 @@ let settings = {
 	noteScale: 8e3, // 按键缩放比
 	multiNotesHighlight : true,  // 多押高亮
 	disableJudgeLineAlpha: false,
-	autoPlay: true,
+	autoPlay: false,
 	backgroundBlur: false,
 	backgroundDim: 0.5,
 	developMode: false
@@ -65,38 +67,34 @@ pixi.loader.onProgress.add(function (e) {
 // ==Pixijs Events 事件监听器==
 // 舞台触摸开始事件
 pixi.view.addEventListener('touchstart', (e) => {
-	/***
-	 * 全局变量 touches 用于存放当前共有几个手指在屏幕上
-	 * 局部变量 diff 用于传递当前新增的手指信息
-	***/
-	let diff = e.changedTouches;
-	touches = e.touches;
-	
-	
+	for (let touch of e.changedTouches) {
+		let canvasPosition = pixi.view.getBoundingClientRect();
+		let fingerId = touch.pointerId;
+		let x = touch.offsetX - canvasPosition.x;
+		let y = touch.offsetY - canvasPosition.y;
+		
+		inputs.touches[fingerId] = Click.activate(x, y, fingerId);
+	}
 });
 
 // 舞台触摸移动事件
 pixi.view.addEventListener('touchmove', (e) => {
-	// 这里可以直接把 touches 传出去
-	touches = e.touches;
-	/**
-	for (let touch of touches) {
-		CreateClickAnimation(touch.clientX, touch.clientY)
+	for (let touch of e.changedTouches) {
+		let canvasPosition = pixi.view.getBoundingClientRect();
+		let fingerId = touch.pointerId;
+		let x = touch.offsetX - canvasPosition.x;
+		let y = touch.offsetY - canvasPosition.y;
+		
+		inputs.touches[fingerId].move(x, y);
 	}
-	**/
-	
 });
 
 // 舞台触摸结束事件
 pixi.view.addEventListener('touchend', (e) => {
-	/***
-	 * 全局变量 touches 用于存放当前共有几个手指在屏幕上
-	 * 局部变量 diff 用于传递当前移开的手指信息
-	***/
-	let diff = e.changedTouches;
-	touches = e.touches;
-	
-	
+	for (let touch of e.changedTouches) {
+		let fingerId = touch.pointerId;
+		delete inputs.touches[fingerId];
+	}
 });
 
 
@@ -656,6 +654,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 	let output = {
 		containers: [],
 		totalNotes: [],
+		tapNotes : [],
 		clickAnimate: []
 	};
 	
@@ -716,6 +715,8 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 				let baseLength = (pixi.renderer.height * 0.6);
 				let holdLength = (_note.holdLength * baseLength) / (pixi.renderer.width / settings.noteScale);
 				
+				_note.rawNoteScale = pixi.renderer.width / settings.noteScale;
+				
 				holdHead.anchor.set(0.5);
 				holdBody.anchor.set(0.5, 1);
 				holdEnd.anchor.set(0.5, 1);
@@ -769,6 +770,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 			}
 			
 			output.totalNotes.push(note);
+			if (_note.type == 1) output.tapNotes.push(note);
 		}
 		
 		container.addChild(judgeLine);
@@ -856,15 +858,16 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理 Note
 	for (let note of sprites.totalNotes) {
+		// 处理 Hold
+		if (note.raw.type == 3 && note.children.length == 3) {
+			// note.children[1].height = note.raw.holdLength * (height * 0.6) / note.raw.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.raw.rawNoteScale);
+			note.children[1].height = note.raw.holdLength * (height * 0.6) / (width / _noteScale);
+			note.children[2].position.y = -(note.raw.holdLength * (height * 0.6) / (width / _noteScale));
+		}
+		
 		note.scale.set(noteScale);
 		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (width / 2) / pixi.renderer.resolution;
 		note.position.y = -note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution;
-		
-		// 处理 Hold
-		if (note.raw.type == 3 && note.children.length == 3) {
-			note.children[1].height = note.raw.holdLength * noteSpeed / noteScale;
-			note.children[2].position.y = -((note.raw.holdLength * noteSpeed) / noteScale);
-		}
 	}
 	
 	// 处理 FPS 指示器
@@ -886,6 +889,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 function CalculateChartActualTime(delta) {
 	let currentTime = global.audio ? (_chart.audio.duration * global.audio.progress) - _chart.data.offset : 0;
 	let noteSpeed = pixi.renderer.height * 0.6 / pixi.renderer.resolution;
+	let noteScale = pixi.renderer.width / settings.noteScale / pixi.renderer.resolution;
 	
 	if (!sprites.containers) return;
 	
@@ -952,11 +956,19 @@ function CalculateChartActualTime(delta) {
 	}
 	
 	for (let i of sprites.totalNotes) {
-		if (i.raw.score > 0) continue;
+		if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
+			// i.height = i.raw.holdLength * (i.raw.realTime - currentTime) / i.raw.realHoldTime * noteSpeed / noteScale;
+			
+			if (i.raw.isAbove) i.position.y = -(i.raw.offsetY + (i.raw.holdLength * (currentTime - i.raw.realTime) / i.raw.realTime) * noteSpeed / pixi.renderer.resolution) * noteSpeed;
+			else i.position.y = (i.raw.offsetY + (i.raw.holdLength * (currentTime - i.raw.realTime) / i.raw.realTime)) * noteSpeed;
+		}
+		
+		if (i.raw.score > 0 && i.raw.isProcessed) continue;
 		
 		if (i.raw.realTime - currentTime <= 0) {
 			let timeBetween = i.raw.type != 3 ? i.raw.realTime - currentTime : (i.raw.realTime + i.raw.realHoldTime) - currentTime;
-			
+			// if (settings.autoPlay) judgements.judgeNote(sprites.totalNotes, currentTime);
+			/**
 			if (settings.autoPlay) {
 				if (0 >= timeBetween >= -0.2) {
 					i.alpha = 0;
@@ -968,15 +980,23 @@ function CalculateChartActualTime(delta) {
 					continue;
 				}
 			}
+			**/
 			
 			if (timeBetween > -0.2) {
 				i.alpha = (0.2 + timeBetween) / 0.2;
 			} else {
 				i.alpha = 0;
 				i.raw.score = 1;
+				i.raw.isProcessed = true;
 				// console.log('miss');
 			}
 		}
+	}
+	
+	if (pixi.ticker.elapsedMS / 1000 < 0.67) {
+		judgements.addJudgement(sprites.totalNotes, currentTime);
+		judgements.judgeNote(sprites.totalNotes, currentTime);
+		inputs.taps.length = 0;
 	}
 }
 
@@ -1003,8 +1023,12 @@ function CreateClickAnimation(x, y, type = 4, performance = false) {
 		
 	}
 	
-	pixi.stage.addChild(obj);
-	obj.play();
+	if (obj) {
+		pixi.stage.addChild(obj);
+		if (type == 3 || type == 4)
+			obj.play();
+	}
+// else console.log(type);
 }
 
 function CreateAccurateIndicator(scale = 500) {

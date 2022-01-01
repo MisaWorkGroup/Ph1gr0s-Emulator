@@ -23,8 +23,8 @@ class Click {
 	 * 该静态方法用于判断输入的坐标是否为四个角，如是则触发 specialCick
 	 * 无论是否触发 specialClick 该方法都会返回一个新的 Click 并将其 push 到 taps 数组内。
 	***/
-	static activate(offsetX, offsetY) {
-		inputs.push(new Click(offsetX, offsetY));
+	static activate(offsetX, offsetY, inputId = 0) {
+		inputs.taps.push(new Click(offsetX, offsetY));
 		/**
 		// 左上角判断
 		if (offsetX < lineScale * 1.5 &&
@@ -84,7 +84,7 @@ class Click {
 }
 
 /***
- * 猜测该类为 Note 的判定服务。
+ * 该类为 Note 的判定服务。
  * 
  * 该类在初始化时会传入三个参数：offsetX，offsetY，type
  *     offsetX: 判定点的水平位置
@@ -103,8 +103,20 @@ class Judgement {
 	}
 	
 	// 猜测该函数用于判定 Note 是否在某个区域内（应该是 Note 的判定区域）
-	isInArea(x, y, cosr, sinr, hw) {
-		return isNaN(this.offsetX + this.offsetY) ? true : Math.abs((this.offsetX - x) * cosr + (this.offsetY - y) * sinr) <= hw;
+	// hw 是 Note 宽度，暂时未知是否也需要旋转
+	isInArea(x, y, angle, hw, keyCode = 0) {
+		if (isNaN(this.offsetX + this.offsetY)) { // 键盘数据一律按在区域内处理，之后改成按按键区分是否在区域内
+			return true;
+			
+		} else {
+			let rotation = angle * Math.PI / 180;
+			let cosr = Math.cos(rotation);
+			let sinr = Math.sin(rotation);
+			
+			return Math.abs((this.offsetX - x) * cosr + (this.offsetY - y) * sinr) <= hw;
+		}
+		
+		return false;
 	}
 }
 
@@ -125,7 +137,7 @@ class Judgements extends Array {
 	addJudgement(notes, realTime) {
 		this.length = 0;
 		
-		if (!autoplay.checked) { // 判断是否开启了自动演示
+		if (!settings.autoPlay) { // 判断是否开启了自动演示
 			for (let i in inputs.mouse) { // 遍历鼠标点击事件
 				let click = inputs.mouse[i];
 				
@@ -145,7 +157,7 @@ class Judgements extends Array {
 				if (touch instanceof Click) {
 					if (touch.time) this.push(new Judgement(touch.offsetX, touch.offsetY, 2));
 					else if (touch.isMoving) this.push(new Judgement(touch.offsetX, touch.offsetY, 3));
-					//else this.push(new Judgement(i.offsetX, i.offsetY, 1));
+					// else this.push(new Judgement(touch.offsetX, touch.offsetY, 1));
 				}
 			}
 			
@@ -159,174 +171,278 @@ class Judgements extends Array {
 				}
 			}
 			
+			
 			for (let tap of inputs.taps) { // 遍历触摸单击事件
 				if (tap instanceof Click) this.push(new Judgement(tap.offsetX, tap.offsetY, 1));
 			}
 			
+			
 		} else { // 如果开启了自动演示，则自动添加判定点
 			
 			for (const i of notes) {
-				if (i.scored) continue;
+				if (i.raw.score > 0 && i.raw.isProcessed) continue;
 				
-				if (i.type == 1) {
-					if (i.realTime - realTime < 0.0) this.push(new Judgement(i.offsetX, i.offsetY, 1));
-				} else if (i.type == 2) {
-					if (i.realTime - realTime < 0.2) this.push(new Judgement(i.offsetX, i.offsetY, 2));
-				} else if (i.type == 3) {
-					if (i.status3) this.push(new Judgement(i.offsetX, i.offsetY, 2));
-					else if (i.realTime - realTime < 0.0) this.push(new Judgement(i.offsetX, i.offsetY, 1));
-				} else if (i.type == 4) {
-					if (i.realTime - realTime < 0.2) this.push(new Judgement(i.offsetX, i.offsetY, 3));
+				let globalPosition = i.getGlobalPosition();
+				let offsetX = globalPosition.x;
+				let offsetY = globalPosition.y;
+				
+				if (i.raw.type == 1) {
+					if (i.raw.realTime - realTime < 0.0) this.push(new Judgement(offsetX, offsetY, 1));
+				} else if (i.raw.type == 2) {
+					if (i.raw.realTime - realTime < 0.2) this.push(new Judgement(offsetX, offsetY, 2));
+				} else if (i.raw.type == 3) {
+					if (i.isHolding) this.push(new Judgement(offsetX, offsetY, 2));
+					else if (i.raw.realTime - realTime < 0.0) this.push(new Judgement(offsetX, offsetY, 1));
+				} else if (i.raw.type == 4) {
+					if (i.raw.realTime - realTime < 0.2) this.push(new Judgement(offsetX, offsetY, 3));
 				}
 			}
 		}
 	};
 	
 	// 计算 Note 的判定
-	judgeNote(notes, realTime, width) {
+	/***
+	 * 备忘录：
+	 * 这一块的代码由于是直接复制自原版，所以有很多东西要改，有的地方甚至要去修改主代码。
+	***/
+	judgeNote(notes, realTime) {
 		for (const i of notes) { // 遍历所有 Note
-			if (i.score > 0) continue; // 如果该 Note 已被打击，则忽略
+			let globalPosition = i.getGlobalPosition();
+			let offsetX = globalPosition.x;
+			let offsetY = globalPosition.y;
+			let angle = i.parent.parent.angle;
 			
-			if (i.realTime - realTime < -0.16 && !i.status2) { // 是否 Miss
-				//console.log("Miss", i.name);
-				// stat.addCombo(4, i.type);
-				i.score = 1;
+			const times = {
+				bad              : 200,
+				good             : 160,
+				perfect          : 80,
+				badChallenge     : 100,
+				goodChallenge    : 75,
+				perfectChallenge : 40
+			};
+			
+			const timePerfect = (settings.challengeMode ? times.perfectChallenge : times.perfect) / 1000;
+			const timeGood = (settings.challengeMode ? times.goodChallenge : times.good) / 1000;
+			const timeBad = (settings.challengeMode ? times.badChallenge : times.bad) / 1000;
+			
+			let timeBetween = i.raw.realTime - realTime;
+			let timeBetweenReal = timeBetween > 0 ? timeBetween : -timeBetween;
+			
+			if (i.raw.score > 0 && i.raw.isProcessed) continue; // 如果该 Note 已被打击，则忽略
+			
+			if (timeBetween < -timeBad && !(i.raw.isProcessed || i.raw.isPressing)) { // 是否 Miss
+				console.log("Miss", i.id);
+				// stat.addCombo(4, i.type); // 这条之后改改，先注释了
+				i.raw.score = 1;
+				i.raw.isProcessed = true;
 				
-			} else if (i.type == 1) { // Note 类型为 Tap。在这个分支中，判定和动画是一起执行的
-				for (let j = 0; j < this.length; j++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
-					if (this[j].type == 1 && this[j].isInArea(i.offsetX, i.offsetY, i.cosr, i.sinr, width) && i.realTime - realTime < 0.2 && i.realTime - realTime > -0.16) { // 推测该判定分支是为了当 Note 在画面内时才继续
-						if (i.realTime - realTime > 0.16) { // 判定 Bad
-							//console.log("Bad", i.name);
-							if (!this[j].catched) {
-								i.status = 3;
-								i.badtime = Date.now();
+				if (i.raw.type == 3)
+					i.alpha = 0.5;
+				
+			} else if (i.raw.type == 1) { // Note 类型为 Tap。在这个分支中，判定和动画是一起执行的
+				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
+					if (
+						this[x].type == 1 &&
+						this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+						timeBetweenReal <= timeBad &&
+						!i.raw.isProcessed
+					) {
+						if (timeBetweenReal <= timePerfect) { // 判定 Perfect
+							console.log("Perfect", i.id);
+							i.raw.score = 4;
+							i.raw.accType = timeBetween < 0 ? -1 : 1;
+							
+						} else if (timePerfect < timeBetweenReal <= timeGood) { // 判定 Good
+							console.log("Good", i.id);
+							i.raw.score = 3;
+							i.raw.accType = timeBetween < 0 ? -1 : 1;
+							
+						} else if (timeGood < timeBetweenReal <= timeBad) {
+							console.log("Bad", i.id);
+							if (!this[x].catched) {
+								i.raw.score = 2;
+								i.raw.accType = timeBetween < 0 ? -1 : 1; // 判定是 Early 还是 Late
 							}
-							
-						} else if (i.realTime - realTime > 0.08) { // 判定 Good(Early)
-							//console.log("Good(Early)", i.name);
-							i.status = 2;
-							if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
-							clickEvents1.push(ClickEvent1.getClickGood(i.projectX, i.projectY));
-							
-						} else if (i.realTime - realTime > -0.08) { // 判定 Perfect
-							//console.log("Perfect", i.name);
-							i.status = 1;
-							if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
-							clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
-							
-						} else { // 判定 Good(Late)
-							//console.log("Good(Late)", i.name);
-							i.status = 2;
-							if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
-							clickEvents1.push(ClickEvent1.getClickGood(i.projectX, i.projectY));
 						}
 						
 						// 如果 Note 被成功判定，则停止继续检测
-						if (i.status) {
-							stat.addCombo(i.status, 1);
-							i.scored = true;
-							this.splice(j, 1);
+						if (i.raw.score > 0 && !i.raw.isProcessed) {
+							// stat.addCombo(i.status, 1);
+							i.alpha = 0;
+							CreateClickAnimation(offsetX, offsetY, i.raw.score, settings.performanceMode);
+							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
+							
+							i.raw.isProcessed = true;
+							
+							this.splice(x, 1);
 							break;
 						}
+						
 					}
-				}
-				
-			} else if (i.type == 2) { // Note 类型为 Drag
-				if (i.status == 1 && i.realTime - realTime < 0) { // 为已打击的 Note 播放声音与击打动画
-					if (document.getElementById("hitSong").checked) playSound(res["HitSong1"], false, true, 0);
-					clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
-					stat.addCombo(1, 2);
-					i.scored = true;
 					
-				} else if (!i.status) { // 检测 Note 是否被打击
-					for (let j = 0; j < this.length; j++) {
-						if (this[j].isInArea(i.offsetX, i.offsetY, i.cosr, i.sinr, width) && i.realTime - realTime < 0.16 && i.realTime - realTime > -0.16) {
-							//console.log("Perfect", i.name);
-							this[j].catched = true;
-							i.status = 1;
+				}
+				
+			} else if (i.raw.type == 2) { // Note 类型为 Drag
+				if (i.raw.score > 0 && timeBetween < 0 && !i.raw.isProcessed) { // 为已打击的 Note 播放声音与击打动画
+					i.alpha = 0;
+					CreateClickAnimation(offsetX, offsetY, 4, settings.performanceMode);
+					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
+					// stat.addCombo(1, 2);
+					i.raw.isProcessed = true;
+					
+				} else if (!i.raw.isProcessed) { // 检测 Note 是否被打击
+					for (let x = 0; x < this.length; x++) {
+						if (
+							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							timeBetweenReal <= timeBad
+						) { 
+							this[x].catched = true;
+							i.raw.score = 4;
+							i.raw.accType = timeBetween < 0 ? -1 : 1;
+							
 							break;
 						}
 					}
 				}
 				
-			} else if (i.type == 3) { // Note 类型为 Hold
-				if (i.status3) { // Hold 是否被按下
+			} else if (i.raw.type == 3) { // Note 类型为 Hold
+				/**
+				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下 i.status3
 					// 这一块应该是只负责 Body 的打击动画
-					if ((Date.now() - i.status3) * i.holdTime >= 1.6e4 * i.realHoldTime) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
-						if (i.status2 == 1) clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
-						else if (i.status2 == 2) clickEvents1.push(ClickEvent1.getClickGood(i.projectX, i.projectY));
-						i.status3 = Date.now();
+					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
+						CreateClickAnimation(offsetX, offsetY, i.raw.score, settings.performanceMode);
+						i.raw.pressTime = Date.now();
 					}
 					
-					if (i.realTime + i.realHoldTime - 0.2 < realTime) { // Note 被按下且已结束
-						if (!i.status) stat.addCombo(i.status = i.status2, 3);
-						if (i.realTime + i.realHoldTime < realTime) i.scored = true;
+					if (i.raw.realTime + i.raw.realHoldTime - timeBad < realTime && i.raw.isPressing) { // Note 被按下且已结束
+						// if (i.raw.score > 0 && !i.raw.isProcessed) stat.addCombo(i.status = i.status2, 3);
+						if (i.raw.realTime + i.raw.realHoldTime < realTime) i.isProcessed = true;
 						continue;
 					}
 				}
 				
-				i.status4 = true;
-				
-				for (let j = 0; j < this.length; j++) {
-					if (!i.status3) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
-						if (this[j].type == 1 && this[j].isInArea(i.offsetX, i.offsetY, i.cosr, i.sinr, width) && i.realTime - realTime < 0.16 && i.realTime - realTime > -0.16) {
-							if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
+				for (let x = 0; x < this.length; x++) {
+					if (!i.raw.isPressing && !i.raw.pressTime) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
+						if (this[x].type == 1 && this[x].isInArea(offsetX, offsetY, angle, i.width) && i.realTime - realTime < 0.16 && i.realTime - realTime > -0.16) {
+							// if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
 							
-							if (i.realTime - realTime > 0.08) { // 判定 Good(Early)
+							if (timePerfect > timeBetweenReal >= timeBad) { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
 								//console.log("Good(Early)", i.name);
-								i.status2 = 2;
-								clickEvents1.push(ClickEvent1.getClickGood(i.projectX, i.projectY));
-								i.status3 = Date.now();
+								i.raw.score = 3;
+								i.raw.isPressing = true;
+								i.raw.accType = timeBetween < 0 ? -1 : 1;
+								//clickEvents1.push(ClickEvent1.getClickGood(i.projectX, i.projectY));
+								i.raw.pressTime = Date.now();
+								CreateClickAnimation(offsetX, offsetY, 3, settings.performanceMode);
 								
-							} else if (i.realTime - realTime > -0.08) { // 判定 Perfect
+							} else if (timeBetweenReal <= timePerfect) { // 判定 Perfect
 								//console.log("Perfect", i.name);
-								i.status2 = 1;
-								clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
-								i.status3 = Date.now();
+								i.raw.score = 4;
+								i.raw.isPressing = true;
+								i.raw.accType = timeBetween < 0 ? -1 : 1;
+								// clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
+								i.raw.pressTime = Date.now();
+								CreateClickAnimation(offsetX, offsetY, 4, settings.performanceMode);
 								
-							} else { // 判定 Good(Late)
-								//console.log("Good(Late)", i.name);
-								i.status2 = 2;
-								clickEvents1.push(ClickEvent1.getClickGood(i.projectX, i.projectY));
-								i.status3 = Date.now();
 							}
 							
-							this.splice(j, 1);
+							this.splice(x, 1);
 							i.status4 = false;
 							break;
 						}
 						
-					} else if (this[j].isInArea(i.offsetX, i.offsetY, i.cosr, i.sinr, width)) i.status4 = false; // 如果已经被判定了，则忽略
+					} else if (this[x].isInArea(offsetX, offsetY, angle, i.width)) {
+						i.status4 = false; // 如果已经被判定了，则忽略
+					}
 				}
-				
-				if (!isPaused && i.status3 && i.status4) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
-					//console.log("Miss", i.name);
-					i.status = 4;
-					stat.addCombo(4, 3);
-					i.scored = true;
-				}
-				
-			} else if (i.type == 4) { // Note 类型为 Flick
-				if (i.status == 1 && i.realTime - realTime < 0) { // 有判定则播放声音和动画
-					if (document.getElementById("hitSong").checked) playSound(res["HitSong2"], false, true, 0);
-					clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
-					stat.addCombo(1, 4);
-					i.scored = true;
+				**/
+				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下 i.status3
+					// 这一块应该是只负责 Body 的打击动画
+					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
+						CreateClickAnimation(offsetX, offsetY, i.raw.score, settings.performanceMode);
+						i.raw.pressTime = Date.now();
+					}
 					
-				} else if (!i.status) {
-					for (let j = 0; j < this.length; j++) {
+					if (i.raw.realTime + i.raw.realHoldTime - timeBad < realTime && i.raw.isPressing) { // Note 被按下且已结束
+						// if (i.raw.score > 0 && !i.raw.isProcessed) stat.addCombo(i.status = i.status2, 3);
+						if (i.raw.realTime + i.raw.realHoldTime < realTime) i.isProcessed = true;
+						continue;
+					}
+				}
+				
+				for (let x = 0; x < this.length; x++) {
+					if (!i.raw.isPressing && !i.raw.pressTime) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
+						if (
+							this[x].type == 1 &&
+							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							timeBetweenReal < timeGood
+						) {
+							// if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
+							
+							if (timeBetweenReal <= timePerfect) { // 判定 Perfect
+								//console.log("Perfect", i.name);
+								i.raw.score = 4;
+								i.raw.isPressing = true;
+								i.raw.accType = timeBetween < 0 ? -1 : 1;
+								i.raw.pressTime = Date.now();
+								
+							} else if (timePerfect > timeBetweenReal >= timeBad) { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
+								//console.log("Good(Early)", i.name);
+								i.raw.score = 3;
+								i.raw.isPressing = true;
+								i.raw.accType = timeBetween < 0 ? -1 : 1;
+								i.raw.pressTime = Date.now();
+								
+							}
+							
+							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
+							CreateClickAnimation(offsetX, offsetY, i.raw.score, settings.performanceMode);
+							
+							this.splice(x, 1);
+							i.status4 = false;
+							break;
+						}
+						
+					} else if (this[x].isInArea(offsetX, offsetY, angle, i.width)) {
+						i.status4 = false; // 如果已经被判定了，则忽略
+					}
+				}
+				
+				if (!status.isPaused && i.raw.isPressed && i.raw.pressedTime && !i.raw.isProcessed) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
+					//console.log("Miss", i.name);
+					i.raw.score = 1;
+					// stat.addCombo(4, 3);
+					i.raw.isProcessed = true;
+				}
+				
+			}/** else if (i.raw.type == 4) { // Note 类型为 Flick
+				if (i.raw.score > 0 && timeBetweenReal < 0 && !i.raw.isProcessed) { // 有判定则播放声音和动画
+					// if (document.getElementById("hitSong").checked) playSound(res["HitSong2"], false, true, 0);
+					// clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
+					// stat.addCombo(1, 4);
+					i.raw.isProcessed = true;
+					CreateClickAnimation(offsetX, offsetY, 4, settings.performanceMode);
+					
+				} else if (i.raw.score <= 0) {
+					for (let x = 0; x < this.length; x++) {
 						// 这里懒得写了
-						if (this[j].isInArea(i.offsetX, i.offsetY, i.cosr, i.sinr, width) && i.realTime - realTime < 0.16 && i.realTime - realTime > -0.16) {
+						if (
+							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							timeBetweenReal <= timeGood
+						) {
 							//console.log("Perfect", i.name);
-							this[j].catched = true;
-							if (this[j].type == 3) {
-								i.status = 1;
+							this[x].catched = true;
+							if (this[x].type == 3) {
+								i.score = 4;
 								break;
 							}
 						}
 					}
 				}
 			}
+			**/
+			
+			
 		}
 	}
 }
