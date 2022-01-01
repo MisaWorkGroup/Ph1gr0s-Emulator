@@ -13,7 +13,9 @@ glid('canvas-box').appendChild(pixi.view);
 // pixi.settings.RESOLUTION = ;
 // 精灵和贴图信息
 let sprites = {};
-let textures = {};
+let textures = {
+	sound: {}
+};
 
 // 触摸手指信息
 let touches = {};
@@ -34,7 +36,7 @@ var chartData = {
 	infos  : undefined,
 	lines  : undefined
 };
-	
+
 var _chart = {};
 
 var global = {};
@@ -47,7 +49,9 @@ let settings = {
 	autoPlay: false,
 	backgroundBlur: false,
 	backgroundDim: 0.5,
-	developMode: false
+	developMode: false,
+	playHitsound: true,
+	hitsoundVolume: 0.75
 }
 
 // ========此处声明监听器=========
@@ -133,29 +137,36 @@ pixi.loader
 		{ name: 'holdBodyHl', url: './img/HoldHL.png' },
 		{ name: 'holdEnd',    url: './img/HoldEnd.png' },
 		{ name: 'judgeLine',  url: './img/JudgeLine.png' },
-		{ name: 'clickRaw',   url: './img/clickRaw128.png' }
+		{ name: 'clickRaw',   url: './img/clickRaw128.png' },
+		{ name: 'soundTap',   url: './sound/Hitsound-Tap.ogg' },
+		{ name: 'soundDrag',  url: './sound/Hitsound-Drag.ogg' },
+		{ name: 'soundFlick', url: './sound/Hitsound-Flick.ogg' }
 	])
 	.load(function (event) {
 		// 将贴图信息添加到 textures 对象中
 		for (const name in event.resources) {
-			textures[name] = event.resources[name].texture;
-			
-			if (name == 'clickRaw') { // 将点击爆裂效果雪碧图转换为贴图数组，以方便创建动画精灵对象。
-				/***
-				 * 根据 PIXI 对于动画组件的规定，我们需要将动画雪碧图拆分成 30 个同等大小的
-				 * 图片，将它们按照顺序存放入材质数组，这样才可以用他来正常创建动画精灵。
-				 * 至于为什么图片分辨率被我压缩到了 128px，是因为我的设备读不了原尺寸的图片...
-				***/
-				let _clickTextures = [];
+			if (name.indexOf('sound') <= -1) {
+				textures[name] = event.resources[name].texture;
 				
-				for (let i = 0; i < Math.floor(textures[name].height / 128); i++) {
-					let rectangle = new PIXI.Rectangle(0, i * 128, 128, 128);
-					let texture = new PIXI.Texture(textures[name].baseTexture, rectangle);
+				if (name == 'clickRaw') { // 将点击爆裂效果雪碧图转换为贴图数组，以方便创建动画精灵对象。
+					/***
+					 * 根据 PIXI 对于动画组件的规定，我们需要将动画雪碧图拆分成 30 个同等大小的
+					 * 图片，将它们按照顺序存放入材质数组，这样才可以用他来正常创建动画精灵。
+					 * 至于为什么图片分辨率被我压缩到了 128px，是因为我的设备读不了原尺寸的图片...
+					***/
+					let _clickTextures = [];
 					
-					_clickTextures.push(texture);
+					for (let i = 0; i < Math.floor(textures[name].height / 128); i++) {
+						let rectangle = new PIXI.Rectangle(0, i * 128, 128, 128);
+						let texture = new PIXI.Texture(textures[name].baseTexture, rectangle);
+						
+						_clickTextures.push(texture);
+					}
+					
+					textures[name] = _clickTextures;
 				}
-				
-				textures[name] = _clickTextures;
+			} else {
+				textures.sound[name.replace('sound', '').toLowerCase()] = event.resources[name].sound;
 			}
 		}
 	}
@@ -655,7 +666,9 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		containers: [],
 		totalNotes: [],
 		tapNotes : [],
-		clickAnimate: []
+		clickAnimate: {
+			bad: []
+		}
 	};
 	
 	// 创建背景图
@@ -956,12 +969,14 @@ function CalculateChartActualTime(delta) {
 	}
 	
 	for (let i of sprites.totalNotes) {
+		/**
 		if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
 			// i.height = i.raw.holdLength * (i.raw.realTime - currentTime) / i.raw.realHoldTime * noteSpeed / noteScale;
 			
 			if (i.raw.isAbove) i.position.y = -(i.raw.offsetY + (i.raw.holdLength * (currentTime - i.raw.realTime) / i.raw.realTime) * noteSpeed / pixi.renderer.resolution) * noteSpeed;
 			else i.position.y = (i.raw.offsetY + (i.raw.holdLength * (currentTime - i.raw.realTime) / i.raw.realTime)) * noteSpeed;
 		}
+		**/
 		
 		if (i.raw.score > 0 && i.raw.isProcessed) continue;
 		
@@ -993,6 +1008,17 @@ function CalculateChartActualTime(delta) {
 		}
 	}
 	
+	for (let i in sprites.clickAnimate.bad) {
+		let obj = sprites.clickAnimate.bad[i];
+		
+		obj.alpha -= 2 / 60;
+		
+		if (obj.alpha <= 0) {
+			obj.destroy();
+			sprites.clickAnimate.bad.splice(i, 1);
+		}
+	}
+	
 	if (pixi.ticker.elapsedMS / 1000 < 0.67) {
 		judgements.addJudgement(sprites.totalNotes, currentTime);
 		judgements.judgeNote(sprites.totalNotes, currentTime);
@@ -1000,7 +1026,7 @@ function CalculateChartActualTime(delta) {
 	}
 }
 
-function CreateClickAnimation(x, y, type = 4, performance = false) {
+function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 	let obj = undefined;
 	
 	if (type <= 1) return;
@@ -1009,27 +1035,34 @@ function CreateClickAnimation(x, y, type = 4, performance = false) {
 		obj = new PIXI.AnimatedSprite(textures.clickRaw);
 		
 		obj.anchor.set(0.5);
-		obj.scale.set((pixi.renderer.width / settings.noteScale) * (256 / obj.width) * pixi.renderer.resolution);
+		obj.scale.set((pixi.renderer.width / settings.noteScale) * (256 / obj.width) * pixi.renderer.resolution * 1.4);
 		obj.position.set(x, y);
 		
-		// obj.alpha = type == 4 ? 0.88 : 0.92;
 		obj.tint = type == 4 ? 0xFFECA0 : 0xB4E1FF;
 		obj.loop = false;
 		
 		obj.onComplete = function () {
 			this.destroy();
 		};
-	} else {
 		
+	} else {
+		obj = new PIXI.Sprite(textures.tap2);
+		
+		obj.anchor.set(0.5);
+		obj.scale.set(pixi.renderer.width / settings.noteScale / pixi.renderer.resolution);
+		obj.position.set(x, y);
+		obj.angle = angle;
 	}
 	
 	if (obj) {
 		pixi.stage.addChild(obj);
 		if (type == 3 || type == 4)
 			obj.play();
+		else
+			sprites.clickAnimate.bad.push(obj);
 	}
-// else console.log(type);
 }
+
 
 function CreateAccurateIndicator(scale = 500) {
 	let container = new PIXI.Container();
@@ -1085,7 +1118,7 @@ function CreateAccurateIndicator(scale = 500) {
 				
 				accurate.alpha -= 0.5 / 60;
 				if (accurate.alpha <= 0) {
-					if (accurate.destroy) accurate.destroy();
+					accurate.destroy();
 				}
 			}
 		}
@@ -1104,8 +1137,16 @@ function CreateAccurateIndicator(scale = 500) {
 		let time = (currentTime - noteTime) * 1000;
 		let rankColor = time > 0 ? time : -time;
 		
-		rankColor = rankColor > 160 ? 0x8E0000 : rankColor;
-		rankColor = rankColor > 80 ? 0xB4E1FF : 0xFFECA0;
+		let timeBad = 200;
+		let timeGood = 160;
+		let timePerfect = 80;
+		
+		if (rankColor < timePerfect)
+			rankColor = 0xFFECA0;
+		else if (rankColor < timeGood)
+			rankColor = 0xB4E1FF;
+		else if (rankColor < timeBad)
+			rankColor = 0x8E0000;
 		
 		accGraphic.beginFill(rankColor);
 		accGraphic.drawRect(0, 0, 2, 20);
