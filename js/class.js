@@ -306,58 +306,8 @@ class Judgements extends Array {
 				}
 				
 			} else if (i.raw.type == 3) { // Note 类型为 Hold
-				/**
 				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下 i.status3
-					// 这一块应该是只负责 Body 的打击动画
-					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
-						CreateClickAnimation(offsetX, offsetY, i.raw.score, settings.performanceMode);
-						i.raw.pressTime = Date.now();
-					}
-					
-					if (i.raw.realTime + i.raw.realHoldTime - timeBad < realTime && i.raw.isPressing) { // Note 被按下且已结束
-						// if (i.raw.score > 0 && !i.raw.isProcessed) stat.addCombo(i.status = i.status2, 3);
-						if (i.raw.realTime + i.raw.realHoldTime < realTime) i.isProcessed = true;
-						continue;
-					}
-				}
-				
-				for (let x = 0; x < this.length; x++) {
-					if (!i.raw.isPressing && !i.raw.pressTime) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
-						if (this[x].type == 1 && this[x].isInArea(offsetX, offsetY, angle, i.width) && i.realTime - realTime < 0.16 && i.realTime - realTime > -0.16) {
-							// if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
-							
-							if (timePerfect > timeBetweenReal >= timeBad) { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
-								//console.log("Good(Early)", i.name);
-								i.raw.score = 3;
-								i.raw.isPressing = true;
-								i.raw.accType = timeBetween < 0 ? -1 : 1;
-								//clickEvents1.push(ClickEvent1.getClickGood(i.projectX, i.projectY));
-								i.raw.pressTime = Date.now();
-								CreateClickAnimation(offsetX, offsetY, 3, settings.performanceMode);
-								
-							} else if (timeBetweenReal <= timePerfect) { // 判定 Perfect
-								//console.log("Perfect", i.name);
-								i.raw.score = 4;
-								i.raw.isPressing = true;
-								i.raw.accType = timeBetween < 0 ? -1 : 1;
-								// clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
-								i.raw.pressTime = Date.now();
-								CreateClickAnimation(offsetX, offsetY, 4, settings.performanceMode);
-								
-							}
-							
-							this.splice(x, 1);
-							i.status4 = false;
-							break;
-						}
-						
-					} else if (this[x].isInArea(offsetX, offsetY, angle, i.width)) {
-						i.status4 = false; // 如果已经被判定了，则忽略
-					}
-				}
-				**/
-				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下 i.status3
-					// 这一块应该是只负责 Body 的打击动画
+					// 此处为已被单击的 Hold 持续监听是否一直被按住到 Hold 结束
 					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
 						CreateClickAnimation(offsetX, offsetY, i.raw.score, settings.performanceMode);
 						i.raw.pressTime = Date.now();
@@ -413,17 +363,21 @@ class Judgements extends Array {
 					i.raw.score = 1;
 					// stat.addCombo(4, 3);
 					i.raw.isProcessed = true;
+					i.alpha = 0.5;
 				}
 				
-			}/** else if (i.raw.type == 4) { // Note 类型为 Flick
-				if (i.raw.score > 0 && timeBetweenReal < 0 && !i.raw.isProcessed) { // 有判定则播放声音和动画
+			} else if (i.raw.type == 4) { // Note 类型为 Flick
+				if (i.raw.score > 0 && timeBetween < 0 && !i.raw.isProcessed) { // 有判定则播放声音和动画
 					// if (document.getElementById("hitSong").checked) playSound(res["HitSong2"], false, true, 0);
 					// clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
 					// stat.addCombo(1, 4);
-					i.raw.isProcessed = true;
+					i.alpha = 0;
 					CreateClickAnimation(offsetX, offsetY, 4, settings.performanceMode);
+					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 					
-				} else if (i.raw.score <= 0) {
+					i.raw.isProcessed = true;
+					
+				} else if (!i.raw.isProcessed) {
 					for (let x = 0; x < this.length; x++) {
 						// 这里懒得写了
 						if (
@@ -433,14 +387,14 @@ class Judgements extends Array {
 							//console.log("Perfect", i.name);
 							this[x].catched = true;
 							if (this[x].type == 3) {
-								i.score = 4;
+								i.raw.score = 4;
 								break;
 							}
 						}
 					}
 				}
 			}
-			**/
+			
 			
 			
 		}
