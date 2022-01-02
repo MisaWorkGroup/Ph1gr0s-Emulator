@@ -10,15 +10,14 @@ let pixi = new PIXI.Application({
 	/* view: glid('canvas') */
 });
 glid('canvas-box').appendChild(pixi.view);
-// pixi.settings.RESOLUTION = ;
+
 // 精灵和贴图信息
 let sprites = {};
 let textures = {
 	sound: {}
 };
 
-// 触摸手指信息
-let touches = {};
+// 用户输入信息
 var inputs = {
 	taps: [],
 	touches: {},
@@ -26,9 +25,11 @@ var inputs = {
 	keyboard: {}
 };
 
+// 判定用关键类
 var judgements = new Judgements();
 
 // 谱面信息
+var _chart = {}; // 被选中的谱面信息
 var chartData = {
 	images : undefined,
 	audios : undefined,
@@ -37,11 +38,94 @@ var chartData = {
 	lines  : undefined
 };
 
-var _chart = {};
+
 
 var global = {};
 
-let settings = {
+const score = {
+	init: function(totalNotes, isChallenge = false) {
+		this.totalNotes = totalNotes;
+		this.challenge = isChallenge;
+		
+		this.score = 0;
+		this.combo = 0;
+		this.maxCombo = 0;
+	
+		this.perfect = 0;
+		this.good = 0;
+		this.bad = 0;
+		this.miss = 0;
+		
+		this.acc = 0;
+		this.perfectAcc = [0, 0];
+		this.goodAcc = [0, 0];
+		this.badAcc = [0, 0];
+		this.missAcc = [0, 0];
+		
+		if (!isChallenge) {
+			this.scorePerNote = 900000 / totalNotes;
+			
+		} else {
+			this.scorePerNote = 1000000 / totalNotes;
+			
+		}
+		
+		return this;
+	},
+	
+	addCombo: function(type, acc = 0) {
+		if (type == 4) {
+			this.perfect += 1;
+			this.combo += 1;
+			
+			if (!!acc)
+				this.perfectAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		if (type == 3) {
+			this.good += 1;
+			this.combo += 1;
+			
+			if (!!acc)
+				this.goodAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		if (type == 2) {
+			this.bad += 1;
+			this.combo = 0;
+			
+			if (!!acc)
+				this.badAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		if (type == 1) {
+			this.miss += 1;
+			this.combo = 0;
+			
+			if (!!acc)
+				this.missAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		
+		if (this.combo > this.maxCombo) {
+			this.maxCombo = this.combo;
+		}
+		
+		this.score = this.scorePerNote * this.perfect + this.scorePerNote * this.good * 0.65;
+		if (!this.challenge)
+				this.score += (this.maxCombo / this.totalNotes) * 100000;
+		
+		this.score = this.score.toFixed(0);
+		this.scoreText = this.score + '';
+		
+		while (7 > this.scoreText.length) {
+			this.scoreText = '0' + this.scoreText;
+		}
+		
+		if (sprites.scoreText)
+			sprites.scoreText.text = this.scoreText;
+		
+		return this;
+	}
+};
+
+var settings = {
 	windowRatio: 16 / 9, // 设备宽高比
 	noteScale: 8e3, // 按键缩放比
 	multiNotesHighlight : true,  // 多押高亮
@@ -735,7 +819,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		judgeLine.position.set(0, 0);
 		
 		if (settings.developMode) {
-			let judgeLineName = new PIXI.Text(_judgeLine.id, { fill: 'rgba(255,236,160,0.8823529)' });
+			let judgeLineName = new PIXI.Text(_judgeLine.id, { fill: 'rgb(255,100,100)' });
 			judgeLineName.anchor.set(0.5);
 			judgeLineName.position.set(0);
 			judgeLine.addChild(judgeLineName);
@@ -787,7 +871,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 			}
 			
 			if (settings.developMode) {
-				let noteName = new PIXI.Text(_note.lineId + '+' + _note.id, { fill: 'rgba(180,225,255,0.9215686)' });
+				let noteName = new PIXI.Text(_note.lineId + '+' + _note.id, { fill: 'rgb(100,255,100)' });
 				noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
 				noteName.anchor.set(0.5);
 				noteName.position.set(0);
@@ -799,6 +883,15 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 			
 			if (_note.isAbove) note.position.y = -_note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
 			else note.position.y = _note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
+			
+			// 为修复吞 Note 问题搭桥
+			if (isNaN((_note.positionX.toFixed(6) * 0.109) * (pixi.renderer.width / 2) / pixi.renderer.resolution) ||
+				isNaN(_note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution == 0))
+			{
+				console.log('a note get position error', _note.lineId, _note.id);
+				console.log('x:', _note.positionX.toFixed(6) * 0.109, 'y:', _note.offsetY);
+			}
+			
 			
 			note.raw = _note;
 			note.id = _note.id;
@@ -829,6 +922,19 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		output.containers.push(container);
 	}
 	
+	// 分数指示
+	if (!sprites.scoreText) {
+		let scoreText = new PIXI.Text('0000000', {
+			fontFamily: 'Mina',
+			fontSize: lineScale / pixi.renderer.resolution * 0.95 + 'px',
+			fill: 'white'
+		});
+		
+		pixi.stage.addChild(scoreText);
+		output.scoreText = scoreText;
+	}
+	
+	// FPS 计数器
 	if (requireFPSCounter && !sprites.fps) {
 		let fps = new PIXI.Text('00.00', {
 			fontFamily : 'Mina',
@@ -902,7 +1008,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	}
 	
 	// 处理进度条
-	sprites.progressBar.scale.set(pixi.renderer.width / progressBar.texture.width);
+	sprites.progressBar.scale.set(pixi.renderer.width / sprites.progressBar.texture.width);
 	
 	// 不处理没有判定线和 Note 的精灵对象
 	if (!sprites.containers || !sprites.totalNotes) {

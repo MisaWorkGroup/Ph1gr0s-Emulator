@@ -231,7 +231,7 @@ class Judgements extends Array {
 			if (i.raw.score > 0 && i.raw.isProcessed) continue; // 如果该 Note 已被打击，则忽略
 			
 			if (timeBetween < -timeBad && !(i.raw.isProcessed || i.raw.isPressing)) { // 是否 Miss
-				// stat.addCombo(4, i.type); // 这条之后改改，先注释了
+				score.addCombo(1);
 				i.raw.score = 1;
 				i.raw.isProcessed = true;
 				
@@ -263,8 +263,9 @@ class Judgements extends Array {
 						
 						// 如果 Note 被成功判定，则停止继续检测
 						if (i.raw.score > 0 && !i.raw.isProcessed) {
-							// stat.addCombo(i.status, 1);
+							score.addCombo(i.raw.score, i.raw.accType);
 							i.alpha = 0;
+							
 							if (settings.playHitsound && i.raw.score > 2) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
@@ -281,11 +282,13 @@ class Judgements extends Array {
 				
 			} else if (i.raw.type == 2) { // Note 类型为 Drag
 				if (i.raw.score > 0 && timeBetween < 0 && !i.raw.isProcessed) { // 为已打击的 Note 播放声音与击打动画
+					score.addCombo(i.raw.score, i.raw.accType);
 					i.alpha = 0;
+					
 					if (settings.playHitsound) textures.sound.drag.play({volume: settings.hitsoundVolume});
 					CreateClickAnimation(offsetX, offsetY, 4, i.parent.parent.angle, settings.performanceMode);
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
-					// stat.addCombo(1, 2);
+					
 					i.raw.isProcessed = true;
 					
 				} else if (!i.raw.isProcessed) { // 检测 Note 是否被打击
@@ -304,7 +307,7 @@ class Judgements extends Array {
 				}
 				
 			} else if (i.raw.type == 3) { // Note 类型为 Hold
-				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下 i.status3
+				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下
 					// 此处为已被单击的 Hold 持续监听是否一直被按住到 Hold 结束
 					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
 						CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
@@ -312,7 +315,7 @@ class Judgements extends Array {
 					}
 					
 					if (i.raw.realTime + i.raw.realHoldTime - timeBad < realTime && i.raw.isPressing) { // Note 被按下且已结束
-						// if (i.raw.score > 0 && !i.raw.isProcessed) stat.addCombo(i.status = i.status2, 3);
+						if (i.raw.score > 0 && !i.raw.isProcessed) score.addCombo(i.raw.score, i.raw.sccType);
 						if (i.raw.realTime + i.raw.realHoldTime < realTime) {
 							i.alpha = 0;
 							i.isProcessed = true;
@@ -328,17 +331,13 @@ class Judgements extends Array {
 							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
 							timeBetweenReal < timeGood
 						) {
-							// if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
-							
 							if (timeBetweenReal <= timePerfect) { // 判定 Perfect
-								//console.log("Perfect", i.name);
 								i.raw.score = 4;
 								i.raw.isPressing = true;
 								i.raw.accType = timeBetween < 0 ? -1 : 1;
 								i.raw.pressTime = Date.now();
 								
 							} else if (timeBetweenReal <= timeGood) { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
-								//console.log("Good(Early)", i.name);
 								i.raw.score = 3;
 								i.raw.isPressing = true;
 								i.raw.accType = timeBetween < 0 ? -1 : 1;
@@ -360,19 +359,16 @@ class Judgements extends Array {
 				}
 				
 				if (!status.isPaused && (i.raw.score > 0 && !i.raw.isPressing) && !i.raw.isProcessed) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
-					//console.log("Miss", i.name);
 					i.raw.score = 1;
-					// stat.addCombo(4, 3);
+					score.addCombo(1, i.raw.accType);
 					i.raw.isProcessed = true;
 					i.alpha = 0.5;
 				}
 				
 			} else if (i.raw.type == 4) { // Note 类型为 Flick
 				if (i.raw.score > 0 && timeBetween < 0 && !i.raw.isProcessed) { // 有判定则播放声音和动画
-					// if (document.getElementById("hitSong").checked) playSound(res["HitSong2"], false, true, 0);
-					// clickEvents1.push(ClickEvent1.getClickPerfect(i.projectX, i.projectY));
-					// stat.addCombo(1, 4);
 					i.alpha = 0;
+					score.addCombo(i.raw.score, i.raw.accType);
 					
 					if (settings.playHitsound) textures.sound.flick.play({volume: settings.hitsoundVolume});
 					CreateClickAnimation(offsetX, offsetY, 4, i.parent.parent.angle, settings.performanceMode);
@@ -386,7 +382,6 @@ class Judgements extends Array {
 							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
 							timeBetweenReal <= timeGood
 						) {
-							//console.log("Perfect", i.name);
 							this[x].catched = true;
 							if (this[x].type == 3) {
 								i.raw.score = 4;
