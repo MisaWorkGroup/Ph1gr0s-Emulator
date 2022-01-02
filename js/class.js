@@ -242,7 +242,7 @@ class Judgements extends Array {
 				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
 					if (
 						this[x].type == 1 &&
-						this[x].isInArea(offsetX, offsetY, angle, pixi.renderer.width * 0.117775) &&
+						this[x].isInArea(offsetX, offsetY, angle, i.width) &&
 						timeBetweenReal <= timeBad &&
 						!i.raw.isProcessed
 					) {
@@ -265,7 +265,7 @@ class Judgements extends Array {
 						if (i.raw.score > 0 && !i.raw.isProcessed) {
 							// stat.addCombo(i.status, 1);
 							i.alpha = 0;
-							if (settings.playHitsound) textures.sound.tap.play({volume: settings.hitsoundVolume});
+							if (settings.playHitsound && i.raw.score > 2) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 							
@@ -291,7 +291,7 @@ class Judgements extends Array {
 				} else if (!i.raw.isProcessed) { // 检测 Note 是否被打击
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, angle, pixi.renderer.width * 0.117775) &&
+							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
 							timeBetweenReal <= timeBad
 						) { 
 							this[x].catched = true;
@@ -325,7 +325,7 @@ class Judgements extends Array {
 					if (!i.raw.isPressing && !i.raw.pressTime && !i.raw.isPrecessed) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
 						if (
 							this[x].type == 1 &&
-							this[x].isInArea(offsetX, offsetY, angle, pixi.renderer.width * 0.117775) &&
+							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
 							timeBetweenReal < timeGood
 						) {
 							// if (document.getElementById("hitSong").checked) playSound(res["HitSong0"], false, true, 0);
@@ -354,7 +354,7 @@ class Judgements extends Array {
 							break;
 						}
 						
-					} else if (this[x].isInArea(offsetX, offsetY, angle, pixi.renderer.width * 0.117775)) {
+					} else if (this[x].isInArea(offsetX, offsetY, angle, i.width)) {
 						i.raw.isPressing = true; // 持续判断手指是否在判定区域内
 					}
 				}
@@ -383,7 +383,7 @@ class Judgements extends Array {
 				} else if (!i.raw.isProcessed) {
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, angle, pixi.renderer.width * 0.117775) &&
+							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
 							timeBetweenReal <= timeGood
 						) {
 							//console.log("Perfect", i.name);

@@ -46,7 +46,7 @@ let settings = {
 	noteScale: 8e3, // 按键缩放比
 	multiNotesHighlight : true,  // 多押高亮
 	disableJudgeLineAlpha: false,
-	autoPlay: false,
+	autoPlay: true,
 	backgroundBlur: false,
 	backgroundDim: 0.5,
 	developMode: false,
@@ -68,9 +68,11 @@ pixi.loader.onProgress.add(function (e) {
 	console.log(e.progress);
 });
 
-// ==Pixijs Events 事件监听器==
+// ==舞台用户输入事件监听器==
 // 舞台触摸开始事件
 pixi.view.addEventListener('touchstart', (e) => {
+	e.preventDefault();
+	
 	for (let touch of e.changedTouches) {
 		let canvasPosition = pixi.view.getBoundingClientRect();
 		let fingerId = touch.pointerId;
@@ -83,6 +85,8 @@ pixi.view.addEventListener('touchstart', (e) => {
 
 // 舞台触摸移动事件
 pixi.view.addEventListener('touchmove', (e) => {
+	e.preventDefault();
+	
 	for (let touch of e.changedTouches) {
 		let canvasPosition = pixi.view.getBoundingClientRect();
 		let fingerId = touch.pointerId;
@@ -95,6 +99,16 @@ pixi.view.addEventListener('touchmove', (e) => {
 
 // 舞台触摸结束事件
 pixi.view.addEventListener('touchend', (e) => {
+	e.preventDefault();
+	
+	for (let touch of e.changedTouches) {
+		let fingerId = touch.pointerId;
+		delete inputs.touches[fingerId];
+	}
+});
+pixi.view.addEventListener('touchcancel', (e) => {
+	e.preventDefault();
+	
 	for (let touch of e.changedTouches) {
 		let fingerId = touch.pointerId;
 		delete inputs.touches[fingerId];
@@ -103,15 +117,6 @@ pixi.view.addEventListener('touchend', (e) => {
 
 
 // =======此处声明初始化事件=======
-// 创建一个全局 AudioContext 对象
-{
-	let audioCtx = window.AudioContext || window.webkitAudioContext;
-	global.audioContext = new audioCtx();
-	global.audioGain = global.audioContext.createGain();
-	
-	global.audioGain.connect(global.audioContext.destination);
-}
-
 // 启用 Pixi 的自动缩放，并将舞台尺寸调整到正确的尺寸
 pixi.renderer.autoResize = true;
 pixi.renderer.resize(document.body.offsetWidth, document.body.offsetWidth * (1 / settings.windowRatio));
@@ -120,27 +125,34 @@ pixi.renderer.resize(document.body.offsetWidth, document.body.offsetWidth * (1 /
 pixi.stage.interactive = true;
 pixi.stage.hitArea = pixi.renderer.screen;
 
+if (!PIXI.utils.isWebGLSupported()) {
+	alert('你的浏览器不支持 WebGL，无法使用硬件加速，将使用 Canvas 绘制图像。');
+}
+
 
 // 加载贴图
 pixi.loader
 	.add([
-		{ name: 'tap',        url: './img/Tap.png' },
-		{ name: 'tap2',       url: './img/Tap2.png' },
-		{ name: 'tapHl',      url: './img/TapHL.png' },
-		{ name: 'drag',       url: './img/Drag.png' },
-		{ name: 'dragHl',     url: './img/DragHL.png' },
-		{ name: 'flick',      url: './img/Flick.png' },
-		{ name: 'flickHl',    url: './img/FlickHL.png' },
-		{ name: 'holdHead',   url: './img/HoldHead.png' },
-		{ name: 'holdHeadHl', url: './img/HoldHeadHL.png' },
-		{ name: 'holdBody',   url: './img/Hold.png' },
-		{ name: 'holdBodyHl', url: './img/HoldHL.png' },
-		{ name: 'holdEnd',    url: './img/HoldEnd.png' },
-		{ name: 'judgeLine',  url: './img/JudgeLine.png' },
-		{ name: 'clickRaw',   url: './img/clickRaw128.png' },
-		{ name: 'soundTap',   url: './sound/Hitsound-Tap.ogg' },
-		{ name: 'soundDrag',  url: './sound/Hitsound-Drag.ogg' },
-		{ name: 'soundFlick', url: './sound/Hitsound-Flick.ogg' }
+		{ name: 'tap',         url: './img/Tap.png' },
+		{ name: 'tap2',        url: './img/Tap2.png' },
+		{ name: 'tapHl',       url: './img/TapHL.png' },
+		{ name: 'drag',        url: './img/Drag.png' },
+		{ name: 'dragHl',      url: './img/DragHL.png' },
+		{ name: 'flick',       url: './img/Flick.png' },
+		{ name: 'flickHl',     url: './img/FlickHL.png' },
+		{ name: 'holdHead',    url: './img/HoldHead.png' },
+		{ name: 'holdHeadHl',  url: './img/HoldHeadHL.png' },
+		{ name: 'holdBody',    url: './img/Hold.png' },
+		{ name: 'holdBodyHl',  url: './img/HoldHL.png' },
+		{ name: 'holdEnd',     url: './img/HoldEnd.png' },
+		{ name: 'judgeLine',   url: './img/JudgeLine.png' },
+		{ name: 'clickRaw',    url: './img/clickRaw128.png' },
+		
+		{ name: 'progressBar', url: './img/ProgressBar.png' },
+		
+		{ name: 'soundTap',    url: './sound/Hitsound-Tap.ogg' },
+		{ name: 'soundDrag',   url: './sound/Hitsound-Drag.ogg' },
+		{ name: 'soundFlick',  url: './sound/Hitsound-Flick.ogg' }
 	])
 	.load(function (event) {
 		// 将贴图信息添加到 textures 对象中
@@ -350,10 +362,19 @@ function SwitchChart(chartId) {
 	
 	let chartInfo = chartData.infos[chartId];
 	let chart = {
-		data : chartData.charts[chartInfo.Chart],
+		data  : chartData.charts[chartInfo.Chart],
 		audio : chartData.audios[chartInfo.Music],
-		image : chartData.images[chartInfo.Image]
+		image : chartData.images[chartInfo.Image],
+		lines : []
 	};
+	
+	if (chartData.lines instanceof Array) {
+		for (let line of chartData.lines) {
+			if (line.Chart == chartInfo.Chart) {
+				chart.lines.push(line);
+			}
+		}
+	}
 	
 	_chart = chart;
 	
@@ -688,18 +709,14 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 	output.background = background;
 	pixi.stage.addChild(background);
 	
-	// 创建水印
-	let watermark = new PIXI.Text('PhigrosEmulator v1.0.0 Beta By MisaLiu OriginBy lzhch', {
-		fontFamily : 'Mina',
-		fontSize: lineScale / pixi.renderer.resolution * 0.6 + 'px',
-		fill: 'rgba(255, 255, 255, 0.5)',
-		align: 'right'
-	});
+	let progressBar = new PIXI.Sprite(textures.progressBar);
 	
-	pixi.stage.addChild(watermark);
-	watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - watermark.height - 1);
+	progressBar.anchor.x = 1;
+	progressBar.scale.set(pixi.renderer.width / progressBar.texture.width);
+	progressBar.alpha = 0.8;
 	
-	output.watermark = watermark;
+	pixi.stage.addChild(progressBar);
+	output.progressBar = progressBar;
 	
 	for (let _judgeLine of chart.judgeLines) {
 		let container = new PIXI.Container();
@@ -843,6 +860,24 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		output.fps = sprites.fps;
 	}
 	
+	// 创建水印
+	if (!sprites.watermark) {
+		let watermark = new PIXI.Text('PhigrosEmulator v1.0.0 Beta By MisaLiu OriginBy lzhch', {
+			fontFamily : 'Mina',
+			fontSize: lineScale / pixi.renderer.resolution * 0.6 + 'px',
+			fill: 'rgba(255, 255, 255, 0.5)',
+			align: 'right'
+		});
+		
+		pixi.stage.addChild(watermark);
+		watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - watermark.height - 1);
+		
+		output.watermark = watermark;
+		
+	} else {
+		output.watermark = sprites.waterpark;
+	}
+	
 	return output;
 }
 
@@ -865,6 +900,9 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		sprites.background.width = pixi.renderer.width / pixi.renderer.resolution;
 		sprites.background.height = pixi.renderer.height / pixi.renderer.resolution;
 	}
+	
+	// 处理进度条
+	sprites.progressBar.scale.set(pixi.renderer.width / progressBar.texture.width);
 	
 	// 不处理没有判定线和 Note 的精灵对象
 	if (!sprites.containers || !sprites.totalNotes) {
@@ -924,6 +962,9 @@ function CalculateChartActualTime(delta) {
 	let noteScale = pixi.renderer.width / settings.noteScale / pixi.renderer.resolution;
 	
 	if (!sprites.containers) return;
+	
+	if (sprites.progressBar)
+		sprites.progressBar.position.x = pixi.renderer.width * global.audio.progress / pixi.renderer.resolution;
 	
 	for (let container of sprites.containers) {
 		let judgeLine = container.children[0];
