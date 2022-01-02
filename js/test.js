@@ -121,6 +121,16 @@ const score = {
 		if (sprites.scoreText)
 			sprites.scoreText.text = this.scoreText;
 		
+		if (sprites.comboText) {
+			if (this.combo > 2) {
+				sprites.comboText.alpha = 1;
+				sprites.comboText.children[0].text = this.combo;
+				
+			} else {
+				sprites.comboText.alpha = 0;
+			}
+		}
+		
 		return this;
 	}
 };
@@ -900,6 +910,7 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 			if (_note.isAbove) notesAbove.addChild(note);
 			else note.angle = 180,notesBelow.addChild(note);
 			
+			// 单独处理速度不为 1 的非长条 Note
 			if (_note.speed != 1 && _note.type != 3) {
 				if (_note.isAbove) notesAbove.speedNotes.push(note);
 				else notesBelow.speedNotes.push(note);
@@ -931,7 +942,47 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 		});
 		
 		pixi.stage.addChild(scoreText);
+		
+		scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - scoreText.width - 4, 10 / pixi.renderer.resolution);
+		
 		output.scoreText = scoreText;
+	}
+	
+	// Combo 指示
+	if (!sprites.comboText) {
+		let combo = new PIXI.Container();
+		let number = new PIXI.Text('0', {
+			fontFamily : 'Mina',
+			fontSize : lineScale / pixi.renderer.resolution * 1.32 + 'px',
+			fill : 'white'
+		});
+		let text = new PIXI.Text('combo', {
+			fontFamily : 'Mina',
+			fontSize : lineScale / pixi.renderer.resolution * 0.66 +'px',
+			fill : 'white'
+		});
+		
+		if (settings.autoPlay) text.text = 'Autoplay';
+		
+		number.anchor.x = 0.5;
+		text.anchor.x = 0.5;
+		
+		combo.addChild(number);
+		combo.addChild(text);
+		
+		combo.alpha = 0;
+		
+		pixi.stage.addChild(combo);
+		
+		combo.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+		combo.position.y = 8 / pixi.renderer.resolution;
+		
+		text.position.y = number.height / pixi.renderer.resolution + 4;
+		
+		output.comboText = combo;
+		
+	} else {
+		output.comboText = sprites.comboText;
 	}
 	
 	// FPS 计数器
@@ -1008,7 +1059,8 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	}
 	
 	// 处理进度条
-	sprites.progressBar.scale.set(pixi.renderer.width / sprites.progressBar.texture.width);
+	if (sprites.progressBar)
+		sprites.progressBar.scale.set(pixi.renderer.width / sprites.progressBar.texture.width);
 	
 	// 不处理没有判定线和 Note 的精灵对象
 	if (!sprites.containers || !sprites.totalNotes) {
@@ -1135,41 +1187,32 @@ function CalculateChartActualTime(delta) {
 	}
 	
 	for (let i of sprites.totalNotes) {
-		/**
+		// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
 		if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
-			// i.height = i.raw.holdLength * (i.raw.realTime - currentTime) / i.raw.realHoldTime * noteSpeed / noteScale;
+			let rawNoteOffsetY = i.raw.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
+			let parentOffsetY = i.parent.position.y;
+			parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
 			
-			if (i.raw.isAbove) i.position.y = -(i.raw.offsetY + (i.raw.holdLength * (currentTime - i.raw.realTime) / i.raw.realTime) * noteSpeed / pixi.renderer.resolution) * noteSpeed;
-			else i.position.y = (i.raw.offsetY + (i.raw.holdLength * (currentTime - i.raw.realTime) / i.raw.realTime)) * noteSpeed;
+			let betweenOffsetY = parentOffsetY - rawNoteOffsetY;
+			let rawHoldLength = (i.raw.holdLength * pixi.renderer.height * 0.6) / (pixi.renderer.width / settings.noteScale);
+			
+			i.children[1].height = rawHoldLength - betweenOffsetY * pixi.renderer.resolution / (pixi.renderer.width / settings.noteScale);
+			i.children[2].position.y = -(rawHoldLength - betweenOffsetY * pixi.renderer.resolution / (pixi.renderer.width / settings.noteScale));
+			
+			if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY);
+			else i.position.y = rawNoteOffsetY + betweenOffsetY;
 		}
-		**/
+		
 		
 		if (i.raw.score > 0 && i.raw.isProcessed) continue;
 		
 		if (i.raw.realTime - currentTime <= 0) {
 			let timeBetween = i.raw.type != 3 ? i.raw.realTime - currentTime : (i.raw.realTime + i.raw.realHoldTime) - currentTime;
-			// if (settings.autoPlay) judgements.judgeNote(sprites.totalNotes, currentTime);
-			/**
-			if (settings.autoPlay) {
-				if (0 >= timeBetween >= -0.2) {
-					i.alpha = 0;
-					i.raw.score = 4;
-					
-					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, currentTime);
-					
-					CreateClickAnimation(i.getGlobalPosition().x, i.getGlobalPosition().y, 4);
-					continue;
-				}
-			}
-			**/
 			
 			if (timeBetween > -0.2) {
 				i.alpha = (0.2 + timeBetween) / 0.2;
 			} else {
 				i.alpha = 0;
-				i.raw.score = 1;
-				i.raw.isProcessed = true;
-				// console.log('miss');
 			}
 		}
 	}

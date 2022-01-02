@@ -180,7 +180,7 @@ class Judgements extends Array {
 		} else { // 如果开启了自动演示，则自动添加判定点
 			
 			for (const i of notes) {
-				if (i.raw.score > 0 && i.raw.isProcessed) continue;
+				if (i.raw.score > 0 && (i.raw.isProcessed || i.raw.isScored)) continue;
 				
 				let globalPosition = i.getGlobalPosition();
 				let offsetX = globalPosition.x;
@@ -234,6 +234,7 @@ class Judgements extends Array {
 				score.addCombo(1);
 				i.raw.score = 1;
 				i.raw.isProcessed = true;
+				i.raw.isScored = true;
 				
 				if (i.raw.type == 3)
 					i.alpha = 0.5;
@@ -309,13 +310,16 @@ class Judgements extends Array {
 			} else if (i.raw.type == 3) { // Note 类型为 Hold
 				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下
 					// 此处为已被单击的 Hold 持续监听是否一直被按住到 Hold 结束
-					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
+					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime && !i.raw.isScored) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
 						CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
 						i.raw.pressTime = Date.now();
 					}
 					
 					if (i.raw.realTime + i.raw.realHoldTime - timeBad < realTime && i.raw.isPressing) { // Note 被按下且已结束
-						if (i.raw.score > 0 && !i.raw.isProcessed) score.addCombo(i.raw.score, i.raw.sccType);
+						if (i.raw.score > 0 && !i.raw.isScored) {
+							score.addCombo(i.raw.score, i.raw.accType);
+							i.raw.isScored = true;
+						}
 						if (i.raw.realTime + i.raw.realHoldTime < realTime) {
 							i.alpha = 0;
 							i.isProcessed = true;
@@ -358,9 +362,10 @@ class Judgements extends Array {
 					}
 				}
 				
-				if (!status.isPaused && (i.raw.score > 0 && !i.raw.isPressing) && !i.raw.isProcessed) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
+				if (!status.isPaused && (i.raw.score > 0 && !i.raw.isPressing) && !(i.raw.isProcessed || i.raw.isScored)) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
 					i.raw.score = 1;
 					score.addCombo(1, i.raw.accType);
+					i.raw.isScored = true;
 					i.raw.isProcessed = true;
 					i.alpha = 0.5;
 				}
