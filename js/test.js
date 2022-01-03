@@ -140,7 +140,7 @@ var settings = {
 	noteScale: 8e3, // 按键缩放比
 	multiNotesHighlight : true,  // 多押高亮
 	disableJudgeLineAlpha: false,
-	autoPlay: true,
+	autoPlay: false,
 	backgroundBlur: false,
 	backgroundDim: 0.5,
 	developMode: false,
