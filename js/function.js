@@ -439,7 +439,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	let output = {
 		containers: [],
 		totalNotes: [],
-		tapNotes : [],
+		fingers: {},
 		clickAnimate: {
 			bad: []
 		}
@@ -568,7 +568,6 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 			}
 			
 			output.totalNotes.push(note);
-			if (_note.type == 1) output.tapNotes.push(note);
 		}
 		
 		container.addChild(judgeLine);
@@ -588,7 +587,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	if (!sprites.scoreText) {
 		let scoreText = new PIXI.Text('0000000', {
 			fontFamily: 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.95 + 'px',
+			fontSize: lineScale * 0.95 + 'px',
 			fill: 'white'
 		});
 		
@@ -604,12 +603,12 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		let combo = new PIXI.Container();
 		let number = new PIXI.Text('0', {
 			fontFamily : 'Mina',
-			fontSize : lineScale / pixi.renderer.resolution * 1.32 + 'px',
+			fontSize : lineScale * 1.32 + 'px',
 			fill : 'white'
 		});
 		let text = new PIXI.Text('combo', {
 			fontFamily : 'Mina',
-			fontSize : lineScale / pixi.renderer.resolution * 0.66 +'px',
+			fontSize : lineScale * 0.66 + 'px',
 			fill : 'white'
 		});
 		
@@ -628,7 +627,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		combo.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
 		combo.position.y = 8 / pixi.renderer.resolution;
 		
-		text.position.y = number.height / pixi.renderer.resolution + 4;
+		text.position.y = (number.height + 13) / pixi.renderer.resolution;
 		
 		output.comboText = combo;
 		
@@ -640,7 +639,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	if (requireFPSCounter && !sprites.fps) {
 		let fps = new PIXI.Text('00.00', {
 			fontFamily : 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.8 + 'px',
+			fontSize: lineScale * 0.8 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
@@ -670,9 +669,9 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	
 	// 创建水印
 	if (!sprites.watermark) {
-		let watermark = new PIXI.Text('PhigrosEmulator v1.0.0 Beta By MisaLiu OriginBy lzhch', {
+		let watermark = new PIXI.Text('Ph1gr0s Emulator v1.0.0 Beta By MisaLiu Origin By lchzh3473', {
 			fontFamily : 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.6 + 'px',
+			fontSize: lineScale * 0.6 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
@@ -908,9 +907,25 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		note.position.y = note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution * (note.raw.isAbove ? -1 : 1);
 	}
 	
+	// 处理 Combo 文字
+	if (sprites.comboText) {
+		sprites.comboText.children[0].fontSize = lineScale * pixi.renderer.resolution * 1.32 + 'px';
+		sprites.comboText.children[1].fontSize = lineScale * pixi.renderer.resolution * 0.66 + 'px';
+		
+		sprites.comboText.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+		sprites.comboText.position.y = 8 / pixi.renderer.resolution;
+		sprites.comboText.children[1].position.y = (sprites.comboText.children[0].height + 12) / pixi.renderer.resolution;
+	}
+	
+	// 处理分数指示器
+	if (sprites.scoreText) {
+		sprites.scoreText.fontSize = lineScale * pixi.renderer.resolution * 0.95 + 'px';
+		sprites.scoreText.position.set(width / pixi.renderer.resolution - sprites.scoreText.width - 4, 10 / pixi.renderer.resolution);
+	}
+	
 	// 处理 FPS 指示器
 	if (sprites.fps) {
-		sprites.fps.fontSize = lineScale * 0.8 + 'px';
+		sprites.fps.fontSize = lineScale * pixi.renderer.resolution * 0.8 + 'px';
 		sprites.fps.position.set(width / pixi.renderer.resolution - sprites.fps.width - 2, 1 / pixi.renderer.resolution);
 	}
 	
@@ -922,7 +937,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理水印
 	if (sprites.watermark) {
-		sprites.watermark.fontSize = lineScale * 0.6 + 'px';
+		sprites.watermark.fontSize = lineScale * pixi.renderer.resolution * 0.6 + 'px';
 		sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
 	}
 }
