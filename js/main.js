@@ -38,6 +38,7 @@ var settings = {
 	backgroundBlur      : true, // 背景图模糊
 	clickAnimate        : true, // 打击动画
 	accIndicator        : false, // 准度指示器
+	showFinger          : false, // 手指触摸点
 	noteScale           : 8e3, // 按键缩放
 	accIndicatorScale   : 500, // 准度指示器缩放
 	multiNotesHighlight : true, // 多押高亮
@@ -539,6 +540,18 @@ function gameInit() {
 			let y = touch.offsetY - canvasPosition.y;
 			
 			inputs.touches[fingerId] = Click.activate(x, y, fingerId);
+			
+			if (settings.showFinger) {
+				let circle = new PIXI.Graphics();
+				
+				circle.beginFill(0x00FFFF);
+				circle.drawCircle(0, 0, 6);
+				circle.endFill();
+				
+				pixi.stage.addChild(circle);
+				circle.position.set(x, y);
+				sprites.fingers[fingerId] = circle;
+			}
 		}
 	});
 	
@@ -553,6 +566,10 @@ function gameInit() {
 			let y = touch.offsetY - canvasPosition.y;
 			
 			inputs.touches[fingerId].move(x, y);
+			
+			if (settings.showFinger) {
+				sprites.fingers[fingerId].position.set(x, y);
+			}
 		}
 	});
 	
@@ -562,6 +579,11 @@ function gameInit() {
 		
 		for (let touch of e.changedTouches) {
 			let fingerId = touch.pointerId;
+			
+			if (settings.showFinger) {
+				sprites.fingers[fingerId].destroy();
+				delete sprites.fingers[fingerId];
+			}
 			delete inputs.touches[fingerId];
 		}
 	});
@@ -570,6 +592,11 @@ function gameInit() {
 		
 		for (let touch of e.changedTouches) {
 			let fingerId = touch.pointerId;
+			
+			if (settings.showFinger) {
+				sprites.fingers[fingerId].destroy();
+				delete sprites.fingers[fingerId];
+			}
 			delete inputs.touches[fingerId];
 		}
 	});
