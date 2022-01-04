@@ -313,7 +313,7 @@ function decodeZip(input) {
 				let _infos = await file.async('text');
 				let infos = Csv2Array(_infos, true);
 				
-				chartData.infos = infos;
+				chartData.infos = JSON.parse(JSON.stringify(infos));
 				
 			} else if (file.name == 'line.csv') { // 读取判定线贴图信息
 				let _lines = await file.async('text');
@@ -407,39 +407,44 @@ function switchChart(name) {
 	
 	let chart = {};
 	
-	for (let chartInfo of chartInfos) {
-		if (chartInfo.Chart == name) {
-			chart = {
-				info  : {
-					name        : chartInfo.Name,
-					level       : chartInfo.Level,
-					illustrator : chartInfo.Illustrator,
-					designer    : chartInfo.Designer
-				},
-				data  : chartData.charts[chartInfo.Chart],
-				audio : chartData.audios[chartInfo.Music],
-				image : chartData.images[chartInfo.Image],
-				lines : []
-			};
-			
-			if (chartData.lines instanceof Array) {
-				for (let line of chartData.lines) {
-					if (line.Chart == chartInfo.Chart) {
-						chart.lines.push(line);
+	// 为了避免某些玄学问题才使用这样的写法
+	for (let _chartInfo of chartInfos) {
+		let chartInfo = JSON.parse(JSON.stringify(_chartInfo));
+		
+		for (let keyName in chartInfo) {
+			if (keyName.indexOf('Chart') >= 0 && chartInfo[keyName] == name) {
+				chart = {
+					info  : {
+						name        : chartInfo.Name,
+						level       : chartInfo.Level,
+						illustrator : chartInfo.Illustrator,
+						designer    : chartInfo.Designer
+					},
+					data  : chartData.charts[name],
+					audio : chartData.audios[chartInfo.Music],
+					image : chartData.images[chartInfo.Image],
+					lines : []
+				};
+				
+				if (chartData.lines instanceof Array) {
+					for (let line of chartData.lines) {
+						if (line.Chart == chartInfo.Chart) {
+							chart.lines.push(line);
+						}
 					}
 				}
+				
+				mdui.$('#input-chart-name').val(chartInfo.Name);
+				mdui.$('#input-chart-difficulty').val(chartInfo.Level);
+				mdui.$('#input-chart-author').val(chartInfo.Designer);
+				mdui.$('#input-chart-bg-author').val(chartInfo.Illustrator);
+				
+				mdui.mutation('#panel-select-chart-info');
+				
+				_chart = chart;
+				
+				return;
 			}
-			
-			mdui.$('#input-chart-name').val(chartInfo.Name);
-			mdui.$('#input-chart-difficulty').val(chartInfo.Level);
-			mdui.$('#input-chart-author').val(chartInfo.Designer);
-			mdui.$('#input-chart-bg-author').val(chartInfo.Illustrator);
-			
-			mdui.mutation('#panel-select-chart-info');
-			
-			_chart = chart;
-			
-			return;
 		}
 	}
 }
