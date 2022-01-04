@@ -58,7 +58,77 @@ function createSelection(id, object, keyName = null) {
 }
 
 
+// 全屏相关
+const full = {
+	// 切换全屏状态。代码来自 lchzh3473
+	toggle(elem) {
+		if (!this.enabled) return false;
+		if (this.element) {
+			if (document.exitFullscreen) return document.exitFullscreen();
+			if (document.cancelFullScreen) return document.cancelFullScreen();
+			if (document.webkitCancelFullScreen) return document.webkitCancelFullScreen();
+			if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
+			if (document.msExitFullscreen) return document.msExitFullscreen();
+		} else {
+			if (!(elem instanceof HTMLElement)) elem = document.body;
+			if (elem.requestFullscreen) return elem.requestFullscreen();
+			if (elem.webkitRequestFullscreen) return elem.webkitRequestFullscreen();
+			if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
+			if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
+		}
+	},
+	
+	// 检查当前全屏的元素是否一致
+	check(elem) {
+		if (!(elem instanceof HTMLElement)) elem = document.body;
+		return this.element == elem;
+	},
+	
+	// 返回当前浏览器可用的全屏方法。
+	get element() {
+		return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+	},
+	
+	// 返回当前浏览器的全屏支持状态检测方法。
+	get enabled() {
+		return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
+	}
+};
 
+function requestFullscreen(elem) {
+	let method = elem.requestFullscreen ||
+		elem.webkitRequestFullscreen ||
+		elem.mozRequestFullScreen ||
+		elem.msRequestFullscreen;
+	if (method) {
+		method.call(elem);
+		return true;
+		
+	} else {
+		return false;
+	}
+}
+
+function checkFullscreen() {
+	return !!(document.fullscreenEnabled ||
+		document.webkitFullscreenEnabled ||
+		document.mozFullScreenEnabled ||
+		document.msFullscreenEnabled);
+}
+
+function exitFullscreen(elem) {
+	let method = elem.exitFullscreen ||
+		elem.webkitExitFullscreen ||
+		elem.mozCancelFullScreen ||
+		elem.msExitFullscreen;
+	if (method) {
+		method.call(elem);
+		return true;
+		
+	} else {
+		return false;
+	}
+}
 
 
 
@@ -482,18 +552,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 			
 			note.scale.set(pixi.renderer.width / settings.noteScale / pixi.renderer.resolution);
 			note.position.x = (_note.positionX.toFixed(6) * 0.109) * (pixi.renderer.width / 2) / pixi.renderer.resolution;
-			
-			if (_note.isAbove) note.position.y = -_note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
-			else note.position.y = _note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
-			
-			// 为修复吞 Note 问题搭桥
-			if (isNaN((_note.positionX.toFixed(6) * 0.109) * (pixi.renderer.width / 2) / pixi.renderer.resolution) ||
-				isNaN(_note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution == 0))
-			{
-				console.error('a note get position error: ' + _note.lineId + '+' + _note.id +
-					'x:' + _note.positionX.toFixed(6) * 0.109 + 'y:' + _note.offsetY);
-			}
-			
+			note.position.y = _note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution * (_note.isAbove ? -1 : 1);
 			
 			note.raw = _note;
 			note.id = _note.id;
@@ -846,7 +905,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		
 		note.scale.set(noteScale);
 		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (width / 2) / pixi.renderer.resolution;
-		note.position.y = -note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution;
+		note.position.y = note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution * (note.raw.isAbove ? -1 : 1);
 	}
 	
 	// 处理 FPS 指示器

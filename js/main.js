@@ -48,11 +48,14 @@ var settings = {
 	
 	challengeMode       : false, // 课题模式
 	autoPlay            : false, // 自动播放
-	chartDelay          : 0 // 谱面延迟
+	chartDelay          : 0, // 谱面延迟
+	
+	developMode         : false,
+	disableJudgeLineAlpha : false
 };
 var global = {};
 
-var status = {
+var stat = {
 	isPaused : false,
 	isFullscreen : false
 };
@@ -494,11 +497,35 @@ function gameInit() {
 	// 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
 	window.onresize = (e) => {
 		let canvasBox = document.getElementById('game-canvas-box');
-		if (!status.isFullscreen) {
+		
+		if (stat.isFullscreen && full.check(pixi.view)) {
+			pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
+		} else {
+			if (stat.isFullscreen) pixi.renderer.resize(1, 1);
 			pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
+			stat.isFullscreen = false;
 		}
+		
 		ResizeChartSprites(sprites, pixi.renderer.width, pixi.renderer.height, settings.noteScale);
 	}
+	
+	// 监听窗口全屏改变事件
+	/***
+	document.addEventListener('fullscreenchange', () => {
+		let canvasBox = document.getElementById('game-canvas-box');
+		
+		stat.isFullscreen != stat.isFullscreen;
+		
+		if (!stat.isFullscreen) {
+			pixi.renderer.resize(1, 1);
+			pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
+			
+		} else {
+			pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
+			ResizeChartSprites(sprites, document.body.clientWidth, document.body.clientHeight,settings.noteScale);
+		}
+	});
+	***/
 	
 	// ==舞台用户输入事件监听器==
 	// 舞台触摸开始事件
@@ -557,3 +584,14 @@ function gameInit() {
 	global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
 }
 
+function setCanvasFullscreen() {
+	if (!pixi || !pixi.view) return;
+	
+	if (!checkFullscreen()) {
+		mdui.alert('你的浏览器不支持全屏！', '前方高能');
+		return;
+	}
+	
+	stat.isFullscreen = true;
+	full.toggle(pixi.view);
+}
