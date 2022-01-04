@@ -267,7 +267,7 @@ class Judgements extends Array {
 							score.addCombo(i.raw.score, i.raw.accType);
 							i.alpha = 0;
 							
-							if (settings.playHitsound && i.raw.score > 2) textures.sound.tap.play({volume: settings.hitsoundVolume});
+							if (settings.hitsound && i.raw.score > 2) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 							
@@ -286,7 +286,7 @@ class Judgements extends Array {
 					score.addCombo(i.raw.score, i.raw.accType);
 					i.alpha = 0;
 					
-					if (settings.playHitsound) textures.sound.drag.play({volume: settings.hitsoundVolume});
+					if (settings.hitsound) textures.sound.drag.play({volume: settings.hitsoundVolume});
 					CreateClickAnimation(offsetX, offsetY, 4, i.parent.parent.angle, settings.performanceMode);
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 					
@@ -349,7 +349,7 @@ class Judgements extends Array {
 								
 							}
 							
-							if (settings.playHitsound) textures.sound.tap.play({volume: settings.hitsoundVolume});
+							if (settings.hitsound) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 							CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
 							
@@ -375,7 +375,7 @@ class Judgements extends Array {
 					i.alpha = 0;
 					score.addCombo(i.raw.score, i.raw.accType);
 					
-					if (settings.playHitsound) textures.sound.flick.play({volume: settings.hitsoundVolume});
+					if (settings.hitsound) textures.sound.flick.play({volume: settings.hitsoundVolume});
 					CreateClickAnimation(offsetX, offsetY, 4, i.parent.parent.angle, settings.performanceMode);
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 					

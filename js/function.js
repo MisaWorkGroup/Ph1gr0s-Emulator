@@ -1,479 +1,67 @@
-// let zip = new JSZip();
-
-// 初始化 Pixijs，并将绘图区添加到页面中
-let pixi = new PIXI.Application({
-	width     : document.body.offsetWidth,
-	height    : document.body.offsetWidth / 16 * 9,
-	antialias : true, // 抗锯齿
-	autoDensity: true, // 配合 resolution 使用
-	resolution : window.devicePixelRatio // 默认是设备的像素密度
-	/* view: glid('canvas') */
-});
-glid('canvas-box').appendChild(pixi.view);
-
-// 精灵和贴图信息
-let sprites = {};
-let textures = {
-	sound: {}
-};
-
-// 用户输入信息
-var inputs = {
-	taps: [],
-	touches: {},
-	mouse: {},
-	keyboard: {}
-};
-
-// 判定用关键类
-var judgements = new Judgements();
-
-// 谱面信息
-var _chart = {}; // 被选中的谱面信息
-var chartData = {
-	images : undefined,
-	audios : undefined,
-	charts : undefined,
-	infos  : undefined,
-	lines  : undefined
-};
-
-
-
-var global = {};
-
-const score = {
-	init: function(totalNotes, isChallenge = false) {
-		this.totalNotes = totalNotes;
-		this.challenge = isChallenge;
-		
-		this.score = 0;
-		this.combo = 0;
-		this.maxCombo = 0;
+/***
+ * @function 向 <div id="loading-*"> 模块推送进度信息
+ * @param id {string} 该进度模块的具体 ID
+ * @param text {string} 推送的进度名称
+ * @param [progress] {num} 推送的进度百分比，提交的值为小数
+***/
+function setProgress(id, text, progress = null) {
+	let progressDiv  = document.getElementById(id);
+	let progressText = progressDiv.getElementsByClassName('text')[0];
+	let progressBar  = progressDiv.getElementsByClassName('progress')[0];
+	progressBar = progressBar.getElementsByTagName('div')[0];
 	
-		this.perfect = 0;
-		this.good = 0;
-		this.bad = 0;
-		this.miss = 0;
-		
-		this.acc = 0;
-		this.perfectAcc = [0, 0];
-		this.goodAcc = [0, 0];
-		this.badAcc = [0, 0];
-		this.missAcc = [0, 0];
-		
-		if (!isChallenge) {
-			this.scorePerNote = 900000 / totalNotes;
-			
-		} else {
-			this.scorePerNote = 1000000 / totalNotes;
-			
-		}
-		
-		return this;
-	},
+	if (!progressDiv) return;
 	
-	addCombo: function(type, acc = 0) {
-		if (type == 4) {
-			this.perfect += 1;
-			this.combo += 1;
-			
-			if (!!acc)
-				this.perfectAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 3) {
-			this.good += 1;
-			this.combo += 1;
-			
-			if (!!acc)
-				this.goodAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 2) {
-			this.bad += 1;
-			this.combo = 0;
-			
-			if (!!acc)
-				this.badAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 1) {
-			this.miss += 1;
-			this.combo = 0;
-			
-			if (!!acc)
-				this.missAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
+	progressText.innerHTML = text;
+	
+	if (progress != null && progress >= 0) {
+		progressBar.className = 'mdui-progress-determinate';
+		progressBar.style.width = progress * 100 + '%';
 		
-		if (this.combo > this.maxCombo) {
-			this.maxCombo = this.combo;
-		}
-		
-		this.score = this.scorePerNote * this.perfect + this.scorePerNote * this.good * 0.65;
-		if (!this.challenge)
-				this.score += (this.maxCombo / this.totalNotes) * 100000;
-		
-		this.score = this.score.toFixed(0);
-		this.scoreText = this.score + '';
-		
-		while (7 > this.scoreText.length) {
-			this.scoreText = '0' + this.scoreText;
-		}
-		
-		if (sprites.scoreText)
-			sprites.scoreText.text = this.scoreText;
-		
-		if (sprites.comboText) {
-			if (this.combo > 2) {
-				sprites.comboText.alpha = 1;
-				sprites.comboText.children[0].text = this.combo;
-				
-			} else {
-				sprites.comboText.alpha = 0;
-			}
-		}
-		
-		return this;
+	} else {
+		progressBar.className = 'mdui-progress-indeterminate';
 	}
-};
-
-var settings = {
-	windowRatio: 16 / 9, // 设备宽高比
-	noteScale: 8e3, // 按键缩放比
-	multiNotesHighlight : true,  // 多押高亮
-	disableJudgeLineAlpha: false,
-	autoPlay: false,
-	backgroundBlur: false,
-	backgroundDim: 0.5,
-	developMode: false,
-	hitsound: true,
-	hitsoundVolume: 0.75
+	
+	mdui.mutation(progressDiv);
 }
 
-// ========此处声明监听器=========
-// ==Windows 对象 事件监听器==
-// 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
-window.onresize = (e) => {
-	pixi.renderer.resize(document.body.offsetWidth, document.body.offsetWidth * (1 / settings.windowRatio));
-	ResizeChartSprites(sprites, pixi.renderer.width, pixi.renderer.height, settings.noteScale);
-}
-
-// ==Pixijs Loader 事件监听器==
-// 监听图像加载进度
-pixi.loader.onProgress.add(function (e) {
-	console.log(e.progress);
-});
-
-// ==舞台用户输入事件监听器==
-// 舞台触摸开始事件
-pixi.view.addEventListener('touchstart', (e) => {
-	e.preventDefault();
+/***
+ * @function 为给定的 select 元素自动填充选项。可传入 object 或者 array。传
+ *     入 array 时可选 array 中 object 的键名作为显示的文本
+ * @param id {string} select 元素的 id
+ * @param object {object|array} 欲填充的对象或数组
+ * @param [keyName] {string} 数组内对象的指定键名
+***/
+function createSelection(id, object, keyName = null) {
+	let select = document.getElementById(id);
 	
-	for (let touch of e.changedTouches) {
-		let canvasPosition = pixi.view.getBoundingClientRect();
-		let fingerId = touch.pointerId;
-		let x = touch.offsetX - canvasPosition.x;
-		let y = touch.offsetY - canvasPosition.y;
-		
-		inputs.touches[fingerId] = Click.activate(x, y, fingerId);
-	}
-});
-
-// 舞台触摸移动事件
-pixi.view.addEventListener('touchmove', (e) => {
-	e.preventDefault();
+	select.innerHTML = '';
 	
-	for (let touch of e.changedTouches) {
-		let canvasPosition = pixi.view.getBoundingClientRect();
-		let fingerId = touch.pointerId;
-		let x = touch.offsetX - canvasPosition.x;
-		let y = touch.offsetY - canvasPosition.y;
-		
-		inputs.touches[fingerId].move(x, y);
-	}
-});
-
-// 舞台触摸结束事件
-pixi.view.addEventListener('touchend', (e) => {
-	e.preventDefault();
-	
-	for (let touch of e.changedTouches) {
-		let fingerId = touch.pointerId;
-		delete inputs.touches[fingerId];
-	}
-});
-pixi.view.addEventListener('touchcancel', (e) => {
-	e.preventDefault();
-	
-	for (let touch of e.changedTouches) {
-		let fingerId = touch.pointerId;
-		delete inputs.touches[fingerId];
-	}
-});
-
-
-// =======此处声明初始化事件=======
-// 启用 Pixi 的自动缩放，并将舞台尺寸调整到正确的尺寸
-pixi.renderer.autoResize = true;
-pixi.renderer.resize(document.body.offsetWidth, document.body.offsetWidth * (1 / settings.windowRatio));
-
-// 设定舞台的可操作区域，应该是整个舞台
-pixi.stage.interactive = true;
-pixi.stage.hitArea = pixi.renderer.screen;
-
-if (!PIXI.utils.isWebGLSupported()) {
-	alert('你的浏览器不支持 WebGL，无法使用硬件加速，将使用 Canvas 绘制图像。');
-}
-
-
-// 加载贴图
-pixi.loader
-	.add([
-		{ name: 'tap',         url: './img/Tap.png' },
-		{ name: 'tap2',        url: './img/Tap2.png' },
-		{ name: 'tapHl',       url: './img/TapHL.png' },
-		{ name: 'drag',        url: './img/Drag.png' },
-		{ name: 'dragHl',      url: './img/DragHL.png' },
-		{ name: 'flick',       url: './img/Flick.png' },
-		{ name: 'flickHl',     url: './img/FlickHL.png' },
-		{ name: 'holdHead',    url: './img/HoldHead.png' },
-		{ name: 'holdHeadHl',  url: './img/HoldHeadHL.png' },
-		{ name: 'holdBody',    url: './img/Hold.png' },
-		{ name: 'holdBodyHl',  url: './img/HoldHL.png' },
-		{ name: 'holdEnd',     url: './img/HoldEnd.png' },
-		{ name: 'judgeLine',   url: './img/JudgeLine.png' },
-		{ name: 'clickRaw',    url: './img/clickRaw128.png' },
-		
-		{ name: 'progressBar', url: './img/ProgressBar.png' },
-		
-		{ name: 'soundTap',    url: './sound/Hitsound-Tap.ogg' },
-		{ name: 'soundDrag',   url: './sound/Hitsound-Drag.ogg' },
-		{ name: 'soundFlick',  url: './sound/Hitsound-Flick.ogg' }
-	])
-	.load(function (event) {
-		// 将贴图信息添加到 textures 对象中
-		for (const name in event.resources) {
-			if (name.indexOf('sound') <= -1) {
-				textures[name] = event.resources[name].texture;
-				
-				if (name == 'clickRaw') { // 将点击爆裂效果雪碧图转换为贴图数组，以方便创建动画精灵对象。
-					/***
-					 * 根据 PIXI 对于动画组件的规定，我们需要将动画雪碧图拆分成 30 个同等大小的
-					 * 图片，将它们按照顺序存放入材质数组，这样才可以用他来正常创建动画精灵。
-					 * 至于为什么图片分辨率被我压缩到了 128px，是因为我的设备读不了原尺寸的图片...
-					***/
-					let _clickTextures = [];
-					
-					for (let i = 0; i < Math.floor(textures[name].height / 128); i++) {
-						let rectangle = new PIXI.Rectangle(0, i * 128, 128, 128);
-						let texture = new PIXI.Texture(textures[name].baseTexture, rectangle);
-						
-						_clickTextures.push(texture);
-					}
-					
-					textures[name] = _clickTextures;
-				}
-			} else {
-				textures.sound[name.replace('sound', '').toLowerCase()] = event.resources[name].sound;
-			}
-		}
-	}
-);
-
-
-// 选择 ZIP 文件并解析
-function selectZip(input) {
-	let reader = new FileReader();
-	let zip    = new JSZip();
-	
-	// 监听文件读取进度
-	reader.onprogress = (e) => {
-		console.log(e.loaded / input.files[0].size);
-	}
-	
-	// 文件打开后使用 JSZip 解析压缩包
-	reader.onloadend = (e) => {
-		zip.loadAsync(reader.result)
-			.then((e) => loadZip(e))
-			.catch((e) => {
-				console.log('not a zip');
-				console.log(e);
-			}
-		);
-	}
-	
-	// 过滤非 zip 文件
-	if (getFileFormat(input.files[0].name) != 'zip') {
-		console.log('not a zip');
-		return;
-	}
-	
-	// 解析选择的文件
-	reader.readAsArrayBuffer(input.files[0]);
-	
-	
-	async function loadZip(e) {
-		const imageFormat = ('jpeg,jpg,gif,png,webp').split(',');
-		const audioFormat = ('aac,flac,mp3,ogg,wav,webm').split(',');
-		const numPattern  = /^(\-|\+)?\d+(e\d)?(\.\d+)?$/;
-		
-		let loadedFiles = 0;
-		let zipFiles    = [];
-		
-		// 清空之前加载的谱面信息
-		for (let i in chartData) {
-			chartData[i] = {};
-		}
-		
-		for (let name in e.files) { // 预处理文件信息
-			let file = e.files[name];
-			let realName = name.split('/');
-			let format = '';
-			
-			realName = realName[realName.length - 1];
-			format = getFileFormat(realName);
-			
-			if (file.dir) continue; // 过滤文件夹
-			
-			file.realName = realName;
-			file.format = format;
-			file.isHidden = realName.indexOf('.') == 0 ? true : false;
-			
-			zipFiles.push(file);
-		}
-		
-		for (let file of zipFiles) {
-			let format = file.format;
-			
-			if (file.name == 'info.csv') { // 读取谱面信息
-				let infos = [];
-				let _infos = await file.async('text');
-				_infos = Csv2Array(_infos, true);
-				
-				for (let info of _infos) { // 过滤值非法的项目
-					if (numPattern.test(info.AspectRatio) && numPattern.test(info.ScaleRatio) && numPattern.test(info.GlobalAlpha)) {
-						infos.push(info);
-					}
-				}
-				
-				chartData.infos = infos;
-				
-			} else if (file.name == 'line.csv') { // 读取判定线贴图信息
-				let lines = [];
-				let _lines = await file.async('text');
-				_lines = Csv2Array(_lines, true);
-				
-				for (let line of _lines) { // 过滤值非法的项目
-					if (numPattern.test(line.LineId) && numPattern.test(line.Vert) && numPattern.test(line.Horz) && numPattern.test(line.IsDark)) {
-						lines.push(line);
-					}
-				}
-				
-				chartData.lines = lines;
-				
-			} else if (imageFormat.indexOf(format.toLowerCase()) !== -1) { // 处理图片
-				try {
-					let texture = await PIXI.Texture.fromURL('data:image/' + format + ';base64,' + (await file.async('base64')));
-					
-					chartData.images[file.name] = texture;
-					
-				} catch (e) {
-					console.log('Not an image', file.name);
-				}
-				
-			} else if (audioFormat.indexOf(format.toLowerCase()) !== -1) {
-				try {
-					let audio = PIXI.sound.Sound.from({
-						source : await file.async('arraybuffer'),
-						preload : true
-					});
-					
-					chartData.audios[file.name] = audio;
-					
-				} catch (e) {
-					console.log('Not an audio', file.name);
-				}
-				
-			} else if (format === 'json') {
-				try {
-					let chart = await file.async('text');
-					
-					chart = await ConvertChartVersion(JSON.parse(chart));
-					chart = await CalculateChartData(chart);
-					
-					chartData.charts[file.name] = chart;
-					
-				} catch (e) {
-					console.log('not a chart', file.name);
-					console.log(e);
-				}
-				
-			} else if (format === 'pec') {
-				try {
-					let chart = await file.async('text');
-					
-					chart = await ConvertChartVersion(await ConvertPEC2Json(chart, file.name));
-					chart = await CalculateChartData(chart);
-					
-					chartData.charts[file.name] = chart;
-					
-				} catch (e) {
-					console.log('not a chart', file.name);
-					console.log(e);
-				}
-				
-			} else {
-				console.warn('不支持的文件：' + file.name + '，将不会载入该文件。');
-			}
-			
-			loadedFiles++;
-			console.log(loadedFiles / zipFiles.length);
-		}
-		
-		glid('select').innerHTML = '';
-		
-		for (let i = 0; i < chartData.infos.length; i++) {
-			let chart = chartData.infos[i];
+	if (object instanceof Array) {
+		for (let i = 0; i < object.length; i++) {
+			let obj = object[i];
 			let option = document.createElement('option');
-			option.innerHTML = chart.Chart;
 			option.value = i;
-			glid('select').appendChild(option);
+			if (keyName)
+				option.innerHTML = obj[keyName];
+			else
+				option.innerHTML = obj;
+			select.appendChild(option);
 		}
-		
-		SwitchChart(0);
-		
-		console.log(zipFiles);
-		console.log(chartData);
-	}
-	
-	function getFileFormat(filename) {
-		let arr = filename.split('.');
-		return arr[arr.length - 1];
+	} else if (object instanceof Object) {
+		for (let name in object) {
+			let option = document.createElement('option');
+			option.innerHTML = option.value = name;
+			select.appendChild(option);
+		}
 	}
 }
 
 
-function SwitchChart(chartId) {
-	if (chartId < 0) return;
-	
-	let chartInfo = chartData.infos[chartId];
-	let chart = {
-		data  : chartData.charts[chartInfo.Chart],
-		audio : chartData.audios[chartInfo.Music],
-		image : chartData.images[chartInfo.Image],
-		lines : []
-	};
-	
-	if (chartData.lines instanceof Array) {
-		for (let line of chartData.lines) {
-			if (line.Chart == chartInfo.Chart) {
-				chart.lines.push(line);
-			}
-		}
-	}
-	
-	_chart = chart;
-	
-	
-}
+
+
+
+
 
 /***
  * @function 该方法会将传入的谱面对象进行处理，使其更加合乎规范
@@ -759,10 +347,11 @@ function CalculateChartData (chart) {
 /***
  * @function 该方法将为传入的谱面数据创建所有的精灵。传入谱面前请确认使用 CalculateChartData() 处理过。
  * @param chart {object} 已使用 CalculateChartData() 处理过的谱面数据
+ * @param pixi {object} 如果传入，则自动向这个 Pixi 对象提交精灵
  * @param requireFPSCounter {bool} 如果该值为真，则创建一个 FPS 指示器
  * @return {object} 返回一个存放 Containers 精灵数组、Notes 精灵数组和 FPS 精灵的对象
 ***/
-function CreateChartSprites(chart, requireFPSCounter = false) {
+function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	/***
 	 * 渲染思路：
 	 * 将每一个判定线视为一个 Container，该 Container 除了包含该判
@@ -787,22 +376,25 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 	};
 	
 	// 创建背景图
-	let background = new PIXI.Sprite(_chart.image);
-	let blur = new PIXI.filters.BlurFilter();
+	if (settings.background) {
+		let background = new PIXI.Sprite(_chart.image);
+		let blur = new PIXI.filters.BlurFilter();
+		
+		blur.repeatEdgePixels = true;
+		
+		if (settings.backgroundBlur)
+			background.filters = [blur];
+		
+		background.alpha = settings.backgroundDim;
+		background.position.set(0, 0);
+		background.width = pixi.renderer.width / pixi.renderer.resolution;
+		background.height = pixi.renderer.height / pixi.renderer.resolution;
+		
+		output.background = background;
+		pixi.stage.addChild(background);
+	}
 	
-	blur.repeatEdgePixels = true;
-	
-	if (settings.backgroundBlur)
-		background.filters = [blur];
-	
-	background.alpha = settings.backgroundDim;
-	background.position.set(0, 0);
-	background.width = pixi.renderer.width / pixi.renderer.resolution;
-	background.height = pixi.renderer.height / pixi.renderer.resolution;
-	
-	output.background = background;
-	pixi.stage.addChild(background);
-	
+	// 进度条
 	let progressBar = new PIXI.Sprite(textures.progressBar);
 	
 	progressBar.anchor.x = 1;
@@ -898,8 +490,8 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 			if (isNaN((_note.positionX.toFixed(6) * 0.109) * (pixi.renderer.width / 2) / pixi.renderer.resolution) ||
 				isNaN(_note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution == 0))
 			{
-				console.log('a note get position error', _note.lineId, _note.id);
-				console.log('x:', _note.positionX.toFixed(6) * 0.109, 'y:', _note.offsetY);
+				console.error('a note get position error: ' + _note.lineId + '+' + _note.id +
+					'x:' + _note.positionX.toFixed(6) * 0.109 + 'y:' + _note.offsetY);
 			}
 			
 			
@@ -1038,79 +630,6 @@ function CreateChartSprites(chart, requireFPSCounter = false) {
 	return output;
 }
 
-
-/***
- * @function 对所有精灵对象进行重定位和重缩放。本方法应仅在舞台尺寸被改变时调用。
- * @param sprites {object} 存放所有精灵的对象
- * @param width {num} 舞台的宽度
- * @param height {num} 舞台的高度
- * @param _noteScale {num} 按键缩放值。默认为 8000。
-***/
-function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
-	let windowRatio = width / height;
-	let lineScale = (width > height * 0.75 ? height / 18.75 : width / 14.0625) / pixi.renderer.resolution;
-	let noteScale = width / _noteScale / pixi.renderer.resolution;
-	let noteSpeed = height * 0.6 / pixi.renderer.resolution;
-	
-	// 处理背景图
-	if (sprites.background) {
-		sprites.background.width = pixi.renderer.width / pixi.renderer.resolution;
-		sprites.background.height = pixi.renderer.height / pixi.renderer.resolution;
-	}
-	
-	// 处理进度条
-	if (sprites.progressBar)
-		sprites.progressBar.scale.set(pixi.renderer.width / sprites.progressBar.texture.width);
-	
-	// 不处理没有判定线和 Note 的精灵对象
-	if (!sprites.containers || !sprites.totalNotes) {
-		return;
-	}
-	if (sprites.containers.length <= 0 || sprites.totalNotes.length <= 0) {
-		return;
-	}
-	
-	// 处理判定线
-	for (let container of sprites.containers) {
-		let judgeLine = container.children[0];
-		
-		judgeLine.height = lineScale * 18.75 * 0.008;
-		judgeLine.width = judgeLine.height * judgeLine.texture.width / judgeLine.texture.height * 1.042;
-	}
-	
-	// 处理 Note
-	for (let note of sprites.totalNotes) {
-		// 处理 Hold
-		if (note.raw.type == 3 && note.children.length == 3) {
-			// note.children[1].height = note.raw.holdLength * (height * 0.6) / note.raw.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.raw.rawNoteScale);
-			note.children[1].height = note.raw.holdLength * (height * 0.6) / (width / _noteScale);
-			note.children[2].position.y = -(note.raw.holdLength * (height * 0.6) / (width / _noteScale));
-		}
-		
-		note.scale.set(noteScale);
-		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (width / 2) / pixi.renderer.resolution;
-		note.position.y = -note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution;
-	}
-	
-	// 处理 FPS 指示器
-	if (sprites.fps) {
-		sprites.fps.fontSize = lineScale * 0.8 + 'px';
-		sprites.fps.position.set(width / pixi.renderer.resolution - sprites.fps.width - 2, 1 / pixi.renderer.resolution);
-	}
-	
-	// 处理准度指示器
-	if (sprites.accIndicator) {
-		sprites.accIndicator.container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
-		sprites.accIndicator.container.scale.set(pixi.renderer.width / sprites.accIndicator.scale / pixi.renderer.resolution);
-	}
-	
-	// 处理水印
-	if (sprites.watermark) {
-		sprites.watermark.fontSize = lineScale * 0.6 + 'px';
-		sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
-	}
-}
-
 /***
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
@@ -1235,8 +754,13 @@ function CalculateChartActualTime(delta) {
 	}
 }
 
+/***
+ * @function 创建打击动画
+***/
 function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 	let obj = undefined;
+	
+	if (!pixi || !settings.clickAnimate) return;
 	
 	if (type <= 1) return;
 	
@@ -1272,39 +796,114 @@ function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 	}
 }
 
+/***
+ * @function 对所有精灵对象进行重定位和重缩放。本方法应仅在舞台尺寸被改变时调用。
+ * @param sprites {object} 存放所有精灵的对象
+ * @param width {num} 舞台的宽度
+ * @param height {num} 舞台的高度
+ * @param _noteScale {num} 按键缩放值。默认为 8000。
+***/
+function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
+	let windowRatio = width / height;
+	let lineScale = (width > height * 0.75 ? height / 18.75 : width / 14.0625) / pixi.renderer.resolution;
+	let noteScale = width / _noteScale / pixi.renderer.resolution;
+	let noteSpeed = height * 0.6 / pixi.renderer.resolution;
+	
+	// 处理背景图
+	if (sprites.background) {
+		sprites.background.width = pixi.renderer.width / pixi.renderer.resolution;
+		sprites.background.height = pixi.renderer.height / pixi.renderer.resolution;
+	}
+	
+	// 处理进度条
+	if (sprites.progressBar)
+		sprites.progressBar.scale.set(pixi.renderer.width / sprites.progressBar.texture.width);
+	
+	// 不处理没有判定线和 Note 的精灵对象
+	if (!sprites.containers || !sprites.totalNotes) {
+		return;
+	}
+	if (sprites.containers.length <= 0 || sprites.totalNotes.length <= 0) {
+		return;
+	}
+	
+	// 处理判定线
+	for (let container of sprites.containers) {
+		let judgeLine = container.children[0];
+		
+		judgeLine.height = lineScale * 18.75 * 0.008;
+		judgeLine.width = judgeLine.height * judgeLine.texture.width / judgeLine.texture.height * 1.042;
+	}
+	
+	// 处理 Note
+	for (let note of sprites.totalNotes) {
+		// 处理 Hold
+		if (note.raw.type == 3 && note.children.length == 3) {
+			// note.children[1].height = note.raw.holdLength * (height * 0.6) / note.raw.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.raw.rawNoteScale);
+			note.children[1].height = note.raw.holdLength * (height * 0.6) / (width / _noteScale);
+			note.children[2].position.y = -(note.raw.holdLength * (height * 0.6) / (width / _noteScale));
+		}
+		
+		note.scale.set(noteScale);
+		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (width / 2) / pixi.renderer.resolution;
+		note.position.y = -note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution;
+	}
+	
+	// 处理 FPS 指示器
+	if (sprites.fps) {
+		sprites.fps.fontSize = lineScale * 0.8 + 'px';
+		sprites.fps.position.set(width / pixi.renderer.resolution - sprites.fps.width - 2, 1 / pixi.renderer.resolution);
+	}
+	
+	// 处理准度指示器
+	if (sprites.accIndicator) {
+		sprites.accIndicator.container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
+		sprites.accIndicator.container.scale.set(pixi.renderer.width / sprites.accIndicator.scale / pixi.renderer.resolution);
+	}
+	
+	// 处理水印
+	if (sprites.watermark) {
+		sprites.watermark.fontSize = lineScale * 0.6 + 'px';
+		sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
+	}
+}
 
-function CreateAccurateIndicator(scale = 500) {
+/***
+ * @function 创建一个 osu! 风格的准度指示器
+***/
+function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 	let container = new PIXI.Container();
 	let graphic   = new PIXI.Graphics();
 	let accurates = [];
+	let isChallengeMode = challengeMode;
 	
 	// 绘制白色打底
 	graphic.beginFill(0xFFFFFF, 0.4);
-	graphic.drawRect(0, 2, 200, 16);
+	graphic.drawRect(0, 2, (challengeMode ? 100 : 200), 16);
 	graphic.endFill();
 	// 绘制 Bad(Early) 区域
 	graphic.beginFill(0x8E0000, 0.8);
-	graphic.drawRect(0, 6, 20, 8);
+	graphic.drawRect(0, 6, (challengeMode ? 10 : 20), 8);
 	graphic.endFill();
 	// 绘制 Good(Early) 区域
 	graphic.beginFill(0xB4E1FF, 0.8);
-	graphic.drawRect(20, 6, 40, 8);
+	graphic.drawRect((challengeMode ? 10 : 20), 6, (challengeMode ? 20 : 40), 8);
 	graphic.endFill();
 	// 绘制 Perfect 区域
 	graphic.beginFill(0xFFECA0, 0.8);
-	graphic.drawRect(60, 6, 80, 8);
+	graphic.drawRect((challengeMode ? 30 : 60), 6, (challengeMode ? 40 : 80), 8);
 	graphic.endFill();
 	// 绘制 Good(Late) 区域
 	graphic.beginFill(0xB4E1FF, 0.8);
-	graphic.drawRect(140, 6, 40, 8);
+	graphic.drawRect((challengeMode ? 70 : 140), 6, (challengeMode ? 20 : 40), 8);
 	graphic.endFill();
 	// 绘制 Bad(Early) 区域
 	graphic.beginFill(0x8E0000, 0.8);
-	graphic.drawRect(180, 6, 20, 8);
+	graphic.drawRect((challengeMode ? 90 : 180), 6, (challengeMode ? 10 : 20), 8);
 	graphic.endFill();
 	// 绘制白色准心
 	graphic.beginFill(0xFFFFFF, 0.8);
-	graphic.drawRect(99, 0, 2, 20);
+	graphic.drawRect((challengeMode ? 49 : 99), 0, 2, 20);
 	graphic.endFill();
 	
 	container.addChild(graphic);
@@ -1339,16 +938,18 @@ function CreateAccurateIndicator(scale = 500) {
 		pushAccurate
 	};
 	
-	
+	/***
+	 * @function 推送准度信息到准度指示器
+	***/
 	function pushAccurate(noteTime, currentTime) {
 		let accContainer = new PIXI.Container();
 		let accGraphic = new PIXI.Graphics();
 		let time = (currentTime - noteTime) * 1000;
 		let rankColor = time > 0 ? time : -time;
 		
-		let timeBad = 200;
-		let timeGood = 160;
-		let timePerfect = 80;
+		let timeBad = isChallengeMode ? 100 : 200;
+		let timeGood = isChallengeMode ? 75 : 160;
+		let timePerfect = isChallengeMode ? 40 : 80;
 		
 		if (rankColor < timePerfect)
 			rankColor = 0xFFECA0;
