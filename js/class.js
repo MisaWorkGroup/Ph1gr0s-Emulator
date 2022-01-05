@@ -328,8 +328,10 @@ class Judgements extends Array {
 					}
 				}
 				
+				i.raw.isPressing = false;
+				
 				for (let x = 0; x < this.length; x++) {
-					if (!i.raw.isPressing && !i.raw.pressTime && !i.raw.isPrecessed) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
+					if (!i.raw.pressTime && !i.raw.isPrecessed && !i.raw.isScored) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
 						if (
 							this[x].type == 1 &&
 							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
@@ -337,17 +339,15 @@ class Judgements extends Array {
 						) {
 							if (timeBetweenReal <= timePerfect) { // 判定 Perfect
 								i.raw.score = 4;
-								i.raw.isPressing = true;
-								i.raw.accType = timeBetween < 0 ? -1 : 1;
-								i.raw.pressTime = Date.now();
 								
 							} else if (timeBetweenReal <= timeGood) { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
 								i.raw.score = 3;
-								i.raw.isPressing = true;
-								i.raw.accType = timeBetween < 0 ? -1 : 1;
-								i.raw.pressTime = Date.now();
 								
 							}
+							
+							i.raw.isPressing = true;
+							i.raw.accType = timeBetween < 0 ? -1 : 1;
+							i.raw.pressTime = Date.now();
 							
 							if (settings.hitsound) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
@@ -362,7 +362,7 @@ class Judgements extends Array {
 					}
 				}
 				
-				if (!status.isPaused && (i.raw.score > 0 && !i.raw.isPressing) && !(i.raw.isProcessed || i.raw.isScored)) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
+				if (!stat.isPaused && i.raw.score > 0 && !i.raw.isPressing && !i.raw.pressTime && !i.raw.isScored) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
 					i.raw.score = 1;
 					score.addCombo(1, i.raw.accType);
 					i.raw.isScored = true;

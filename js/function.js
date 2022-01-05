@@ -1,3 +1,132 @@
+// 游戏分数相关
+const score = {
+	init: function(totalNotes, isChallenge = false) {
+		this.totalNotes = totalNotes;
+		this.challenge = isChallenge;
+		
+		this.score = 0;
+		this.combo = 0;
+		this.maxCombo = 0;
+	
+		this.perfect = 0;
+		this.good = 0;
+		this.bad = 0;
+		this.miss = 0;
+		
+		this.acc = 0;
+		this.perfectAcc = [0, 0];
+		this.goodAcc = [0, 0];
+		this.badAcc = [0, 0];
+		this.missAcc = [0, 0];
+		
+		if (!isChallenge) {
+			this.scorePerNote = 900000 / totalNotes;
+		} else {
+			this.scorePerNote = 1000000 / totalNotes;
+		}
+		
+		return this;
+	},
+	
+	addCombo: function(type, acc = 0) {
+		if (type == 4) {
+			this.perfect += 1;
+			this.combo += 1;
+			
+			if (!!acc)
+				this.perfectAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		if (type == 3) {
+			this.good += 1;
+			this.combo += 1;
+			
+			if (!!acc)
+				this.goodAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		if (type == 2) {
+			this.bad += 1;
+			this.combo = 0;
+			
+			if (!!acc)
+				this.badAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		if (type == 1) {
+			this.miss += 1;
+			this.combo = 0;
+			
+			if (!!acc)
+				this.missAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		
+		if (this.combo > this.maxCombo) {
+			this.maxCombo = this.combo;
+		}
+		
+		this.score = this.scorePerNote * this.perfect + this.scorePerNote * this.good * 0.65;
+		if (!this.challenge)
+				this.score += (this.maxCombo / this.totalNotes) * 100000;
+		
+		this.score = this.score.toFixed(0);
+		this.scoreText = this.score + '';
+		
+		while (7 > this.scoreText.length) {
+			this.scoreText = '0' + this.scoreText;
+		}
+		
+		if (sprites.scoreText)
+			sprites.scoreText.text = this.scoreText;
+		
+		if (sprites.comboText) {
+			if (this.combo > 2) {
+				sprites.comboText.alpha = 1;
+				sprites.comboText.children[0].text = this.combo;
+				
+			} else {
+				sprites.comboText.alpha = 0;
+			}
+		}
+		
+		return this;
+	}
+};
+
+// 全屏相关。代码来自 lchzh3473
+const full = {
+	// 切换全屏状态
+	toggle(elem) {
+		if (!this.enabled) return false;
+		if (this.element) {
+			if (document.exitFullscreen) return document.exitFullscreen();
+			if (document.cancelFullScreen) return document.cancelFullScreen();
+			if (document.webkitCancelFullScreen) return document.webkitCancelFullScreen();
+			if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
+			if (document.msExitFullscreen) return document.msExitFullscreen();
+		} else {
+			if (!(elem instanceof HTMLElement)) elem = document.body;
+			if (elem.requestFullscreen) return elem.requestFullscreen();
+			if (elem.webkitRequestFullscreen) return elem.webkitRequestFullscreen();
+			if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
+			if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
+		}
+	},
+	
+	// 检查当前全屏的元素是否一致
+	check(elem) {
+		if (!(elem instanceof HTMLElement)) elem = document.body;
+		return this.element == elem;
+	},
+	
+	// 返回当前浏览器可用的全屏方法。
+	get element() {
+		return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+	},
+	
+	// 返回当前浏览器的全屏支持状态检测方法。
+	get enabled() {
+		return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
+	}
+};
+
 /***
  * @function 向 <div id="loading-*"> 模块推送进度信息
  * @param id {string} 该进度模块的具体 ID
@@ -56,82 +185,6 @@ function createSelection(id, object, keyName = null) {
 		}
 	}
 }
-
-
-// 全屏相关
-const full = {
-	// 切换全屏状态。代码来自 lchzh3473
-	toggle(elem) {
-		if (!this.enabled) return false;
-		if (this.element) {
-			if (document.exitFullscreen) return document.exitFullscreen();
-			if (document.cancelFullScreen) return document.cancelFullScreen();
-			if (document.webkitCancelFullScreen) return document.webkitCancelFullScreen();
-			if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
-			if (document.msExitFullscreen) return document.msExitFullscreen();
-		} else {
-			if (!(elem instanceof HTMLElement)) elem = document.body;
-			if (elem.requestFullscreen) return elem.requestFullscreen();
-			if (elem.webkitRequestFullscreen) return elem.webkitRequestFullscreen();
-			if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
-			if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
-		}
-	},
-	
-	// 检查当前全屏的元素是否一致
-	check(elem) {
-		if (!(elem instanceof HTMLElement)) elem = document.body;
-		return this.element == elem;
-	},
-	
-	// 返回当前浏览器可用的全屏方法。
-	get element() {
-		return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-	},
-	
-	// 返回当前浏览器的全屏支持状态检测方法。
-	get enabled() {
-		return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
-	}
-};
-
-function requestFullscreen(elem) {
-	let method = elem.requestFullscreen ||
-		elem.webkitRequestFullscreen ||
-		elem.mozRequestFullScreen ||
-		elem.msRequestFullscreen;
-	if (method) {
-		method.call(elem);
-		return true;
-		
-	} else {
-		return false;
-	}
-}
-
-function checkFullscreen() {
-	return !!(document.fullscreenEnabled ||
-		document.webkitFullscreenEnabled ||
-		document.mozFullScreenEnabled ||
-		document.msFullscreenEnabled);
-}
-
-function exitFullscreen(elem) {
-	let method = elem.exitFullscreen ||
-		elem.webkitExitFullscreen ||
-		elem.mozCancelFullScreen ||
-		elem.msExitFullscreen;
-	if (method) {
-		method.call(elem);
-		return true;
-		
-	} else {
-		return false;
-	}
-}
-
-
-
 
 /***
  * @function 该方法会将传入的谱面对象进行处理，使其更加合乎规范
@@ -279,6 +332,7 @@ function CalculateChartData (chart) {
 				break;
 			}
 			
+			note.holdEndPosition = holdEndPosition;
 			note.holdLength = (holdEndPosition - holdHeadPosition);
 		}
 		
@@ -435,7 +489,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	/***
 	 * 备忘录：Storyboard 中渲染出的图片就是改了指定贴图的判定线
 	***/
-	let lineScale = pixi.renderer.width > pixi.renderer.height * 0.75 ? pixi.renderer.height / 18.75 : pixi.renderer.width / 14.0625;
+	let lineScale = pixi.view.offsetWidth > pixi.renderer.height * 0.75 ? pixi.renderer.height / 18.75 : pixi.renderer.width / 14.0625;
 	let output = {
 		containers: [],
 		totalNotes: [],
@@ -464,16 +518,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		pixi.stage.addChild(background);
 	}
 	
-	// 进度条
-	let progressBar = new PIXI.Sprite(textures.progressBar);
-	
-	progressBar.anchor.x = 1;
-	progressBar.scale.set(pixi.renderer.width / progressBar.texture.width);
-	progressBar.alpha = 0.8;
-	
-	pixi.stage.addChild(progressBar);
-	output.progressBar = progressBar;
-	
+	// 绘制判定线与 Note
 	for (let _judgeLine of chart.judgeLines) {
 		let container = new PIXI.Container();
 		let judgeLine = new PIXI.Sprite(textures.judgeLine);
@@ -583,6 +628,30 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		output.containers.push(container);
 	}
 	
+	// 头部信息合集
+	if (!sprites.headInfos) {
+		output.headInfos = new PIXI.Container();
+	} else {
+		output.headInfos = sprites.headInfos;
+	}
+	if (!output.headInfos.parent)
+		pixi.stage.addChild(output.headInfos);
+	
+	// 进度条
+	if (!sprites.progressBar) {
+		let progressBar = new PIXI.Sprite(textures.progressBar);
+		
+		progressBar.anchor.x = 1;
+		progressBar.scale.set(pixi.renderer.width / progressBar.texture.width);
+		progressBar.alpha = 0.8;
+		
+		output.headInfos.addChild(progressBar);
+		output.progressBar = progressBar;
+		
+	} else {
+		output.progressBar = sprites.progressBar;
+	}
+	
 	// 分数指示
 	if (!sprites.scoreText) {
 		let scoreText = new PIXI.Text('0000000', {
@@ -591,11 +660,13 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 			fill: 'white'
 		});
 		
-		pixi.stage.addChild(scoreText);
+		output.headInfos.addChild(scoreText);
 		
-		scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - scoreText.width - 4, 10 / pixi.renderer.resolution);
+		scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - scoreText.width - 6, 6 / pixi.renderer.resolution);
 		
 		output.scoreText = scoreText;
+	} else {
+		output.scoreText = sprites.scoreText;
 	}
 	
 	// Combo 指示
@@ -622,10 +693,10 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		
 		combo.alpha = 0;
 		
-		pixi.stage.addChild(combo);
+		output.headInfos.addChild(combo);
 		
 		combo.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-		combo.position.y = 8 / pixi.renderer.resolution;
+		combo.position.y = 6 / pixi.renderer.resolution;
 		
 		text.position.y = (number.height + 13) / pixi.renderer.resolution;
 		
@@ -699,7 +770,7 @@ function CalculateChartActualTime(delta) {
 	if (!sprites.containers) return;
 	
 	if (sprites.progressBar)
-		sprites.progressBar.position.x = pixi.renderer.width * global.audio.progress / pixi.renderer.resolution;
+		sprites.progressBar.position.x = pixi.renderer.width * (global.audio ? global.audio.progress : 0) / pixi.renderer.resolution;
 	
 	for (let container of sprites.containers) {
 		let judgeLine = container.children[0];

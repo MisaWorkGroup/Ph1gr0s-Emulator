@@ -62,98 +62,8 @@ var stat = {
 };
 
 var judgements = new Judgements();
-const score = {
-	init: function(totalNotes, isChallenge = false) {
-		this.totalNotes = totalNotes;
-		this.challenge = isChallenge;
-		
-		this.score = 0;
-		this.combo = 0;
-		this.maxCombo = 0;
-	
-		this.perfect = 0;
-		this.good = 0;
-		this.bad = 0;
-		this.miss = 0;
-		
-		this.acc = 0;
-		this.perfectAcc = [0, 0];
-		this.goodAcc = [0, 0];
-		this.badAcc = [0, 0];
-		this.missAcc = [0, 0];
-		
-		if (!isChallenge) {
-			this.scorePerNote = 900000 / totalNotes;
-			
-		} else {
-			this.scorePerNote = 1000000 / totalNotes;
-			
-		}
-		
-		return this;
-	},
-	
-	addCombo: function(type, acc = 0) {
-		if (type == 4) {
-			this.perfect += 1;
-			this.combo += 1;
-			
-			if (!!acc)
-				this.perfectAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 3) {
-			this.good += 1;
-			this.combo += 1;
-			
-			if (!!acc)
-				this.goodAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 2) {
-			this.bad += 1;
-			this.combo = 0;
-			
-			if (!!acc)
-				this.badAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 1) {
-			this.miss += 1;
-			this.combo = 0;
-			
-			if (!!acc)
-				this.missAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		
-		if (this.combo > this.maxCombo) {
-			this.maxCombo = this.combo;
-		}
-		
-		this.score = this.scorePerNote * this.perfect + this.scorePerNote * this.good * 0.65;
-		if (!this.challenge)
-				this.score += (this.maxCombo / this.totalNotes) * 100000;
-		
-		this.score = this.score.toFixed(0);
-		this.scoreText = this.score + '';
-		
-		while (7 > this.scoreText.length) {
-			this.scoreText = '0' + this.scoreText;
-		}
-		
-		if (sprites.scoreText)
-			sprites.scoreText.text = this.scoreText;
-		
-		if (sprites.comboText) {
-			if (this.combo > 2) {
-				sprites.comboText.alpha = 1;
-				sprites.comboText.children[0].text = this.combo;
-				
-			} else {
-				sprites.comboText.alpha = 0;
-			}
-		}
-		
-		return this;
-	}
-};
+
+
 
 // ========此处声明监听器=========
 // ==Pixijs Loader 事件监听器==
@@ -510,24 +420,6 @@ function gameInit() {
 		ResizeChartSprites(sprites, pixi.renderer.width, pixi.renderer.height, settings.noteScale);
 	}
 	
-	// 监听窗口全屏改变事件
-	/***
-	document.addEventListener('fullscreenchange', () => {
-		let canvasBox = document.getElementById('game-canvas-box');
-		
-		stat.isFullscreen != stat.isFullscreen;
-		
-		if (!stat.isFullscreen) {
-			pixi.renderer.resize(1, 1);
-			pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
-			
-		} else {
-			pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
-			ResizeChartSprites(sprites, document.body.clientWidth, document.body.clientHeight,settings.noteScale);
-		}
-	});
-	***/
-	
 	// ==舞台用户输入事件监听器==
 	// 舞台触摸开始事件
 	pixi.view.addEventListener('touchstart', (e) => {
@@ -608,17 +500,34 @@ function gameInit() {
 	score.init(sprites.totalNotes.length, settings.challengeMode); // 计算分数
 	
 	pixi.ticker.add(CalculateChartActualTime); // 启动 Ticker 循环
-	global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
+	
+	
+	setTimeout(() => {
+		global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
+	}, 5000);
 }
 
 function setCanvasFullscreen() {
 	if (!pixi || !pixi.view) return;
 	
-	if (!checkFullscreen()) {
+	if (!full.enabled) {
 		mdui.alert('你的浏览器不支持全屏！', '前方高能');
 		return;
 	}
 	
 	stat.isFullscreen = true;
 	full.toggle(pixi.view);
+}
+
+function gamePause() {
+	if (!_chart.audio) return;
+	
+	if (!stat.isPaused) {
+		_chart.audio.pause()
+		stat.isPaused = true;
+		
+	} else {
+		global.audio = _chart.audio.play({start: _chart.audio.duration * global.audio.progress, volume: settings.musicVolume});
+		stat.isPaused = false;
+	}
 }
