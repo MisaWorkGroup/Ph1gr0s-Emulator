@@ -127,6 +127,11 @@ const full = {
 	}
 };
 
+// 特殊点击事件相关，代码参考 lchzh3473
+const specialClick = {
+	
+}
+
 /***
  * @function 向 <div id="loading-*"> 模块推送进度信息
  * @param id {string} 该进度模块的具体 ID
@@ -768,6 +773,12 @@ function CalculateChartActualTime(delta) {
 	let noteScale = pixi.renderer.width / settings.noteScale / pixi.renderer.resolution;
 	
 	if (!sprites.containers) return;
+	
+	// 一些全屏尺寸检测与修改
+	if (full.check(pixi.view) && (pixi.renderer.width != document.body.clientWidth || pixi.renderer.height != document.body.clientHeight)) {
+		pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
+		ResizeChartSprites(sprites, pixi.renderer.width, pixi.renderer.height, settings.noteScale);
+	}
 	
 	if (sprites.progressBar)
 		sprites.progressBar.position.x = pixi.renderer.width * (global.audio ? global.audio.progress : 0) / pixi.renderer.resolution;
