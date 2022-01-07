@@ -501,10 +501,33 @@ function gameInit() {
 	
 	pixi.ticker.add(CalculateChartActualTime); // 启动 Ticker 循环
 	
-	
-	setTimeout(() => {
-		global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
-	}, 5000);
+	{
+		let startAnimateTimer = 0;
+		
+		let startAnimateTicker = function() {
+			startAnimateTimer += 1 / pixi.ticker.FPS;
+			
+			if (sprites.headInfos.position.y < 0) {
+				sprites.headInfos.position.y += (pixi.ticker.FPS / 2) / pixi.ticker.FPS;
+			}
+			
+			if (sprites.titlesBig.alpha < 1 && startAnimateTimer < 5) {
+				sprites.titlesBig.alpha += 2 / pixi.ticker.FPS;
+			}
+			
+			if (sprites.titlesBig.alpha > 0 && startAnimateTimer >= 5.5) {
+				sprites.titlesBig.alpha -= 2 / pixi.ticker.FPS;
+			}
+			
+			if (startAnimateTimer >= 6) {
+				global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
+				pixi.ticker.remove(startAnimateTicker);
+			}
+		};
+		
+		// 留给设备处理大量数据的时间
+		setTimeout(() => { pixi.ticker.add(startAnimateTicker) }, 1000);
+	}
 }
 
 function setCanvasFullscreen() {
@@ -523,11 +546,13 @@ function gamePause() {
 	if (!_chart.audio) return;
 	
 	if (!stat.isPaused) {
-		_chart.audio.pause()
+		_chart.audio.pause();
+		sprites.comboText.children[1].text = 'Paused';
 		stat.isPaused = true;
 		
 	} else {
 		global.audio = _chart.audio.play({start: _chart.audio.duration * global.audio.progress, volume: settings.musicVolume});
+		sprites.comboText.children[1].text = settings.autoPlay ? 'Autoplay' : 'combo';
 		stat.isPaused = false;
 	}
 }

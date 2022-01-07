@@ -586,6 +586,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 				note = new PIXI.Sprite(textures.tap);
 				
 				note.anchor.set(0.5);
+				note.zIndex = 2;
 				
 				if (_note.type == 1) note.texture = textures['tap' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
 				else if (_note.type == 2) note.texture = textures['drag' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
@@ -661,13 +662,13 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	if (!sprites.scoreText) {
 		let scoreText = new PIXI.Text('0000000', {
 			fontFamily: 'Mina',
-			fontSize: lineScale * 0.95 + 'px',
+			fontSize: lineScale / pixi.renderer.resolution * 0.95 + 'px',
 			fill: 'white'
 		});
 		
 		output.headInfos.addChild(scoreText);
 		
-		scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - scoreText.width - 6, 6 / pixi.renderer.resolution);
+		scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - scoreText.width - 6, 10 / pixi.renderer.resolution);
 		
 		output.scoreText = scoreText;
 	} else {
@@ -679,12 +680,12 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		let combo = new PIXI.Container();
 		let number = new PIXI.Text('0', {
 			fontFamily : 'Mina',
-			fontSize : lineScale * 1.32 + 'px',
+			fontSize : lineScale / pixi.renderer.resolution * 1.32 + 'px',
 			fill : 'white'
 		});
 		let text = new PIXI.Text('combo', {
 			fontFamily : 'Mina',
-			fontSize : lineScale * 0.66 + 'px',
+			fontSize : lineScale / pixi.renderer.resolution * 0.66 + 'px',
 			fill : 'white'
 		});
 		
@@ -701,9 +702,9 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		output.headInfos.addChild(combo);
 		
 		combo.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-		combo.position.y = 6 / pixi.renderer.resolution;
+		combo.position.y = 8 / pixi.renderer.resolution;
 		
-		text.position.y = (number.height + 13) / pixi.renderer.resolution;
+		text.position.y = (number.height + 10) / pixi.renderer.resolution;
 		
 		output.comboText = combo;
 		
@@ -711,17 +712,90 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		output.comboText = sprites.comboText;
 	}
 	
+	// 大标题 Container
+	if (!sprites.titlesBig) {
+		output.titlesBig = new PIXI.Container();
+		pixi.stage.addChild(output.titlesBig);
+		
+	} else {
+		output.titlesBig = sprites.titlesBig;
+	}
+	output.titlesBig.alpha = 0;
+	
+	// 大标题-歌曲名称
+	if (!sprites.songTitleBig) {
+		let songTitleBig = new PIXI.Text(_chart.info.name || 'No Title', {
+			fontFamily : 'Mina',
+			fontSize : lineScale / pixi.renderer.resolution * 1.1 + 'px',
+			fill : 'white',
+			align : 'center'
+		});
+		
+		songTitleBig.anchor.set(0.5);
+		songTitleBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+		songTitleBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 0.75;
+		
+		output.titlesBig.addChild(songTitleBig);
+		
+		output.songTitleBig = songTitleBig;
+		
+	} else {
+		output.songTitleBig = sprites.songTitleBig;
+	}
+	
+	// 大标题-背景图作者
+	if (!sprites.bgAuthorBig) {
+		let bgAuthorBig = new PIXI.Text('Illustration designed by ' + (_chart.info.illustrator || 'No name'), {
+			fontFamily : 'Mina',
+			fontSize: lineScale / pixi.renderer.resolution * 0.55 + 'px',
+			fill : 'white',
+			align : 'center'
+		});
+		
+		bgAuthorBig.anchor.set(0.5);
+		bgAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+		bgAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution * 0.15;
+		
+		output.titlesBig.addChild(bgAuthorBig);
+		
+		output.bgAuthorBig = bgAuthorBig;
+		
+	} else {
+		output.bgAuthorBig = sprites.bgAuthorBig;
+	}
+	
+	// 大标题-谱面作者
+	if (!sprites.chartAuthorBig) {
+		let chartAuthorBig = new PIXI.Text('Level designed by ' + (_chart.info.designer || 'No name'), {
+			fontFamily : 'Mina',
+			fontSize: lineScale / pixi.renderer.resolution * 0.55 + 'px',
+			fill : 'white',
+			align : 'center'
+		});
+		
+		chartAuthorBig.anchor.set(0.5);
+		chartAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+		chartAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution;
+		
+		output.titlesBig.addChild(chartAuthorBig);
+		
+		output.chartAuthorBig = chartAuthorBig;
+		
+	} else {
+		output.chartAuthorBig = sprites.chartAuthorBig;
+	}
+	
 	// FPS 计数器
 	if (requireFPSCounter && !sprites.fps) {
 		let fps = new PIXI.Text('00.00', {
 			fontFamily : 'Mina',
-			fontSize: lineScale * 0.8 + 'px',
+			fontSize: lineScale / pixi.renderer.resolution * 0.8 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
 		
 		pixi.stage.addChild(fps);
-		fps.position.set(pixi.renderer.width / pixi.renderer.resolution - fps.width - 2, 1 / pixi.renderer.resolution);
+		fps.position.set(pixi.renderer.width / pixi.renderer.resolution - fps.width - 2, 0.5);
 		
 		output.fps = fps;
 		output.fpsInterval = setInterval(() => {
@@ -747,7 +821,7 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	if (!sprites.watermark) {
 		let watermark = new PIXI.Text('Ph1gr0s Emulator v1.0.0 Beta By MisaLiu Origin By lchzh3473', {
 			fontFamily : 'Mina',
-			fontSize: lineScale * 0.6 + 'px',
+			fontSize: lineScale / pixi.renderer.resolution * 0.6 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
@@ -760,6 +834,8 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 	} else {
 		output.watermark = sprites.waterpark;
 	}
+	
+	output.headInfos.position.y = -output.headInfos.height;
 	
 	return output;
 }
@@ -991,23 +1067,23 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理 Combo 文字
 	if (sprites.comboText) {
-		sprites.comboText.children[0].fontSize = lineScale * pixi.renderer.resolution * 1.32 + 'px';
-		sprites.comboText.children[1].fontSize = lineScale * pixi.renderer.resolution * 0.66 + 'px';
+		sprites.comboText.children[0].fontSize = lineScale * 1.32 + 'px';
+		sprites.comboText.children[1].fontSize = lineScale * 0.66 + 'px';
 		
 		sprites.comboText.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
 		sprites.comboText.position.y = 8 / pixi.renderer.resolution;
-		sprites.comboText.children[1].position.y = (sprites.comboText.children[0].height + 12) / pixi.renderer.resolution;
+		sprites.comboText.children[1].position.y = (sprites.comboText.children[0].height + 10) / pixi.renderer.resolution;
 	}
 	
 	// 处理分数指示器
 	if (sprites.scoreText) {
-		sprites.scoreText.fontSize = lineScale * pixi.renderer.resolution * 0.95 + 'px';
+		sprites.scoreText.fontSize = lineScale * 0.95 + 'px';
 		sprites.scoreText.position.set(width / pixi.renderer.resolution - sprites.scoreText.width - 4, 10 / pixi.renderer.resolution);
 	}
 	
 	// 处理 FPS 指示器
 	if (sprites.fps) {
-		sprites.fps.fontSize = lineScale * pixi.renderer.resolution * 0.8 + 'px';
+		sprites.fps.fontSize = lineScale * 0.8 + 'px';
 		sprites.fps.position.set(width / pixi.renderer.resolution - sprites.fps.width - 2, 1 / pixi.renderer.resolution);
 	}
 	
@@ -1019,7 +1095,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理水印
 	if (sprites.watermark) {
-		sprites.watermark.fontSize = lineScale * pixi.renderer.resolution * 0.6 + 'px';
+		sprites.watermark.fontSize = lineScale * 0.6 + 'px';
 		sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
 	}
 }
