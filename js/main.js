@@ -98,6 +98,7 @@ Loader.add([
 		{ name: 'judgeLine',   url: './img/JudgeLine.png' },
 		{ name: 'clickRaw',    url: './img/clickRaw128.png' },
 		
+		{ name: 'songNameBar', url: './img/SongsNameBar.png' },
 		{ name: 'progressBar', url: './img/ProgressBar.png' },
 		
 		{ name: 'soundTap',    url: './sound/Hitsound-Tap.ogg' },
@@ -118,8 +119,8 @@ Loader.add([
 					***/
 					let _clickTextures = [];
 					
-					for (let i = 0; i < Math.floor(textures[name].height / 128); i++) {
-						let rectangle = new PIXI.Rectangle(0, i * 128, 128, 128);
+					for (let i = 0; i < Math.floor(textures[name].height / textures[name].width); i++) {
+						let rectangle = new PIXI.Rectangle(0, i * textures[name].width, textures[name].width, textures[name].width);
 						let texture = new PIXI.Texture(textures[name].baseTexture, rectangle);
 						
 						_clickTextures.push(texture);
@@ -493,8 +494,9 @@ function gameInit() {
 		}
 	});
 	
-	// 创建所有的精灵
-	sprites = CreateChartSprites(_chart.data, pixi, true);
+	sprites = CreateChartSprites(_chart.data, pixi); // 创建所有的谱面精灵
+	CreateChartInfoSprites(sprites, pixi, true); // 创建谱面信息文字
+	
 	if (settings.accIndicator) // 根据需求创建准度指示器
 		sprites.accIndicator = CreateAccurateIndicator(pixi, settings.accIndicatorScale, settings.challengeMode);
 	score.init(sprites.totalNotes.length, settings.challengeMode); // 计算分数
@@ -508,7 +510,9 @@ function gameInit() {
 			startAnimateTimer += 1 / pixi.ticker.FPS;
 			
 			if (sprites.headInfos.position.y < 0) {
-				sprites.headInfos.position.y += (pixi.ticker.FPS / 2) / pixi.ticker.FPS;
+				sprites.headInfos.position.y = -sprites.headInfos.height + sprites.headInfos.height * (startAnimateTimer / 0.5);
+			} else {
+				sprites.headInfos.position.y = 0;
 			}
 			
 			if (sprites.titlesBig.alpha < 1 && startAnimateTimer < 5) {
@@ -521,6 +525,9 @@ function gameInit() {
 			
 			if (startAnimateTimer >= 6) {
 				global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
+				if (stat.isPaused)
+					_chart.audio.pause();
+				
 				pixi.ticker.remove(startAnimateTicker);
 			}
 		};

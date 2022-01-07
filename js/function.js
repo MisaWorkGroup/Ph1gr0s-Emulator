@@ -19,11 +19,7 @@ const score = {
 		this.badAcc = [0, 0];
 		this.missAcc = [0, 0];
 		
-		if (!isChallenge) {
-			this.scorePerNote = 900000 / totalNotes;
-		} else {
-			this.scorePerNote = 1000000 / totalNotes;
-		}
+		this.scorePerNote = (isChallenge ? 1000000 : 900000) / totalNotes;
 		
 		return this;
 	},
@@ -477,10 +473,9 @@ function CalculateChartData (chart) {
  * @function 该方法将为传入的谱面数据创建所有的精灵。传入谱面前请确认使用 CalculateChartData() 处理过。
  * @param chart {object} 已使用 CalculateChartData() 处理过的谱面数据
  * @param pixi {object} 如果传入，则自动向这个 Pixi 对象提交精灵
- * @param requireFPSCounter {bool} 如果该值为真，则创建一个 FPS 指示器
  * @return {object} 返回一个存放 Containers 精灵数组、Notes 精灵数组和 FPS 精灵的对象
 ***/
-function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
+function CreateChartSprites(chart, pixi) {
 	/***
 	 * 渲染思路：
 	 * 将每一个判定线视为一个 Container，该 Container 除了包含该判
@@ -634,14 +629,22 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		output.containers.push(container);
 	}
 	
+	return output;
+}
+
+/***
+ * @function 创建谱面信息文字，为了避免 CreateChartSprites() 看着很乱于是单独分出来一个函数
+ * @param sprites {object} 用来存放所有精灵的对象
+ * @param pixi {object} Pixi.js 应用对象
+ * @param [requireFPSCounter] {bool} 是否需要创建一个 FPS 指示器，默认为 false
+***/
+function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
+	let lineScale = pixi.view.offsetWidth > pixi.renderer.height * 0.75 ? pixi.renderer.height / 18.75 : pixi.renderer.width / 14.0625;
+	
 	// 头部信息合集
 	if (!sprites.headInfos) {
-		output.headInfos = new PIXI.Container();
-	} else {
-		output.headInfos = sprites.headInfos;
+		sprites.headInfos = new PIXI.Container();
 	}
-	if (!output.headInfos.parent)
-		pixi.stage.addChild(output.headInfos);
 	
 	// 进度条
 	if (!sprites.progressBar) {
@@ -649,13 +652,9 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		
 		progressBar.anchor.x = 1;
 		progressBar.scale.set(pixi.renderer.width / progressBar.texture.width);
-		progressBar.alpha = 0.8;
 		
-		output.headInfos.addChild(progressBar);
-		output.progressBar = progressBar;
-		
-	} else {
-		output.progressBar = sprites.progressBar;
+		sprites.headInfos.addChild(progressBar);
+		sprites.progressBar = progressBar;
 	}
 	
 	// 分数指示
@@ -666,13 +665,8 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 			fill: 'white'
 		});
 		
-		output.headInfos.addChild(scoreText);
-		
-		scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - scoreText.width - 6, 10 / pixi.renderer.resolution);
-		
-		output.scoreText = scoreText;
-	} else {
-		output.scoreText = sprites.scoreText;
+		sprites.headInfos.addChild(scoreText);
+		sprites.scoreText = scoreText;
 	}
 	
 	// Combo 指示
@@ -697,30 +691,15 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		combo.addChild(number);
 		combo.addChild(text);
 		
-		combo.alpha = 0;
-		
-		output.headInfos.addChild(combo);
-		
-		combo.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-		combo.position.y = 8 / pixi.renderer.resolution;
-		
-		text.position.y = (number.height + 10) / pixi.renderer.resolution;
-		
-		output.comboText = combo;
-		
-	} else {
-		output.comboText = sprites.comboText;
+		sprites.headInfos.addChild(combo);
+		sprites.comboText = combo;
 	}
 	
 	// 大标题 Container
 	if (!sprites.titlesBig) {
-		output.titlesBig = new PIXI.Container();
-		pixi.stage.addChild(output.titlesBig);
-		
-	} else {
-		output.titlesBig = sprites.titlesBig;
+		sprites.titlesBig = new PIXI.Container();
+		pixi.stage.addChild(sprites.titlesBig);
 	}
-	output.titlesBig.alpha = 0;
 	
 	// 大标题-歌曲名称
 	if (!sprites.songTitleBig) {
@@ -732,15 +711,9 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		});
 		
 		songTitleBig.anchor.set(0.5);
-		songTitleBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-		songTitleBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 0.75;
 		
-		output.titlesBig.addChild(songTitleBig);
-		
-		output.songTitleBig = songTitleBig;
-		
-	} else {
-		output.songTitleBig = sprites.songTitleBig;
+		sprites.titlesBig.addChild(songTitleBig);
+		sprites.songTitleBig = songTitleBig;
 	}
 	
 	// 大标题-背景图作者
@@ -753,15 +726,9 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		});
 		
 		bgAuthorBig.anchor.set(0.5);
-		bgAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-		bgAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution * 0.15;
 		
-		output.titlesBig.addChild(bgAuthorBig);
-		
-		output.bgAuthorBig = bgAuthorBig;
-		
-	} else {
-		output.bgAuthorBig = sprites.bgAuthorBig;
+		sprites.titlesBig.addChild(bgAuthorBig);
+		sprites.bgAuthorBig = bgAuthorBig;
 	}
 	
 	// 大标题-谱面作者
@@ -774,15 +741,9 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		});
 		
 		chartAuthorBig.anchor.set(0.5);
-		chartAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-		chartAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution;
 		
-		output.titlesBig.addChild(chartAuthorBig);
-		
-		output.chartAuthorBig = chartAuthorBig;
-		
-	} else {
-		output.chartAuthorBig = sprites.chartAuthorBig;
+		sprites.titlesBig.addChild(chartAuthorBig);
+		sprites.chartAuthorBig = chartAuthorBig;
 	}
 	
 	// FPS 计数器
@@ -795,10 +756,8 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		});
 		
 		pixi.stage.addChild(fps);
-		fps.position.set(pixi.renderer.width / pixi.renderer.resolution - fps.width - 2, 0.5);
-		
-		output.fps = fps;
-		output.fpsInterval = setInterval(() => {
+		sprites.fps = fps;
+		sprites.fpsInterval = setInterval(() => {
 			fps.text = fillZero((pixi.ticker.FPS).toFixed(2));
 			
 			function fillZero(num) {
@@ -812,9 +771,6 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 				return nums[0] + (nums[1] ? '.' + nums[1] : '');
 			}
 		}, 200);
-		
-	} else {
-		output.fps = sprites.fps;
 	}
 	
 	// 创建水印
@@ -827,17 +783,37 @@ function CreateChartSprites(chart, pixi, requireFPSCounter = false) {
 		});
 		
 		pixi.stage.addChild(watermark);
-		watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - watermark.height - 1);
-		
-		output.watermark = watermark;
-		
-	} else {
-		output.watermark = sprites.waterpark;
+		sprites.watermark = watermark;
 	}
 	
-	output.headInfos.position.y = -output.headInfos.height;
+	if (!sprites.headInfos.parent)
+		pixi.stage.addChild(sprites.headInfos);
 	
-	return output;
+	// 统一调整位置和透明度
+	sprites.progressBar.alpha = 0.8;
+	sprites.comboText.alpha = 0;
+	sprites.titlesBig.alpha = 0;
+	
+	sprites.scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - sprites.scoreText.width - 6, 10 / pixi.renderer.resolution);
+	
+	sprites.comboText.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+	sprites.comboText.position.y = 8 / pixi.renderer.resolution;
+	sprites.comboText.children[1].position.y = sprites.comboText.children[0].height / pixi.renderer.resolution + 5;
+	
+	sprites.songTitleBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+	sprites.songTitleBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 0.75;
+	
+	sprites.bgAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+	sprites.bgAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution * 0.15;
+	
+	sprites.chartAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
+	sprites.chartAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution;
+	
+	sprites.fps.position.set(pixi.renderer.width / pixi.renderer.resolution - sprites.fps.width - 2, 0.5);
+	
+	sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
+	
+	sprites.headInfos.position.y = -sprites.headInfos.height;
 }
 
 /***
@@ -984,7 +960,7 @@ function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 		obj = new PIXI.AnimatedSprite(textures.clickRaw);
 		
 		obj.anchor.set(0.5);
-		obj.scale.set((pixi.renderer.width / settings.noteScale) * (256 / obj.width) * pixi.renderer.resolution * 1.4);
+		obj.scale.set((pixi.renderer.width / settings.noteScale / pixi.renderer.resolution) * (256 / obj.width) * 4 * 1.4);
 		obj.position.set(x, y);
 		
 		obj.tint = type == 4 ? 0xFFECA0 : 0xB4E1FF;
