@@ -411,7 +411,7 @@ function gameInit() {
 		let canvasBox = document.getElementById('game-canvas-box');
 		
 		if (stat.isFullscreen && full.check(pixi.view)) {
-			pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
+			pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
 		} else {
 			if (stat.isFullscreen) pixi.renderer.resize(1, 1);
 			pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
@@ -428,13 +428,13 @@ function gameInit() {
 		
 		for (let touch of e.changedTouches) {
 			let canvasPosition = pixi.view.getBoundingClientRect();
-			let fingerId = touch.pointerId;
+			let fingerId = touch.identifier;
 			let x = touch.offsetX - canvasPosition.x;
 			let y = touch.offsetY - canvasPosition.y;
 			
 			inputs.touches[fingerId] = Click.activate(x, y, fingerId);
 			
-			if (settings.showFinger) {
+			if (settings.showFinger && !sprites.fingers[fingerId]) {
 				let circle = new PIXI.Graphics();
 				
 				circle.beginFill(0x00FFFF);
@@ -444,6 +444,9 @@ function gameInit() {
 				pixi.stage.addChild(circle);
 				circle.position.set(x, y);
 				sprites.fingers[fingerId] = circle;
+				
+			} else if (settings.showFinger) {
+				sprites.fingers[fingerId].position.set(x, y);
 			}
 		}
 	});
@@ -454,7 +457,7 @@ function gameInit() {
 		
 		for (let touch of e.changedTouches) {
 			let canvasPosition = pixi.view.getBoundingClientRect();
-			let fingerId = touch.pointerId;
+			let fingerId = touch.identifier;
 			let x = touch.offsetX - canvasPosition.x;
 			let y = touch.offsetY - canvasPosition.y;
 			
@@ -471,7 +474,7 @@ function gameInit() {
 		e.preventDefault();
 		
 		for (let touch of e.changedTouches) {
-			let fingerId = touch.pointerId;
+			let fingerId = touch.identifier;
 			
 			if (settings.showFinger) {
 				sprites.fingers[fingerId].destroy();
@@ -484,7 +487,7 @@ function gameInit() {
 		e.preventDefault();
 		
 		for (let touch of e.changedTouches) {
-			let fingerId = touch.pointerId;
+			let fingerId = touch.identifier;
 			
 			if (settings.showFinger) {
 				sprites.fingers[fingerId].destroy();
@@ -511,8 +514,20 @@ function gameInit() {
 			
 			if (sprites.headInfos.position.y < 0) {
 				sprites.headInfos.position.y = -sprites.headInfos.height + sprites.headInfos.height * (startAnimateTimer / 0.5);
+				sprites.headInfos.alpha = 1 * (startAnimateTimer / 0.5);
+				
 			} else {
 				sprites.headInfos.position.y = 0;
+				sprites.headInfos.alpha = 1;
+			}
+			
+			if (sprites.footInfos.position.y > 0) {
+				sprites.footInfos.position.y = sprites.headInfos.height - sprites.headInfos.height * (startAnimateTimer / 0.5);
+				sprites.footInfos.alpha = 1 * (startAnimateTimer / 0.5);
+				
+			} else {
+				sprites.footInfos.position.y = 0;
+				sprites.footInfos.alpha = 1;
 			}
 			
 			if (sprites.titlesBig.alpha < 1 && startAnimateTimer < 5) {
@@ -524,6 +539,8 @@ function gameInit() {
 			}
 			
 			if (startAnimateTimer >= 6) {
+				sprites.titlesBig.alpha = 0;
+				
 				global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
 				if (stat.isPaused)
 					_chart.audio.pause();
