@@ -1127,7 +1127,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理歌曲名称大标题
 	if (sprites.songTitleBig) {
-		sprites.songTitleBig.style.fontSize = lineScale * 0.55 + 'px';
+		sprites.songTitleBig.style.fontSize = lineScale * 1.1 + 'px';
 		
 		sprites.songTitleBig.position.x = width / pixi.renderer.resolution / 2;
 		sprites.songTitleBig.position.y = height / pixi.renderer.resolution / 2 * 0.75;
@@ -1143,7 +1143,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理歌曲谱面作者大标题
 	if (sprites.chartAuthorBig) {
-		sprites.chartAuthorBig.style.fontSize = lineScale * 1.1 + 'px';
+		sprites.chartAuthorBig.style.fontSize = lineScale * 0.55 + 'px';
 		
 		sprites.chartAuthorBig.position.x = width / pixi.renderer.resolution / 2;
 		sprites.chartAuthorBig.position.y = height / pixi.renderer.resolution / 2 * 1.25 + lineScale;
