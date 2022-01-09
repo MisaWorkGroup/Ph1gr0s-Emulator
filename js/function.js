@@ -665,6 +665,9 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 			fill: 'white'
 		});
 		
+		scoreText.anchor.x = 1;
+		scoreText.anchor.y = 0.5;
+		
 		sprites.headInfos.addChild(scoreText);
 		sprites.scoreText = scoreText;
 	}
@@ -685,8 +688,8 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 		
 		if (settings.autoPlay) text.text = 'Autoplay';
 		
-		number.anchor.x = 0.5;
-		text.anchor.x = 0.5;
+		number.anchor.set(0.5);
+		text.anchor.set(0.5, 1);
 		
 		combo.addChild(number);
 		combo.addChild(text);
@@ -710,7 +713,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 			align : 'center'
 		});
 		
-		songTitleBig.anchor.set(0.5);
+		songTitleBig.anchor.x = 0.5;
 		
 		sprites.titlesBig.addChild(songTitleBig);
 		sprites.songTitleBig = songTitleBig;
@@ -725,7 +728,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 			align : 'center'
 		});
 		
-		bgAuthorBig.anchor.set(0.5);
+		bgAuthorBig.anchor.set(0.5, 1);
 		
 		sprites.titlesBig.addChild(bgAuthorBig);
 		sprites.bgAuthorBig = bgAuthorBig;
@@ -740,10 +743,53 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 			align : 'center'
 		});
 		
-		chartAuthorBig.anchor.set(0.5);
+		chartAuthorBig.anchor.set(0.5, 1);
 		
 		sprites.titlesBig.addChild(chartAuthorBig);
 		sprites.chartAuthorBig = chartAuthorBig;
+	}
+	
+	// 底部歌曲信息合集
+	if (!sprites.footInfos) {
+		sprites.footInfos = new PIXI.Container();
+	}
+	
+	// 底部信息-歌曲名称侧边横线
+	if (!sprites.songNameBar) {
+		sprites.songNameBar = new PIXI.Sprite(textures.songNameBar);
+		
+		sprites.songNameBar.width = lineScale / pixi.renderer.resolution * 0.119;
+		sprites.songNameBar.height = lineScale / pixi.renderer.resolution * 0.612;
+		
+		sprites.footInfos.addChild(sprites.songNameBar);
+	}
+	
+	// 底部信息-歌曲名称
+	if (!sprites.songTitle) {
+		sprites.songTitle = new PIXI.Text(_chart.info.name || 'No title', {
+			fontFamily : 'Mina',
+			fontSize : lineScale / pixi.renderer.resolution * 0.63 + 'px',
+			fill : 'white',
+			align : 'center'
+		});
+		
+		sprites.songTitle.anchor.y = 1;
+		
+		sprites.footInfos.addChild(sprites.songTitle);
+	}
+	
+	// 底部信息-谱面等级
+	if (!sprites.songDiff) {
+		sprites.songDiff = new PIXI.Text(_chart.info.level || 'SP Lv.?', {
+			fontFamily : 'Mina',
+			fontSize : lineScale / pixi.renderer.resolution * 0.63 + 'px',
+			fill : 'white',
+			align : 'right'
+		});
+		
+		sprites.songDiff.anchor.set(1);
+		
+		sprites.footInfos.addChild(sprites.songDiff);
 	}
 	
 	// FPS 计数器
@@ -754,6 +800,8 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
+		
+		fps.anchor.set(1, 0);
 		
 		pixi.stage.addChild(fps);
 		sprites.fps = fps;
@@ -782,6 +830,8 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 			align: 'right'
 		});
 		
+		watermark.anchor.set(1);
+		
 		pixi.stage.addChild(watermark);
 		sprites.watermark = watermark;
 	}
@@ -789,16 +839,21 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.headInfos.parent)
 		pixi.stage.addChild(sprites.headInfos);
 	
+	if (!sprites.footInfos.parent)
+		pixi.stage.addChild(sprites.footInfos);
+	
 	// 统一调整位置和透明度
 	sprites.progressBar.alpha = 0.8;
 	sprites.comboText.alpha = 0;
 	sprites.titlesBig.alpha = 0;
+	sprites.headInfos.alpha = 0;
+	sprites.footInfos.alpha = 0;
 	
-	sprites.scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - sprites.scoreText.width - 6, 10 / pixi.renderer.resolution);
+	sprites.scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.65, lineScale / pixi.renderer.resolution * 1.375);
 	
 	sprites.comboText.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-	sprites.comboText.position.y = 8 / pixi.renderer.resolution;
-	sprites.comboText.children[1].position.y = sprites.comboText.children[0].height / pixi.renderer.resolution + 5;
+	sprites.comboText.children[0].position.y = lineScale / pixi.renderer.resolution * 1.375;
+	sprites.comboText.children[1].position.y = lineScale / pixi.renderer.resolution * 1.375 + sprites.comboText.children[0].height;
 	
 	sprites.songTitleBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
 	sprites.songTitleBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 0.75;
@@ -809,11 +864,21 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	sprites.chartAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
 	sprites.chartAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution;
 	
-	sprites.fps.position.set(pixi.renderer.width / pixi.renderer.resolution - sprites.fps.width - 2, 0.5);
+	sprites.songNameBar.position.x = lineScale / pixi.renderer.resolution * 0.53;
+	sprites.songNameBar.position.y = pixi.renderer.height / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 1.22;
 	
-	sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
+	sprites.songTitle.position.x = lineScale / pixi.renderer.resolution * 0.85;
+	sprites.songTitle.position.y = pixi.renderer.height / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.52;
+	
+	sprites.songDiff.position.x = pixi.renderer.width / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.75;
+	sprites.songDiff.position.y = pixi.renderer.height / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.52;
+	
+	sprites.fps.position.set(pixi.renderer.width / pixi.renderer.resolution - 1, 1);
+	
+	sprites.watermark.position.set(pixi.renderer.width / pixi.renderer.resolution - 2, pixi.renderer.height / pixi.renderer.resolution - 2);
 	
 	sprites.headInfos.position.y = -sprites.headInfos.height;
+	sprites.footInfos.position.y = sprites.headInfos.height;
 }
 
 /***
@@ -827,10 +892,13 @@ function CalculateChartActualTime(delta) {
 	if (!sprites.containers) return;
 	
 	// 一些全屏尺寸检测与修改
+	// 注释掉了，感觉会影响性能
+	/**
 	if (full.check(pixi.view) && (pixi.renderer.width != document.body.clientWidth || pixi.renderer.height != document.body.clientHeight)) {
 		pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
 		ResizeChartSprites(sprites, pixi.renderer.width, pixi.renderer.height, settings.noteScale);
 	}
+	**/
 	
 	if (sprites.progressBar)
 		sprites.progressBar.position.x = pixi.renderer.width * (global.audio ? global.audio.progress : 0) / pixi.renderer.resolution;
@@ -1003,13 +1071,9 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理背景图
 	if (sprites.background) {
-		sprites.background.width = pixi.renderer.width / pixi.renderer.resolution;
-		sprites.background.height = pixi.renderer.height / pixi.renderer.resolution;
+		sprites.background.width = width / pixi.renderer.resolution;
+		sprites.background.height = height / pixi.renderer.resolution;
 	}
-	
-	// 处理进度条
-	if (sprites.progressBar)
-		sprites.progressBar.scale.set(pixi.renderer.width / sprites.progressBar.texture.width);
 	
 	// 不处理没有判定线和 Note 的精灵对象
 	if (!sprites.containers || !sprites.totalNotes) {
@@ -1041,38 +1105,91 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		note.position.y = note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution * (note.raw.isAbove ? -1 : 1);
 	}
 	
+	// 处理进度条
+	if (sprites.progressBar)
+		sprites.progressBar.scale.set(width / sprites.progressBar.texture.width);
+	
 	// 处理 Combo 文字
 	if (sprites.comboText) {
-		sprites.comboText.children[0].fontSize = lineScale * 1.32 + 'px';
-		sprites.comboText.children[1].fontSize = lineScale * 0.66 + 'px';
+		sprites.comboText.children[0].style.fontSize = lineScale * 1.32 + 'px';
+		sprites.comboText.children[1].style.fontSize = lineScale * 0.66 + 'px';
 		
-		sprites.comboText.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-		sprites.comboText.position.y = 8 / pixi.renderer.resolution;
-		sprites.comboText.children[1].position.y = (sprites.comboText.children[0].height + 10) / pixi.renderer.resolution;
+		sprites.comboText.position.x = width / pixi.renderer.resolution / 2;
+		sprites.comboText.children[0].position.y = lineScale * 1.375;
+		sprites.comboText.children[1].position.y = lineScale * 1.375 + sprites.comboText.children[0].height;
 	}
 	
 	// 处理分数指示器
 	if (sprites.scoreText) {
-		sprites.scoreText.fontSize = lineScale * 0.95 + 'px';
-		sprites.scoreText.position.set(width / pixi.renderer.resolution - sprites.scoreText.width - 4, 10 / pixi.renderer.resolution);
+		sprites.scoreText.style.fontSize = lineScale * 0.95 + 'px';
+		sprites.scoreText.position.set(width / pixi.renderer.resolution - lineScale * 0.65, lineScale * 1.375);
+	}
+	
+	// 处理歌曲名称大标题
+	if (sprites.songTitleBig) {
+		sprites.songTitleBig.style.fontSize = lineScale * 0.55 + 'px';
+		
+		sprites.songTitleBig.position.x = width / pixi.renderer.resolution / 2;
+		sprites.songTitleBig.position.y = height / pixi.renderer.resolution / 2 * 0.75;
+	}
+	
+	// 处理歌曲背景作者大标题
+	if (sprites.bgAuthorBig) {
+		sprites.bgAuthorBig.style.fontSize = lineScale * 0.55 + 'px';
+		
+		sprites.bgAuthorBig.position.x = width / pixi.renderer.resolution / 2;
+		sprites.bgAuthorBig.position.y = height / pixi.renderer.resolution / 2 * 1.25 + lineScale * 0.15;
+	}
+	
+	// 处理歌曲谱面作者大标题
+	if (sprites.chartAuthorBig) {
+		sprites.chartAuthorBig.style.fontSize = lineScale * 1.1 + 'px';
+		
+		sprites.chartAuthorBig.position.x = width / pixi.renderer.resolution / 2;
+		sprites.chartAuthorBig.position.y = height / pixi.renderer.resolution / 2 * 1.25 + lineScale;
+	}
+	
+	// 歌曲名称侧边横线
+	if (sprites.songNameBar) {
+		sprites.songNameBar.width = lineScale * 0.119;
+		sprites.songNameBar.height = lineScale * 0.612;
+		
+		sprites.songNameBar.position.x = lineScale * 0.53;
+		sprites.songNameBar.position.y = height / pixi.renderer.resolution - lineScale * 1.22;
+	}
+	
+	// 处理歌曲名称
+	if (sprites.songTitle) {
+		sprites.songTitle.style.fontSize = lineScale * 0.63 + 'px';
+		
+		sprites.songTitle.position.x = lineScale * 0.85;
+		sprites.songTitle.position.y = height / pixi.renderer.resolution - lineScale * 0.52;
+	}
+	
+	// 处理歌曲难度
+	if (sprites.songDiff) {
+		sprites.songDiff.style.fontSize = lineScale * 0.63 + 'px';
+		
+		sprites.songDiff.position.x = width / pixi.renderer.resolution - lineScale * 0.75;
+		sprites.songDiff.position.y = height / pixi.renderer.resolution - lineScale * 0.52;
 	}
 	
 	// 处理 FPS 指示器
 	if (sprites.fps) {
-		sprites.fps.fontSize = lineScale * 0.8 + 'px';
-		sprites.fps.position.set(width / pixi.renderer.resolution - sprites.fps.width - 2, 1 / pixi.renderer.resolution);
+		sprites.fps.style.fontSize = lineScale * 0.8 + 'px';
+		sprites.fps.position.set(width / pixi.renderer.resolution - 1, 1);
+	}
+	
+	// 处理水印
+	if (sprites.watermark) {
+		sprites.watermark.style.fontSize = lineScale * 0.6 + 'px';
+		sprites.watermark.position.set(width / pixi.renderer.resolution - 2, height / pixi.renderer.resolution - 2);
 	}
 	
 	// 处理准度指示器
 	if (sprites.accIndicator) {
 		sprites.accIndicator.container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
 		sprites.accIndicator.container.scale.set(pixi.renderer.width / sprites.accIndicator.scale / pixi.renderer.resolution);
-	}
-	
-	// 处理水印
-	if (sprites.watermark) {
-		sprites.watermark.fontSize = lineScale * 0.6 + 'px';
-		sprites.watermark.position.set((pixi.renderer.width / pixi.renderer.resolution) - sprites.watermark.width - 2, (pixi.renderer.height / pixi.renderer.resolution) - sprites.watermark.height - 1);
 	}
 }
 
