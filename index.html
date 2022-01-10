@@ -16,7 +16,7 @@
 		<script src="./js/pixi-sound.js?v=4.2.0"></script>
 		<script src="./js/mdui.min.js?v=1.0.1"></script>
 		
-		<script src="./js/console.js?v=0.0.0-beta1"></script>
+		<script src="./js/console.js?v=0.0.0-beta2"></script>
 		<script src="./js/function.js?v=0.0.0-beta10"></script>
 		<script src="./js/class.js?v=0.0.0-beta10"></script>
 		<script src="./js/convert.js?v=0.0.0-beta3"></script>
@@ -25,6 +25,10 @@
 			html, body {
 				height: 100%;
 				scroll-behavior: smooth;
+			}
+			
+			.mdui-dialog {
+				
 			}
 		</style>
 		
@@ -389,7 +393,7 @@
 			</div>
 		</main>
 		
-		<div class="mdui-dialog" id="msg-box">
+		<div class="mdui-dialog" style="transition-property: top,left,width,height,transform,opacity,visibility,-webkit-transform;" id="msg-box">
 			<div class="mdui-dialog-title">信息</div>
 			<div class="mdui-dialog-content">还没有任何消息</div>
 			<div class="mdui-dialog-actions">
