@@ -503,6 +503,13 @@ function CreateChartSprites(chart, pixi) {
 	if (settings.background) {
 		let background = new PIXI.Sprite(_chart.image);
 		let blur = new PIXI.filters.BlurFilter();
+		let bgScale = 0;
+		
+		if (_chart.image.width <= _chart.image.height) {
+			bgScale = pixi.renderer.width / pixi.renderer.resolution / _chart.image.width;
+		} else {
+			bgScale = pixi.renderer.height / pixi.renderer.resolution / _chart.image.height;
+		}
 		
 		blur.repeatEdgePixels = true;
 		
@@ -510,9 +517,9 @@ function CreateChartSprites(chart, pixi) {
 			background.filters = [blur];
 		
 		background.alpha = settings.backgroundDim;
-		background.position.set(0, 0);
-		background.width = pixi.renderer.width / pixi.renderer.resolution;
-		background.height = pixi.renderer.height / pixi.renderer.resolution;
+		background.anchor.set(0.5);
+		background.scale.set(bgScale);
+		background.position.set(pixi.renderer.width / 2 / pixi.renderer.resolution, pixi.renderer.height / 2 / pixi.renderer.resolution);
 		
 		output.background = background;
 		pixi.stage.addChild(background);
@@ -534,6 +541,8 @@ function CreateChartSprites(chart, pixi) {
 		
 		// 调整判定线位置
 		judgeLine.position.set(0, 0);
+		
+		judgeLine.zIndex = 1;
 		
 		if (settings.developMode) {
 			let judgeLineName = new PIXI.Text(_judgeLine.id, { fill: 'rgb(255,100,100)' });
@@ -575,13 +584,15 @@ function CreateChartSprites(chart, pixi) {
 				hold.addChild(holdBody);
 				hold.addChild(holdEnd);
 				
+				hold.zIndex = 2;
+				
 				note = hold;
 				
 			} else {
 				note = new PIXI.Sprite(textures.tap);
 				
 				note.anchor.set(0.5);
-				note.zIndex = 2;
+				note.zIndex = 3;
 				
 				if (_note.type == 1) note.texture = textures['tap' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
 				else if (_note.type == 2) note.texture = textures['drag' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
@@ -1071,8 +1082,16 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理背景图
 	if (sprites.background) {
-		sprites.background.width = width / pixi.renderer.resolution;
-		sprites.background.height = height / pixi.renderer.resolution;
+		let bgScale = 0;
+		
+		if (_chart.image.width <= _chart.image.height) {
+			bgScale = pixi.renderer.width / pixi.renderer.resolution / _chart.image.width;
+		} else {
+			bgScale = pixi.renderer.height / pixi.renderer.resolution / _chart.image.height;
+		}
+		
+		sprites.background.scale.set(bgScale);
+		sprites.background.position.set(pixi.renderer.width / 2 / pixi.renderer.resolution, pixi.renderer.height / 2 / pixi.renderer.resolution);
 	}
 	
 	// 不处理没有判定线和 Note 的精灵对象
