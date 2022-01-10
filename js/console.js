@@ -69,6 +69,7 @@ console.openMsgBox = () => {
 };
 
 console.deleteMsg = (id) => {
+	let dialogInst = new mdui.Dialog('#msg-box');
 	mdui.$('#msg-id-' + id).remove();
 	console.msg.splice(id, 1);
 	
@@ -83,4 +84,5 @@ console.deleteMsg = (id) => {
 	}
 	
 	mdui.mutation('#msg-box');
+	dialogInst.handleUpdate();
 }
