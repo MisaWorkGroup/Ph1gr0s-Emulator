@@ -188,6 +188,130 @@ function createSelection(id, object, keyName = null) {
 }
 
 /***
+ * @function 为给定的 mdui-menu 元素自动填充选项。可传入 object 或者 array。传
+ *     入 array 时可选 array 中 object 的键名作为显示的文本
+ * @param id {string} mdui-menu 元素的 id
+ * @param object {object|array} 欲填充的对象或数组
+ * @param [keyName] {string} 数组内对象的指定键名
+***/
+function createMenuItems(id, object, targetValueName, anotherTargetValue = null, keyName = null, defaultValue = null, extraJsText = null, changedTextId = null) {
+	let menu = document.getElementById(id);
+	let selectedValue = NaN;
+	
+	menu.innerHTML = '';
+	
+	let div = document.createElement('div');
+	let a = document.createElement('a');
+	
+	if (object instanceof Array) {
+		for (let i = 0; i < object.length; i++) {
+			let obj = object[i];
+			let innerHtml = '';
+			
+			if ((keyName ? obj[keyName] : obj).indexOf('.') == 0) continue;
+			
+			div = document.createElement('div');
+			a = document.createElement('a');
+			
+			if (defaultValue == -1 && isNaN(selectedValue)) {
+				innerHtml = '<i class="mdui-menu-item-icon mdui-icon material-icons">&#xe5ca;</i>';
+				selectedValue = i;
+				
+			} else if (defaultValue == i) {
+				innerHtml = '<i class="mdui-menu-item-icon mdui-icon material-icons">&#xe5ca;</i>';
+				selectedValue = i;
+				
+			} else {
+				innerHtml = '<i class="mdui-menu-item-icon mdui-icon material-icons"></i>';
+			}
+			
+			if (keyName)
+				innerHtml += obj[keyName];
+			else
+				innerHtml += obj;
+			
+			a.setAttribute('onclick',
+				'selectMenuItem(\'' + menu.id.replace(/'/g, '\'') + '\', this' + (changedTextId ? ', \'' + changedTextId + '\'' : '') + ');' +
+				targetValueName + ' = \'' + i + '\'' +
+				(extraJsText ? ';' + extraJsText : '')
+			);
+			a.setAttribute('menu-value', keyName ? obj[keyName] : obj);
+			
+			a.className = 'mdui-ripple';
+			div.className = 'mdui-menu-item';
+			a.innerHTML = innerHtml;
+			div.appendChild(a);
+			menu.appendChild(div);
+		}
+		
+	} else if (object instanceof Object) {
+		for (let name in object) {
+			let innerHtml = '';
+			
+			if (name.indexOf('.') == 0) continue;
+			
+			div = document.createElement('div');
+			a = document.createElement('a');
+			
+			if (defaultValue == -1 && isNaN(selectedValue)) {
+				innerHtml = '<i class="mdui-menu-item-icon mdui-icon material-icons">&#xe5ca;</i>' + name;
+				selectedValue = 0;
+				
+			} else if (defaultValue == name) {
+				innerHtml = '<i class="mdui-menu-item-icon mdui-icon material-icons">&#xe5ca;</i>' + name;
+				selectedValue = 0;
+				
+			} else {
+				innerHtml = '<i class="mdui-menu-item-icon mdui-icon material-icons"></i>' + name;
+			}
+			
+			a.setAttribute('onclick',
+				'selectMenuItem(\'' + menu.id.replace(/'/g, '\'') + '\', this' + (changedTextId ? ', \'' + changedTextId + '\'' : '') + ');' +
+				targetValueName + ' = ' + anotherTargetValue + '[\'' + name.replace(/'/g, '\'') + '\']' +
+				(extraJsText ? ';' + extraJsText : '')
+			);
+			a.setAttribute('menu-value', name);
+			
+			a.className = 'mdui-ripple';
+			div.className = 'mdui-menu-item';
+			a.innerHTML = innerHtml;
+			div.appendChild(a);
+			menu.appendChild(div);
+		}
+	}
+	
+	if (!isNaN(selectedValue)) {
+		selectMenuItem(menu.id, a, changedTextId);
+	}
+	
+	mdui.mutation(menu);
+}
+
+/***
+ * @function 该方法用于修改菜单相关 UI
+ * @param menuId {string} 菜单的 ID
+ * @param itemDom {HTMLElementObject} 菜单项目的 Dom，一般用 `this` 即可
+ * @param [textId] {string} 如果传入，将自动修改该组件的内容
+***/
+function selectMenuItem(menuId, itemDom, textId = null) {
+	let menuDom = document.getElementById(menuId);
+	let menuItems = menuDom.getElementsByClassName('mdui-menu-item');
+	
+	for (let menuItem of menuItems) {
+		let a = menuItem.getElementsByTagName('a')[0];
+		let icon = a.getElementsByClassName('mdui-menu-item-icon')[0];
+		
+		icon.innerHTML = '';
+	}
+	
+	itemDom.getElementsByClassName('mdui-menu-item-icon')[0].innerHTML = '&#xe5ca;';
+	
+	if (textId) {
+		document.getElementById(textId).innerHTML = '当前选择了：' + itemDom.getAttribute('menu-value');
+	}
+}
+
+/***
  * @function 该方法会将传入的谱面对象进行处理，使其更加合乎规范
  * @param chart {object} 传入一个未经处理的谱面数据对象
  * @return {object} 返回一个已经处理完毕的谱面对象
@@ -489,7 +613,10 @@ function CreateChartSprites(chart, pixi) {
 	/***
 	 * 备忘录：Storyboard 中渲染出的图片就是改了指定贴图的判定线
 	***/
-	let lineScale = pixi.view.offsetWidth > pixi.renderer.height * 0.75 ? pixi.renderer.height / 18.75 : pixi.renderer.width / 14.0625;
+	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	let fixedWidthOffset = (pixi.renderer.realWidth - fixedWidth) / 2;
+	let lineScale = fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : fixedWidth / 14.0625;
+	
 	let output = {
 		containers: [],
 		totalNotes: [],
@@ -506,20 +633,20 @@ function CreateChartSprites(chart, pixi) {
 		let bgScale = 0;
 		
 		if (_chart.image.width <= _chart.image.height) {
-			bgScale = pixi.renderer.width / pixi.renderer.resolution / _chart.image.width;
+			bgScale = pixi.renderer.realWidth / _chart.image.width;
 		} else {
-			bgScale = pixi.renderer.height / pixi.renderer.resolution / _chart.image.height;
+			bgScale = pixi.renderer.realHeight / _chart.image.height;
 		}
 		
 		blur.repeatEdgePixels = true;
 		
-		if (settings.backgroundBlur)
+		if (settings.backgroundBlur && !settings.forceCanvas)
 			background.filters = [blur];
 		
 		background.alpha = settings.backgroundDim;
 		background.anchor.set(0.5);
 		background.scale.set(bgScale);
-		background.position.set(pixi.renderer.width / 2 / pixi.renderer.resolution, pixi.renderer.height / 2 / pixi.renderer.resolution);
+		background.position.set(pixi.renderer.realWidth / 2, pixi.renderer.realHeight / 2);
 		
 		output.background = background;
 		pixi.stage.addChild(background);
@@ -536,7 +663,7 @@ function CreateChartSprites(chart, pixi) {
 		
 		// 设置判定线中心点和宽高
 		judgeLine.anchor.set(0.5);
-		judgeLine.height = lineScale * 18.75 * 0.008 / pixi.renderer.resolution;
+		judgeLine.height = lineScale * 18.75 * 0.008;
 		judgeLine.width = judgeLine.height * judgeLine.texture.width / judgeLine.texture.height * 1.042;
 		
 		// 调整判定线位置
@@ -607,9 +734,9 @@ function CreateChartSprites(chart, pixi) {
 				note.addChild(noteName);
 			}
 			
-			note.scale.set(pixi.renderer.width / settings.noteScale / pixi.renderer.resolution);
-			note.position.x = (_note.positionX.toFixed(6) * 0.109) * (pixi.renderer.width / 2) / pixi.renderer.resolution;
-			note.position.y = _note.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution * (_note.isAbove ? -1 : 1);
+			note.scale.set(pixi.renderer.realWidth / settings.noteScale);
+			note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
+			note.position.y = _note.offsetY * (pixi.renderer.realHeight * 0.6) * (_note.isAbove ? -1 : 1);
 			
 			note.raw = _note;
 			note.id = _note.id;
@@ -634,8 +761,8 @@ function CreateChartSprites(chart, pixi) {
 		
 		pixi.stage.addChild(container);
 		
-		container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
-		container.position.y = pixi.renderer.height / 2 / pixi.renderer.resolution;
+		container.position.x = pixi.renderer.realWidth / 2;
+		container.position.y = pixi.renderer.realHeight / 2;
 		
 		output.containers.push(container);
 	}
@@ -650,7 +777,9 @@ function CreateChartSprites(chart, pixi) {
  * @param [requireFPSCounter] {bool} 是否需要创建一个 FPS 指示器，默认为 false
 ***/
 function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
-	let lineScale = pixi.view.offsetWidth > pixi.renderer.height * 0.75 ? pixi.renderer.height / 18.75 : pixi.renderer.width / 14.0625;
+	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	let fixedWidthOffset = (pixi.renderer.realWidth - fixedWidth) / 2;
+	let lineScale = fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : fixedWidth / 14.0625;
 	
 	// 头部信息合集
 	if (!sprites.headInfos) {
@@ -672,7 +801,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.scoreText) {
 		let scoreText = new PIXI.Text('0000000', {
 			fontFamily: 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.95 + 'px',
+			fontSize: lineScale * 0.95 + 'px',
 			fill: 'white'
 		});
 		
@@ -688,12 +817,12 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 		let combo = new PIXI.Container();
 		let number = new PIXI.Text('0', {
 			fontFamily : 'Mina',
-			fontSize : lineScale / pixi.renderer.resolution * 1.32 + 'px',
+			fontSize : lineScale * 1.32 + 'px',
 			fill : 'white'
 		});
 		let text = new PIXI.Text('combo', {
 			fontFamily : 'Mina',
-			fontSize : lineScale / pixi.renderer.resolution * 0.66 + 'px',
+			fontSize : lineScale * 0.66 + 'px',
 			fill : 'white'
 		});
 		
@@ -719,7 +848,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.songTitleBig) {
 		let songTitleBig = new PIXI.Text(_chart.info.name || 'No Title', {
 			fontFamily : 'Mina',
-			fontSize : lineScale / pixi.renderer.resolution * 1.1 + 'px',
+			fontSize : lineScale * 1.1 + 'px',
 			fill : 'white',
 			align : 'center'
 		});
@@ -734,7 +863,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.bgAuthorBig) {
 		let bgAuthorBig = new PIXI.Text('Illustration designed by ' + (_chart.info.illustrator || 'No name'), {
 			fontFamily : 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.55 + 'px',
+			fontSize: lineScale * 0.55 + 'px',
 			fill : 'white',
 			align : 'center'
 		});
@@ -749,7 +878,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.chartAuthorBig) {
 		let chartAuthorBig = new PIXI.Text('Level designed by ' + (_chart.info.designer || 'No name'), {
 			fontFamily : 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.55 + 'px',
+			fontSize: lineScale * 0.55 + 'px',
 			fill : 'white',
 			align : 'center'
 		});
@@ -769,8 +898,8 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.songNameBar) {
 		sprites.songNameBar = new PIXI.Sprite(textures.songNameBar);
 		
-		sprites.songNameBar.width = lineScale / pixi.renderer.resolution * 0.119;
-		sprites.songNameBar.height = lineScale / pixi.renderer.resolution * 0.612;
+		sprites.songNameBar.width = lineScale * 0.119;
+		sprites.songNameBar.height = lineScale * 0.612;
 		
 		sprites.footInfos.addChild(sprites.songNameBar);
 	}
@@ -779,7 +908,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.songTitle) {
 		sprites.songTitle = new PIXI.Text(_chart.info.name || 'No title', {
 			fontFamily : 'Mina',
-			fontSize : lineScale / pixi.renderer.resolution * 0.63 + 'px',
+			fontSize : lineScale * 0.63 + 'px',
 			fill : 'white',
 			align : 'center'
 		});
@@ -793,7 +922,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.songDiff) {
 		sprites.songDiff = new PIXI.Text(_chart.info.level || 'SP Lv.?', {
 			fontFamily : 'Mina',
-			fontSize : lineScale / pixi.renderer.resolution * 0.63 + 'px',
+			fontSize : lineScale * 0.63 + 'px',
 			fill : 'white',
 			align : 'right'
 		});
@@ -807,7 +936,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (requireFPSCounter && !sprites.fps) {
 		let fps = new PIXI.Text('00.00', {
 			fontFamily : 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.8 + 'px',
+			fontSize: lineScale * 0.8 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
@@ -836,7 +965,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.watermark) {
 		let watermark = new PIXI.Text('Ph1gr0s Emulator v1.0.0 Beta By MisaLiu Origin By lchzh3473', {
 			fontFamily : 'Mina',
-			fontSize: lineScale / pixi.renderer.resolution * 0.6 + 'px',
+			fontSize: lineScale * 0.6 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
@@ -860,33 +989,33 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	sprites.headInfos.alpha = 0;
 	sprites.footInfos.alpha = 0;
 	
-	sprites.scoreText.position.set(pixi.renderer.width / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.65, lineScale / pixi.renderer.resolution * 1.375);
+	sprites.scoreText.position.set(pixi.renderer.realWidth - lineScale * 0.65, lineScale * 1.375);
 	
-	sprites.comboText.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-	sprites.comboText.children[0].position.y = lineScale / pixi.renderer.resolution * 1.375;
-	sprites.comboText.children[1].position.y = lineScale / pixi.renderer.resolution * 1.375 + sprites.comboText.children[0].height;
+	sprites.comboText.position.x = pixi.renderer.realWidth / 2;
+	sprites.comboText.children[0].position.y = lineScale * 1.375;
+	sprites.comboText.children[1].position.y = lineScale * 1.375 + sprites.comboText.children[0].height;
 	
-	sprites.songTitleBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-	sprites.songTitleBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 0.75;
+	sprites.songTitleBig.position.x = pixi.renderer.realWidth / 2;
+	sprites.songTitleBig.position.y = pixi.renderer.realHeight / 2 * 0.75;
 	
-	sprites.bgAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-	sprites.bgAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution * 0.15;
+	sprites.bgAuthorBig.position.x = pixi.renderer.realWidth / 2;
+	sprites.bgAuthorBig.position.y = pixi.renderer.realHeight / 2 * 1.25 + lineScale * 0.15;
 	
-	sprites.chartAuthorBig.position.x = pixi.renderer.width / pixi.renderer.resolution / 2;
-	sprites.chartAuthorBig.position.y = pixi.renderer.height / pixi.renderer.resolution / 2 * 1.25 + lineScale / pixi.renderer.resolution;
+	sprites.chartAuthorBig.position.x = pixi.renderer.realWidth / 2;
+	sprites.chartAuthorBig.position.y = pixi.renderer.realHeight / 2 * 1.25 + lineScale;
 	
-	sprites.songNameBar.position.x = lineScale / pixi.renderer.resolution * 0.53;
-	sprites.songNameBar.position.y = pixi.renderer.height / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 1.22;
+	sprites.songNameBar.position.x = lineScale * 0.53;
+	sprites.songNameBar.position.y = pixi.renderer.realHeight - lineScale * 1.22;
 	
-	sprites.songTitle.position.x = lineScale / pixi.renderer.resolution * 0.85;
-	sprites.songTitle.position.y = pixi.renderer.height / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.52;
+	sprites.songTitle.position.x = lineScale * 0.85;
+	sprites.songTitle.position.y = pixi.renderer.realHeight - lineScale * 0.52;
 	
-	sprites.songDiff.position.x = pixi.renderer.width / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.75;
-	sprites.songDiff.position.y = pixi.renderer.height / pixi.renderer.resolution - lineScale / pixi.renderer.resolution * 0.52;
+	sprites.songDiff.position.x = pixi.renderer.realWidth - lineScale * 0.75;
+	sprites.songDiff.position.y = pixi.renderer.realHeight - lineScale * 0.52;
 	
-	sprites.fps.position.set(pixi.renderer.width / pixi.renderer.resolution - 1, 1);
+	sprites.fps.position.set(pixi.renderer.realWidth - 1, 1);
 	
-	sprites.watermark.position.set(pixi.renderer.width / pixi.renderer.resolution - 2, pixi.renderer.height / pixi.renderer.resolution - 2);
+	sprites.watermark.position.set(pixi.renderer.realWidth - 2, pixi.renderer.realHeight - 2);
 	
 	sprites.headInfos.position.y = -sprites.headInfos.height;
 	sprites.footInfos.position.y = sprites.headInfos.height;
@@ -896,9 +1025,11 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
 function CalculateChartActualTime(delta) {
-	let currentTime = global.audio ? (_chart.audio.duration * global.audio.progress) - _chart.data.offset : 0;
-	let noteSpeed = pixi.renderer.height * 0.6 / pixi.renderer.resolution;
-	let noteScale = pixi.renderer.width / settings.noteScale / pixi.renderer.resolution;
+	let currentTime = (global.audio ? (_chart.audio.duration * global.audio.progress) : 0) - _chart.data.offset - settings.chartDelay;
+	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	let fixedWidthOffset = (pixi.renderer.realWidth - fixedWidth) / 2;
+	let noteSpeed = pixi.renderer.realHeight * 0.6;
+	let noteScale = fixedWidth / settings.noteScale;
 	
 	if (!sprites.containers) return;
 	
@@ -912,7 +1043,7 @@ function CalculateChartActualTime(delta) {
 	**/
 	
 	if (sprites.progressBar)
-		sprites.progressBar.position.x = pixi.renderer.width * (global.audio ? global.audio.progress : 0) / pixi.renderer.resolution;
+		sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
 	
 	for (let container of sprites.containers) {
 		let judgeLine = container.children[0];
@@ -938,8 +1069,8 @@ function CalculateChartActualTime(delta) {
 			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 			let time1 = 1 - time2;
 			
-			container.position.x = pixi.renderer.width * (i.start * time1 + i.end * time2) / pixi.renderer.resolution;
-			container.position.y = pixi.renderer.height * (1 - i.start2 * time1 - i.end2 * time2) / pixi.renderer.resolution;
+			container.position.x = fixedWidth * (i.start * time1 + i.end * time2);
+			container.position.y = pixi.renderer.realHeight * (1 - i.start2 * time1 - i.end2 * time2);
 		}
 		
 		for (const i of judgeLine.raw.judgeLineRotateEvents) {
@@ -979,18 +1110,18 @@ function CalculateChartActualTime(delta) {
 	for (let i of sprites.totalNotes) {
 		// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
 		if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
-			let rawNoteOffsetY = i.raw.offsetY * (pixi.renderer.height * 0.6) / pixi.renderer.resolution;
+			let rawNoteOffsetY = i.raw.offsetY * noteSpeed;
 			let parentOffsetY = i.parent.position.y;
 			parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
 			
-			let betweenOffsetY = parentOffsetY - rawNoteOffsetY;
-			let rawHoldLength = (i.raw.holdLength * pixi.renderer.height * 0.6) / (pixi.renderer.width / settings.noteScale);
+			let betweenOffsetY = (parentOffsetY - rawNoteOffsetY) * pixi.renderer.resolution;
+			let rawHoldLength = (i.raw.holdLength * noteSpeed * pixi.renderer.resolution) / (fixedWidth * pixi.renderer.resolution / settings.noteScale);
 			
-			i.children[1].height = rawHoldLength - betweenOffsetY * pixi.renderer.resolution / (pixi.renderer.width / settings.noteScale);
-			i.children[2].position.y = -(rawHoldLength - betweenOffsetY * pixi.renderer.resolution / (pixi.renderer.width / settings.noteScale));
+			i.children[1].height = rawHoldLength - betweenOffsetY / (fixedWidth * pixi.renderer.resolution / settings.noteScale);
+			i.children[2].position.y = -(rawHoldLength - betweenOffsetY / (fixedWidth * pixi.renderer.resolution / settings.noteScale));
 			
-			if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY);
-			else i.position.y = rawNoteOffsetY + betweenOffsetY;
+			if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY / pixi.renderer.resolution);
+			else i.position.y = rawNoteOffsetY + betweenOffsetY / pixi.renderer.resolution;
 		}
 		
 		
@@ -1018,11 +1149,9 @@ function CalculateChartActualTime(delta) {
 		}
 	}
 	
-	if (pixi.ticker.elapsedMS / 1000 < 0.67) {
-		judgements.addJudgement(sprites.totalNotes, currentTime);
-		judgements.judgeNote(sprites.totalNotes, currentTime);
-		inputs.taps.length = 0;
-	}
+	judgements.addJudgement(sprites.totalNotes, currentTime);
+	judgements.judgeNote(sprites.totalNotes, currentTime);
+	inputs.taps.length = 0;
 }
 
 /***
@@ -1030,6 +1159,7 @@ function CalculateChartActualTime(delta) {
 ***/
 function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 	let obj = undefined;
+	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
 	
 	if (!pixi || !settings.clickAnimate) return;
 	
@@ -1039,7 +1169,7 @@ function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 		obj = new PIXI.AnimatedSprite(textures.clickRaw);
 		
 		obj.anchor.set(0.5);
-		obj.scale.set((pixi.renderer.width / settings.noteScale / pixi.renderer.resolution) * (256 / obj.width) * 4 * 1.4);
+		obj.scale.set((fixedWidth / settings.noteScale) * (256 / obj.width) * 4 * 1.4);
 		obj.position.set(x, y);
 		
 		obj.tint = type == 4 ? 0xFFECA0 : 0xB4E1FF;
@@ -1053,7 +1183,7 @@ function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 		obj = new PIXI.Sprite(textures.tap2);
 		
 		obj.anchor.set(0.5);
-		obj.scale.set(pixi.renderer.width / settings.noteScale / pixi.renderer.resolution);
+		obj.scale.set(fixedWidth / settings.noteScale);
 		obj.position.set(x, y);
 		obj.angle = angle;
 	}
@@ -1075,23 +1205,25 @@ function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
  * @param _noteScale {num} 按键缩放值。默认为 8000。
 ***/
 function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
+	let fixedWidth = width <= height / 9 * 16 ? width : height / 9 * 16;
+	let fixedWidthOffset = (width - fixedWidth) / 2;
 	let windowRatio = width / height;
-	let lineScale = (width > height * 0.75 ? height / 18.75 : width / 14.0625) / pixi.renderer.resolution;
-	let noteScale = width / _noteScale / pixi.renderer.resolution;
-	let noteSpeed = height * 0.6 / pixi.renderer.resolution;
+	let lineScale = fixedWidth > height * 0.75 ? height / 18.75 : fixedWidth / 14.0625;
+	let noteScale = fixedWidth / _noteScale;
+	let noteSpeed = height * 0.6;
 	
 	// 处理背景图
 	if (sprites.background) {
 		let bgScale = 0;
 		
 		if (_chart.image.width <= _chart.image.height) {
-			bgScale = pixi.renderer.width / pixi.renderer.resolution / _chart.image.width;
+			bgScale = width / _chart.image.width;
 		} else {
-			bgScale = pixi.renderer.height / pixi.renderer.resolution / _chart.image.height;
+			bgScale = height / _chart.image.height;
 		}
 		
 		sprites.background.scale.set(bgScale);
-		sprites.background.position.set(pixi.renderer.width / 2 / pixi.renderer.resolution, pixi.renderer.height / 2 / pixi.renderer.resolution);
+		sprites.background.position.set(width / 2, height / 2);
 	}
 	
 	// 不处理没有判定线和 Note 的精灵对象
@@ -1120,8 +1252,8 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		}
 		
 		note.scale.set(noteScale);
-		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (width / 2) / pixi.renderer.resolution;
-		note.position.y = note.raw.offsetY * (height * 0.6) / pixi.renderer.resolution * (note.raw.isAbove ? -1 : 1);
+		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
+		note.position.y = note.raw.offsetY * (height * 0.6) * (note.raw.isAbove ? -1 : 1);
 	}
 	
 	// 处理进度条
@@ -1133,7 +1265,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		sprites.comboText.children[0].style.fontSize = lineScale * 1.32 + 'px';
 		sprites.comboText.children[1].style.fontSize = lineScale * 0.66 + 'px';
 		
-		sprites.comboText.position.x = width / pixi.renderer.resolution / 2;
+		sprites.comboText.position.x = width / 2;
 		sprites.comboText.children[0].position.y = lineScale * 1.375;
 		sprites.comboText.children[1].position.y = lineScale * 1.375 + sprites.comboText.children[0].height;
 	}
@@ -1141,31 +1273,31 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	// 处理分数指示器
 	if (sprites.scoreText) {
 		sprites.scoreText.style.fontSize = lineScale * 0.95 + 'px';
-		sprites.scoreText.position.set(width / pixi.renderer.resolution - lineScale * 0.65, lineScale * 1.375);
+		sprites.scoreText.position.set(width - lineScale * 0.65, lineScale * 1.375);
 	}
 	
 	// 处理歌曲名称大标题
 	if (sprites.songTitleBig) {
 		sprites.songTitleBig.style.fontSize = lineScale * 1.1 + 'px';
 		
-		sprites.songTitleBig.position.x = width / pixi.renderer.resolution / 2;
-		sprites.songTitleBig.position.y = height / pixi.renderer.resolution / 2 * 0.75;
+		sprites.songTitleBig.position.x = width / 2;
+		sprites.songTitleBig.position.y = height / 2 * 0.75;
 	}
 	
 	// 处理歌曲背景作者大标题
 	if (sprites.bgAuthorBig) {
 		sprites.bgAuthorBig.style.fontSize = lineScale * 0.55 + 'px';
 		
-		sprites.bgAuthorBig.position.x = width / pixi.renderer.resolution / 2;
-		sprites.bgAuthorBig.position.y = height / pixi.renderer.resolution / 2 * 1.25 + lineScale * 0.15;
+		sprites.bgAuthorBig.position.x = width / 2;
+		sprites.bgAuthorBig.position.y = height / 2 * 1.25 + lineScale * 0.15;
 	}
 	
 	// 处理歌曲谱面作者大标题
 	if (sprites.chartAuthorBig) {
 		sprites.chartAuthorBig.style.fontSize = lineScale * 0.55 + 'px';
 		
-		sprites.chartAuthorBig.position.x = width / pixi.renderer.resolution / 2;
-		sprites.chartAuthorBig.position.y = height / pixi.renderer.resolution / 2 * 1.25 + lineScale;
+		sprites.chartAuthorBig.position.x = width / 2;
+		sprites.chartAuthorBig.position.y = height / 2 * 1.25 + lineScale;
 	}
 	
 	// 歌曲名称侧边横线
@@ -1174,7 +1306,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		sprites.songNameBar.height = lineScale * 0.612;
 		
 		sprites.songNameBar.position.x = lineScale * 0.53;
-		sprites.songNameBar.position.y = height / pixi.renderer.resolution - lineScale * 1.22;
+		sprites.songNameBar.position.y = height - lineScale * 1.22;
 	}
 	
 	// 处理歌曲名称
@@ -1182,33 +1314,33 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		sprites.songTitle.style.fontSize = lineScale * 0.63 + 'px';
 		
 		sprites.songTitle.position.x = lineScale * 0.85;
-		sprites.songTitle.position.y = height / pixi.renderer.resolution - lineScale * 0.52;
+		sprites.songTitle.position.y = height - lineScale * 0.52;
 	}
 	
 	// 处理歌曲难度
 	if (sprites.songDiff) {
 		sprites.songDiff.style.fontSize = lineScale * 0.63 + 'px';
 		
-		sprites.songDiff.position.x = width / pixi.renderer.resolution - lineScale * 0.75;
-		sprites.songDiff.position.y = height / pixi.renderer.resolution - lineScale * 0.52;
+		sprites.songDiff.position.x = width - lineScale * 0.75;
+		sprites.songDiff.position.y = height - lineScale * 0.52;
 	}
 	
 	// 处理 FPS 指示器
 	if (sprites.fps) {
 		sprites.fps.style.fontSize = lineScale * 0.8 + 'px';
-		sprites.fps.position.set(width / pixi.renderer.resolution - 1, 1);
+		sprites.fps.position.set(width - 1, 1);
 	}
 	
 	// 处理水印
 	if (sprites.watermark) {
 		sprites.watermark.style.fontSize = lineScale * 0.6 + 'px';
-		sprites.watermark.position.set(width / pixi.renderer.resolution - 2, height / pixi.renderer.resolution - 2);
+		sprites.watermark.position.set(width - 2, height - 2);
 	}
 	
 	// 处理准度指示器
 	if (sprites.accIndicator) {
-		sprites.accIndicator.container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
-		sprites.accIndicator.container.scale.set(pixi.renderer.width / sprites.accIndicator.scale / pixi.renderer.resolution);
+		sprites.accIndicator.container.position.x = width / 2;
+		sprites.accIndicator.container.scale.set(width / sprites.accIndicator.scale);
 	}
 }
 
@@ -1256,8 +1388,8 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 	graphic.position.x = -(graphic.width / 2);
 	
 	// 设定指示器缩放和位置
-	container.scale.set(pixi.renderer.width / scale / pixi.renderer.resolution);
-	container.position.x = pixi.renderer.width / 2 / pixi.renderer.resolution;
+	container.scale.set(pixi.renderer.realWidth / scale);
+	container.position.x = pixi.renderer.realWidth / 2;
 	
 	pixi.stage.addChild(container);
 	
