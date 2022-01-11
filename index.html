@@ -12,12 +12,18 @@
 		</script-->
 		
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
-		<script src="./js/pixi.min.js?v=6.2.1"></script>
-		<script src="./js/pixi-sound.js?v=4.2.0"></script>
+		
+		<script src="./js/pixi/pixi.min.js?v=6.2.1"></script>
+		<script src="./js/pixi/canvas-renderer.min.js?v=6.2.1"></script>
+		<script src="./js/pixi/canvas-display.min.js?v=6.2.1"></script>
+		<script src="./js/pixi/canvas-graphics.min.js?v=6.2.1"></script>
+		<script src="./js/pixi/canvas-text.min.js?v=6.2.1"></script>
+		<script src="./js/pixi/canvas-sprite.min.js?v=6.2.1"></script>
+		<script src="./js/pixi/pixi-sound.js?v=4.2.0"></script>
 		<script src="./js/mdui.min.js?v=1.0.1"></script>
 		
 		<script src="./js/console.js?v=0.0.0-beta2"></script>
-		<script src="./js/function.js?v=0.0.0-beta10"></script>
+		<script src="./js/function.js?v=0.0.0-beta11"></script>
 		<script src="./js/class.js?v=0.0.0-beta10"></script>
 		<script src="./js/convert.js?v=0.0.0-beta3"></script>
 		
@@ -27,8 +33,32 @@
 				scroll-behavior: smooth;
 			}
 			
-			.mdui-dialog {
-				
+			.mdui-list .mdui-list-item.mdui-list-item-full-width {
+				flex-wrap: wrap;
+			}
+			.mdui-list .mdui-list-item.mdui-list-item-full-width .mdui-list-item-content {
+				padding-bottom: 0;
+			}
+			
+			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text {
+				padding: 0;
+				border: none;
+				background: none;
+			}
+			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text:hover {
+				padding: 0;
+				border: none;
+				background: none;
+			}
+			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text:active {
+				padding: 0;
+				border: none;
+				background: none;
+			}
+			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text::before,
+			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text::after {
+				content: '';
+				display: none;
 			}
 		</style>
 		
@@ -47,6 +77,11 @@
 				<a class="mdui-list-item mdui-ripple">
 					<i class="mdui-list-item-icon mdui-icon material-icons">home</i>
 					<div class="mdui-list-item-content">首页</div>
+				</a>
+				
+				<a href="./lantency_test.html" target="_blank" class="mdui-list-item mdui-ripple">
+					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3f6;</i>
+					<div class="mdui-list-item-content">延迟自测工具</div>
 				</a>
 			</div>
 		</drawer>
@@ -104,80 +139,112 @@
 					<div class="mdui-panel-item-header">
 						<div class="mdui-panel-item-title">2. 选择谱面信息</div>
 					</div>
-					<div class="mdui-panel-item-body">
-						<div>
-							<span>
-								<i class="mdui-icon material-icons mdui-m-r-1 mdui-text-color-theme-secondary">&#xe24d;</i>
-								选择谱面：
-							</span>
-							<select onchange="switchChart(this.value)" class="mdui-select" id="select-chart-file">
-								<option value="-1">请先导入一个文件</option>
-							</select>
+					<div class="mdui-panel-item-body mdui-p-l-1 mdui-p-r-1">
+						<div class="mdui-list">
+							<label onclick="openMenu(this, 'menu-chart-file')" class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe24d;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">选择谱面文件</div>
+									<div class="mdui-list-item-text" id="list-text-chart-file">你还没导入文件呢</div>
+								</div>
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe315;</i>
+							</label>
+							<div class="mdui-menu" style="width:220px" id="menu-chart-file">
+								<div class="mdui-menu-item" disabled>
+									<a class="mdui-ripple" disabled>
+										<i class="mdui-menu-item-icon"></i>请先导入一个文件
+									</a>
+								</div>
+							</div>
+							
+							<label onclick="openMenu(this, 'menu-chart-audio')" class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3a1;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">选择谱面音乐</div>
+									<div class="mdui-list-item-text" id="list-text-chart-audio">你还没导入文件呢</div>
+								</div>
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe315;</i>
+							</label>
+							<div class="mdui-menu" style="width:220px" id="menu-chart-audio">
+								<div class="mdui-menu-item" disabled>
+									<a class="mdui-ripple" disabled>
+										<i class="mdui-menu-item-icon"></i>请先导入一个文件
+									</a>
+								</div>
+							</div>
+							
+							<label onclick="openMenu(this, 'menu-chart-image')" class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3f4;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">选择背景图片</div>
+									<div class="mdui-list-item-text" id="list-text-chart-image">你还没导入文件呢</div>
+								</div>
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe315;</i>
+							</label>
+							<div class="mdui-menu" style="width:220px" id="menu-chart-image">
+								<div class="mdui-menu-item" disabled>
+									<a class="mdui-ripple" disabled>
+										<i class="mdui-menu-item-icon"></i>请先导入一个文件
+									</a>
+								</div>
+							</div>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe06d;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">谱面名称</div>
+									<div class="mdui-list-item-text">一般都是歌曲的名字</div>
+								</div>
+								<div class="mdui-textfield mdui-p-t-0" style="width:100%">
+									<input onchange="_chart.info.name = this.value" placeholder="No title" class="mdui-textfield-input" type="text" id="input-chart-name" />
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe02f;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">谱面难度</div>
+									<div class="mdui-list-item-text">比如 IN Lv.14</div>
+								</div>
+								<div class="mdui-textfield mdui-p-t-0" style="width:100%">
+									<input onchange="_chart.info.level = this.value" placeholder="SP Lv.?" class="mdui-textfield-input" type="text" id="input-chart-difficulty" />
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe150;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">谱面作者</div>
+									<div class="mdui-list-item-text">做粪了可以把谱师锤一顿</div>
+								</div>
+								<div class="mdui-textfield mdui-p-t-0" style="width:100%">
+									<input onchange="_chart.info.designer = this.value" placeholder="No name" class="mdui-textfield-input" type="text" id="input-chart-author" />
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3ae;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">背景图作者</div>
+									<div class="mdui-list-item-text">好康的！</div>
+								</div>
+								<div class="mdui-textfield mdui-p-t-0" style="width:100%">
+									<input onchange="_chart.info.illustrator = this.value" placeholder="No name" class="mdui-textfield-input" type="text" id="input-chart-bg-author" />
+								</div>
+							</label>
 						</div>
 						
-						<div class="mdui-m-t-3">
-							<span>
-								<i class="mdui-icon material-icons mdui-m-r-1 mdui-text-color-theme-secondary">&#xe3a1;</i>
-								选择音乐：
-							</span>
-							<select onchange="_chart.audio = chartData.audios[this.value]" class="mdui-select" id="select-chart-music">
-								<option value="-1">请先导入一个文件</option>
-							</select>
-						</div>
-						
-						<div class="mdui-m-t-3">
-							<span>
-								<i class="mdui-icon material-icons mdui-m-r-1 mdui-text-color-theme-secondary">&#xe3f4;</i>
-								选择背景图：
-							</span>
-							<select onchange="_chart.image = chartData.images[this.value]" class="mdui-select" id="select-chart-bg">
-								<option value="-1">请先导入一个文件</option>
-							</select>
-						</div>
-						
-						<div class="mdui-divider mdui-m-t-3"></div>
-						
-						<div class="mdui-textfield">
-							<i class="mdui-icon material-icons">&#xe06d;</i>
-							<label class="mdui-textfield-label">谱面名称</label>
-							<input onchange="_chart.info.name = this.value" class="mdui-textfield-input" type="text" id="input-chart-name" required />
-							<div class="mdui-textfield-error">谱面名称不能为空</div>
-							<div class="mdui-textfield-helper">谱面的名称</div>
-						</div>
-					
-						<div class="mdui-textfield">
-							<i class="mdui-icon material-icons">&#xe02f;</i>
-							<label class="mdui-textfield-label">谱面难度</label>
-							<input onchange="_chart.info.level = this.value" class="mdui-textfield-input" type="text" id="input-chart-difficulty" required />
-							<div class="mdui-textfield-error">谱面难度信息不能为空</div>
-							<div class="mdui-textfield-helper">谱面难度信息，如：IN 14</div>
-						</div>
-					
-						<div class="mdui-textfield">
-							<i class="mdui-icon material-icons">&#xe150;</i>
-							<label class="mdui-textfield-label">谱面作者</label>
-							<input onchange="_chart.info.designer = this.value" class="mdui-textfield-input" type="text" id="input-chart-author" required />
-							<div class="mdui-textfield-error">谱面作者不能为空</div>
-							<div class="mdui-textfield-helper">谱面作者名称</div>
-						</div>
-					
-						<div class="mdui-textfield">
-							<i class="mdui-icon material-icons">&#xe3ae;</i>
-							<label class="mdui-textfield-label">背景图作者</label>
-							<input onchange="_chart.info.illustrator = this.value" class="mdui-textfield-input" type="text" id="input-chart-bg-author" required />
-							<div class="mdui-textfield-error">背景图作者不能为空</div>
-							<div class="mdui-textfield-helper">背景图作者名称</div>
-						</div>
-						
-						<div class="mdui-panel-item-actions">
-							<button onclick="switchPanel(3)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								下一步
-								<i class="mdui-icon material-icons">&#xe315;</i>
-							</button>
-							<button onclick="switchPanel(1)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								<i class="mdui-icon material-icons">&#xe314;</i>
-								上一步
-							</button>
+						<div class="mdui-p-l-2 mdui-p-r-2">
+							<div class="mdui-panel-item-actions">
+								<button onclick="switchPanel(3)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									下一步
+									<i class="mdui-icon material-icons">&#xe315;</i>
+								</button>
+								<button onclick="switchPanel(1)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									<i class="mdui-icon material-icons">&#xe314;</i>
+									上一步
+								</button>
+							</div>
 						</div>
 					</div>
 				</section>
@@ -186,96 +253,160 @@
 					<div class="mdui-panel-item-header">
 						<div class="mdui-panel-item-title">3. 图像设置</div>
 					</div>
-					<div class="mdui-panel-item-body">
-						<div class="mdui-row">
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+					<div class="mdui-panel-item-body mdui-p-l-1 mdui-p-r-1">
+						<div class="mdui-list">
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3f4;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">显示背景图</div>
+									<div class="mdui-list-item-text">显示谱面自带的背景图</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.background = this.checked" type="checkbox" id="settings-graphics-enable-bg" checked/>
 									<i class="mdui-checkbox-icon"></i>
-									启用背景图
-								</label>
-							</div>
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3ab;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">背景图亮度</div>
+									<div class="mdui-list-item-text">太亮了打歌时就会 DAISUKE☆~</div>
+								</div>
+								<div class="mdui-slider mdui-slider-discrete" style="width:100%">
+									<input oninput="settings.backgroundDim = this.value / 100" type="range" step="1" min="0" max="100" value="75" id="settings-graphics-bg-dim" />
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3a5;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">背景图模糊</div>
+									<div class="mdui-list-item-text">不启用也许会提升性能</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.backgroundBlur = this.checked" type="checkbox" id="settings-graphics-bg-blur" checked/>
 									<i class="mdui-checkbox-icon"></i>
-									背景图模糊
-								</label>
-							</div>
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe260;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">按键缩放</div>
+									<div class="mdui-list-item-text">太大或者太小都不行</div>
+								</div>
+								<div class="mdui-slider" style="width:100%">
+									<input oninput="settings.noteScale = -this.value" type="range" min="-10000" max="-5000" value="-8000" id="settings-graphics-note-scale" />
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe90b;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">显示打击特效</div>
+									<div class="mdui-list-item-text">就是你按下 Note 之后的那个小动画</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.clickAnimate = this.checked" type="checkbox" id="settings-graphics-click-animate" checked/>
 									<i class="mdui-checkbox-icon"></i>
-									打击反馈
-								</label>
-							</div>
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe90f;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">启用多押高亮</div>
+									<div class="mdui-list-item-text">不是人可以考虑一下关掉</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.multiNotesHighlight = this.checked" type="checkbox" id="settings-graphics-multi-notes-highlight" checked/>
 									<i class="mdui-checkbox-icon"></i>
-									多押高亮
-								</label>
-							</div>
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe55e;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">启用准度指示器</div>
+									<div class="mdui-list-item-text">Welcome to osu!（错乱）</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.accIndicator = this.checked" type="checkbox" id="settings-graphics-acc-indicator" />
 									<i class="mdui-checkbox-icon"></i>
-									准度指示器
-								</label>
-							</div>
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
-									<input oninput="settings.antiAlias = this.checked" type="checkbox" id="settings-graphics-anti-alias" checked/>
-									<i class="mdui-checkbox-icon"></i>
-									抗锯齿
-								</label>
-							</div>
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe434;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">准度指示器缩放</div>
+									<div class="mdui-list-item-text">我觉得默认就挺好</div>
+								</div>
+								<div class="mdui-slider" style="width:100%">
+									<input oninput="settings.accIndicatorScale = -this.value" type="range" min="-1000" max="-100" value="-500" id="settings-graphics-acc-indicator-scale" />
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe837;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">触摸/点击时显示小圆点</div>
+									<div class="mdui-list-item-text">会在你点的地方绘制一个小圆点</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.showFinger = this.checked" type="checkbox" id="settings-graphics-show-finger" />
 									<i class="mdui-checkbox-icon"></i>
-									手指触摸点
-								</label>
-							</div>
+								</div>
+							</label>
 							
-							<div class="mdui-col-xs-12">
-								<p>背景亮度：</p>
-								<label class="mdui-slider mdui-slider-discrete">
-									<input oninput="settings.backgroundDim = this.value / 100" type="range" step="1" min="0" max="100" value="75" id="settings-graphics-bg-dim" />
-								</label>
-							</div>
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3a3;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">启用抗锯齿</div>
+									<div class="mdui-list-item-text">不太清楚会对性能有什么影响</div>
+								</div>
+								<div class="mdui-checkbox">
+									<input oninput="settings.antiAlias = this.checked" type="checkbox" id="settings-graphics-anti-alias" checked/>
+									<i class="mdui-checkbox-icon"></i>
+								</div>
+							</label>
 							
-							<div class="mdui-col-xs-12">
-								<p>按键缩放：</p>
-								<label class="mdui-slider">
-									<input oninput="settings.noteScale = -this.value" type="range" min="-10000" max="-5000" value="-8000" id="settings-graphics-note-scale" />
-								</label>
-							</div>
-							
-							<div class="mdui-col-xs-12">
-								<p>准度指示器缩放：</p>
-								<label class="mdui-slider">
-									<input oninput="settings.accIndicatorScale = -this.value" type="range" min="-1000" max="-100" value="-500" id="settings-graphics-acc-indicator-scale" />
-								</label>
-							</div>
-							
-							<div class="mdui-col-xs-12">
-								<p>清晰度：</p>
-								<label class="mdui-slider mdui-slider-discrete">
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe85b;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">清晰度</div>
+									<div class="mdui-list-item-text">其实就是像素密度，保持默认就好</div>
+								</div>
+								<div class="mdui-slider" style="width:100%">
 									<input oninput="settings.resolution = this.value" type="range" step="0.1" min="0.1" max="4" value="2" id="settings-graphics-resolution" />
-								</label>
-							</div>
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3ae;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">强制 Canvas 绘图</div>
+									<div class="mdui-list-item-text">实验性功能，某些特性会丢</div>
+								</div>
+								<div class="mdui-checkbox">
+									<input oninput="settings.forceCanvas = this.checked" type="checkbox" id="settings-graphics-force-canvas" />
+									<i class="mdui-checkbox-icon"></i>
+								</div>
+							</label>
 						</div>
 						
-						<div class="mdui-panel-item-actions">
-							<button onclick="switchPanel(4)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								下一步
-								<i class="mdui-icon material-icons">&#xe315;</i>
-							</button>
-							<button onclick="switchPanel(2)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								<i class="mdui-icon material-icons">&#xe314;</i>
-								上一步
-							</button>
+						<div class="mdui-p-l-2 mdui-p-r-2">
+							<div class="mdui-panel-item-actions">
+								<button onclick="switchPanel(4)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									下一步
+									<i class="mdui-icon material-icons">&#xe315;</i>
+								</button>
+								<button onclick="switchPanel(2)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									<i class="mdui-icon material-icons">&#xe314;</i>
+									上一步
+								</button>
+							</div>
 						</div>
 					</div>
 				</section>
@@ -284,41 +415,54 @@
 					<div class="mdui-panel-item-header">
 						<div class="mdui-panel-item-title">4. 声音设置</div>
 					</div>
-					<div class="mdui-panel-item-body">
-						<div class="mdui-row">
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+					<div class="mdui-panel-item-body mdui-p-l-1 mdui-p-r-1">
+						<div class="mdui-list">
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3a1;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">启用打击音</div>
+									<div class="mdui-list-item-text">*放鞭炮的声音</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.hitsound = this.checked" type="checkbox" id="settings-sound-hitsound" checked/>
 									<i class="mdui-checkbox-icon"></i>
-									启用打击音
-								</label>
-							</div>
+								</div>
+							</label>
 							
-							<div class="mdui-col-xs-12">
-								<p>音乐音量：</p>
-								<label class="mdui-slider mdui-slider-discrete">
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe050;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">音乐音量</div>
+									<div class="mdui-list-item-text">静音以开启纯目押</div>
+								</div>
+								<div class="mdui-slider mdui-slider-discrete" style="width:100%">
 									<input oninput="settings.musicVolume = this.value / 100" type="range" step="1" min="0" max="100" value="100" id="settings-sound-music-volume" />
-								</label>
-							</div>
+								</div>
+							</label>
 							
-							<div class="mdui-col-xs-12">
-								<p>打击音音量：</p>
-								<label class="mdui-slider mdui-slider-discrete">
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe0d1;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">打击音音量</div>
+									<div class="mdui-list-item-text">控制鞭炮声音大小</div>
+								</div>
+								<div class="mdui-slider mdui-slider-discrete" style="width:100%">
 									<input oninput="settings.hitsoundVolume = this.value / 100" type="range" step="1" min="0" max="100" value="75" id="settings-sound-hitsound-volume" />
-								</label>
-							</div>
-							
+								</div>
+							</label>
 						</div>
 						
-						<div class="mdui-panel-item-actions">
-							<button onclick="switchPanel(5)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								下一步
-								<i class="mdui-icon material-icons">&#xe315;</i>
-							</button>
-							<button onclick="switchPanel(3)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								<i class="mdui-icon material-icons">&#xe314;</i>
-								上一步
-							</button>
+						<div class="mdui-p-l-2 mdui-p-r-2">
+							<div class="mdui-panel-item-actions">
+								<button onclick="switchPanel(5)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									下一步
+									<i class="mdui-icon material-icons">&#xe315;</i>
+								</button>
+								<button onclick="switchPanel(3)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									<i class="mdui-icon material-icons">&#xe314;</i>
+									上一步
+								</button>
+							</div>
 						</div>
 					</div>
 				</section>
@@ -327,42 +471,61 @@
 					<div class="mdui-panel-item-header">
 						<div class="mdui-panel-item-title">5. 游戏设置</div>
 					</div>
-					<div class="mdui-panel-item-body">
-						<div class="mdui-row">
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+					<div class="mdui-panel-item-body mdui-p-l-1 mdui-p-r-1">
+						<div class="mdui-list">
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe85a;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">启用课题模式</div>
+									<div class="mdui-list-item-text">看你怎么糊</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.challengeMode = this.checked" type="checkbox" id="settings-game-challenge-mode" />
 									<i class="mdui-checkbox-icon"></i>
-									课题模式
-								</label>
-							</div>
-							<div class="mdui-col-xs-6 mdui-col-sm-6 mdui-col-md-3">
-								<label class="mdui-checkbox">
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe1ab;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">启用自动演示</div>
+									<div class="mdui-list-item-text">可爱的 Auto 君！</div>
+								</div>
+								<div class="mdui-checkbox">
 									<input oninput="settings.autoPlay = this.checked" type="checkbox" id="settings-game-auto-play" />
 									<i class="mdui-checkbox-icon"></i>
-									自动播放
-								</label>
-							</div>
-							
-							<div class="mdui-col-xs-12 mdui-col-md-6">
-								<div class="mdui-textfield">
-									<i class="mdui-icon material-icons">&#xe3ae;</i>
-									<label class="mdui-textfield-label">谱面延迟</label>
-									<input onchange="settings.chartDelay = this.value" class="mdui-textfield-input" type="text" value="0" id="input-game-chart-delay" />
-									<div class="mdui-textfield-helper">单位为毫秒，支持正负</div>
 								</div>
-							</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3f6;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">音频延迟</div>
+									<div class="mdui-list-item-text">可以到左侧导航栏手动测延迟</div>
+								</div>
+								<div class="mdui-textfield mdui-p-t-0" style="width:100%">
+									<input
+										onchange="settings.chartDelay = this.value || 0"
+										class="mdui-textfield-input"
+										type="text"
+										placeholder="0"
+										id="input-game-chart-delay"
+									/>
+								</div>
+							</label>
 						</div>
 						
-						<div class="mdui-panel-item-actions">
-							<button onclick="gameInit()" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								启动模拟器
-								<i class="mdui-icon material-icons">&#xe315;</i>
-							</button>
-							<button onclick="switchPanel(4)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								<i class="mdui-icon material-icons">&#xe314;</i>
-								上一步
-							</button>
+						<div class="mdui-p-l-2 mdui-p-r-2">
+							<div class="mdui-panel-item-actions">
+								<button onclick="gameInit()" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									启动模拟器
+									<i class="mdui-icon material-icons">&#xe315;</i>
+								</button>
+								<button onclick="switchPanel(4)" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
+									<i class="mdui-icon material-icons">&#xe314;</i>
+									上一步
+								</button>
+							</div>
 						</div>
 					</div>
 				</section>
@@ -405,6 +568,6 @@
 			<i class="mdui-icon material-icons">&#xe002;</i>
 		</button>
 		
-		<script src="./js/main.js?v=0.0.0-beta9"></script>
+		<script src="./js/main.js?v=0.0.0-beta10"></script>
 	</body>
 </html>
