@@ -629,19 +629,15 @@ function CreateChartSprites(chart, pixi) {
 	// 创建背景图
 	if (settings.background) {
 		let background = new PIXI.Sprite(_chart.image);
-		let blur = new PIXI.filters.BlurFilter();
-		let bgScale = 0;
+		let bgScaleWidth = pixi.renderer.realWidth / _chart.image.width;
+		let bgScaleHeight = pixi.renderer.realHeight / _chart.image.height;
+		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 		
-		if (_chart.image.width <= _chart.image.height) {
-			bgScale = pixi.renderer.realWidth / _chart.image.width;
-		} else {
-			bgScale = pixi.renderer.realHeight / _chart.image.height;
-		}
-		
-		blur.repeatEdgePixels = true;
-		
-		if (settings.backgroundBlur && !settings.forceCanvas)
+		if (settings.backgroundBlur && !settings.forceCanvas) {
+			let blur = new PIXI.filters.BlurFilter();
+			blur.repeatEdgePixels = true;
 			background.filters = [blur];
+		}
 		
 		background.alpha = settings.backgroundDim;
 		background.anchor.set(0.5);
@@ -1214,13 +1210,9 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理背景图
 	if (sprites.background) {
-		let bgScale = 0;
-		
-		if (_chart.image.width <= _chart.image.height) {
-			bgScale = width / _chart.image.width;
-		} else {
-			bgScale = height / _chart.image.height;
-		}
+		let bgScaleWidth = pixi.renderer.realWidth / _chart.image.width;
+		let bgScaleHeight = pixi.renderer.realHeight / _chart.image.height;
+		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 		
 		sprites.background.scale.set(bgScale);
 		sprites.background.position.set(width / 2, height / 2);
