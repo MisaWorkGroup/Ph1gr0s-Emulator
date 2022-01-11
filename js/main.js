@@ -1,5 +1,5 @@
 var panelInst = new mdui.Panel('#panel');
-var drawerInst = new mdui.Drawer('#drawer');
+var drawerInst = new mdui.Drawer('#drawer', { swipe: true } );
 
 var pixi = null; // 备用
 var Loader = new PIXI.Loader(); // Pixi.js 自带的资源加载器
@@ -13,11 +13,12 @@ var textures = {
 // 谱面信息
 var _chart = {}; // 被选中的谱面信息
 var chartData = {
-	images : undefined,
-	audios : undefined,
-	charts : undefined,
-	infos  : undefined,
-	lines  : undefined
+	images     : undefined,
+	imagesBlur : undefined,
+	audios     : undefined,
+	charts     : undefined,
+	infos      : undefined,
+	lines      : undefined
 };
 
 // 用户输入信息
@@ -42,6 +43,7 @@ var settings = {
 	noteScale           : 8e3, // 按键缩放
 	accIndicatorScale   : 500, // 准度指示器缩放
 	multiNotesHighlight : true, // 多押高亮
+	forceCanvas         : false, // 强制 Canvas 方式绘图
 	
 	hitsound            : true, // 开启打击音
 	musicVolume         : 1, // 音乐音量
@@ -80,7 +82,24 @@ Loader.onProgress.add(function (loader, resource) {
 	}
 });
 
+// ==正常 DOM 元素事件监听器==
+// 监听侧边抽屉式导航栏项目被按下事件
+{
+	let drawerItems = document.getElementById('drawer').getElementsByClassName('mdui-list-item');
+	for (let drawerItem of drawerItems) {
+		drawerItem.addEventListener('click', (e) => {
+			if (!drawerInst.isDesktop() && drawerInst.isOpen()) {
+				drawerInst.close();
+			}
+		});
+	}
+}
+
 // ========此处为所有的初始化代码========
+// 注册所有的 Pixi.js 插件
+PIXI.CanvasRenderer.registerPlugin('graphics', PIXI.CanvasGraphicsRenderer);
+PIXI.CanvasRenderer.registerPlugin('sprite', PIXI.CanvasSpriteRenderer);
+
 // 加载图像和声音资源
 Loader.add([
 		{ name: 'tap',         url: './img/Tap.png' },
@@ -238,7 +257,9 @@ function decodeZip(input) {
 				
 			} else if (imageFormat.indexOf(format.toLowerCase()) !== -1) { // 处理图片
 				try {
+					// let blur = new PIXI.filters.BlurFilter();
 					let texture = await PIXI.Texture.fromURL('data:image/' + format + ';base64,' + (await file.async('base64')));
+					
 					
 					chartData.images[file.name] = texture;
 					
@@ -292,11 +313,15 @@ function decodeZip(input) {
 			loadedFiles++;
 		}
 		
-		createSelection('select-chart-file', chartData.charts);
-		createSelection('select-chart-music', chartData.audios);
-		createSelection('select-chart-bg', chartData.images);
+		createMenuItems('menu-chart-file', chartData.charts, '_chart.data', 'chartData.charts', null, -1, 'switchChart(this.getAttribute(\'menu-value\'))', 'list-text-chart-file');
+		createMenuItems('menu-chart-audio', chartData.audios, '_chart.audio', 'chartData.audios', null, null, null, 'list-text-chart-audio');
+		createMenuItems('menu-chart-image', chartData.images, '_chart.image', 'chartData.images', null, null, null, 'list-text-chart-image');
 		
-		switchChart(mdui.$('#select-chart-file').val());
+		// 不知道该怎么简写
+		{
+			let chartItems = document.getElementById('menu-chart-file').getElementsByTagName('a');
+			switchChart(chartItems[chartItems.length - 1].getAttribute('menu-value'));
+		}
 		
 		setProgress('loading-decode-chart', '全部文件解析完毕！', 1);
 		setTimeout(() => {
@@ -313,7 +338,7 @@ function decodeZip(input) {
 
 /***
  * @function 切换谱面，该谱面的信息将会被传到 _chart 中
- * @param id {num} 谱面 ID
+ * @param name {steing} 谱面文件名称
 ***/
 function switchChart(name) {
 	let chartInfos = chartData.infos;
@@ -325,6 +350,9 @@ function switchChart(name) {
 	// 为了避免某些玄学问题才使用这样的写法
 	for (let _chartInfo of chartInfos) {
 		let chartInfo = JSON.parse(JSON.stringify(_chartInfo));
+		
+		let audioItems = document.getElementById('menu-chart-audio').getElementsByTagName('a');
+		let imageItems = document.getElementById('menu-chart-image').getElementsByTagName('a');
 		
 		for (let keyName in chartInfo) {
 			if (keyName.indexOf('Chart') >= 0 && chartInfo[keyName] == name) {
@@ -349,6 +377,20 @@ function switchChart(name) {
 					}
 				}
 				
+				for (let audioItem of audioItems) {
+					if (audioItem.getAttribute('menu-value') == chartInfo.Music) {
+						selectMenuItem('menu-chart-audio', audioItem, 'list-text-chart-audio');
+						break;
+					}
+				}
+				
+				for (let imageItem of imageItems) {
+					if (imageItem.getAttribute('menu-value') == chartInfo.Image) {
+						selectMenuItem('menu-chart-image', imageItem, 'list-text-chart-image');
+						break;
+					}
+				}
+				
 				mdui.$('#input-chart-name').val(chartInfo.Name);
 				mdui.$('#input-chart-difficulty').val(chartInfo.Level);
 				mdui.$('#input-chart-author').val(chartInfo.Designer);
@@ -370,6 +412,21 @@ function switchPanel(id) {
 	panelInst.open(id);
 }
 
+/***
+ * @function 打开这个列表项目相关联的菜单，不用 MDUI 的自定义类型方法打开是因为
+ *     菜单的宽度一般都非常窄
+ * @param targetDom {HTMLElementObject} 按 MDUI 的要求，需要传入列表项目
+ *     的 Dom 元素，目的是为了定位
+ * @param id {string} 菜单的 ID
+***/
+function openMenu(targetDom, id) {
+	let menuDom  = document.getElementById(id);
+	let menuInst = new mdui.Menu(targetDom, menuDom, { align: 'right' } );
+	
+	menuDom.style.width = (targetDom.clientWidth - 72 > 320 ? 320 : targetDom.clientWidth - 72) + 'px';
+	menuInst.toggle();
+}
+
 // 初始化并启动模拟器
 function gameInit() {
 	let canvasBox = document.getElementById('game-canvas-box');
@@ -387,7 +444,7 @@ function gameInit() {
 	}
 	
 	if (pixi) {
-		mdui.alert('模拟器已经启动啦！', '前方高能');
+		mdui.alert('模拟器已经启动啦！', '前方高能', () => { switchPanel(6) });
 		return;
 	}
 	
@@ -398,11 +455,14 @@ function gameInit() {
 		height      : canvasBox.offsetWidth * (1 / settings.windowRatio),
 		antialias   : settings.antiAlias,
 		autoDensity : true,
-		resolution  : settings.resolution
+		resolution  : settings.resolution,
+		forceCanvas : settings.forceCanvas
 	});
 	canvasBox.innerHTML = '';
 	canvasBox.appendChild(pixi.view);
 	
+	pixi.renderer.realWidth = pixi.renderer.width / pixi.renderer.resolution;
+	pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
 	
 	// ========此处声明监听器=========
 	// ==Windows 对象 事件监听器==
@@ -418,7 +478,10 @@ function gameInit() {
 			stat.isFullscreen = false;
 		}
 		
-		ResizeChartSprites(sprites, pixi.renderer.width, pixi.renderer.height, settings.noteScale);
+		pixi.renderer.realWidth = pixi.renderer.width / pixi.renderer.resolution;
+		pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
+		
+		ResizeChartSprites(sprites, pixi.renderer.realWidth, pixi.renderer.realHeight, settings.noteScale);
 	}
 	
 	// ==舞台用户输入事件监听器==
