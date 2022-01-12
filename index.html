@@ -627,15 +627,15 @@
 							<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
 								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3f6;</i>
 								<div class="mdui-list-item-content">
-									<div class="mdui-list-item-title">音频延迟</div>
+									<div class="mdui-list-item-title">音频延迟（单位：ms）</div>
 									<div class="mdui-list-item-text">可以到左侧导航栏手动测延迟</div>
 								</div>
 								<div class="mdui-textfield mdui-p-t-0" style="width:100%">
 									<input
-										onchange="settings.chartDelay = this.value || 0"
+										onchange="settings.chartDelay = (Number(this.value) || 0) / 1000"
 										class="mdui-textfield-input"
 										type="text"
-										placeholder="0"
+										placeholder="0ms"
 										id="input-game-chart-delay"
 									/>
 								</div>
