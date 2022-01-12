@@ -1034,7 +1034,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
 function CalculateChartActualTime(delta) {
-	let currentTime = (global.audio ? (_chart.audio.duration * global.audio.progress) : 0) - _chart.data.offset - settings.chartDelay;
+	let currentTime = (global.audio ? (_chart.audio.duration * global.audio.progress) : 0) - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay;
 	let fixedWidth = pixi.renderer.fixedWidth;
 	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
 	let noteSpeed = pixi.renderer.noteSpeed;

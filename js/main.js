@@ -589,6 +589,9 @@ function gameInit() {
 	
 	pixi.ticker.add(CalculateChartActualTime); // 启动 Ticker 循环
 	
+	// 适配 AudioContext 的 baseLatency
+	_chart.audio.baseLatency = _chart.audio.context.audioContext.baseLatency ? _chart.audio.context.audioContext.baseLatency : 0;
+	
 	{
 		let startAnimateTimer = 0;
 		
