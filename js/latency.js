@@ -13,7 +13,7 @@ var tickerTimeIndex            = 0
 var tickerTimeEqualizer        = 0;
 var tickerTimes                = [];
 var tickerTimesInput           = [];
-var tickerTimesAverageLantency = 0;
+var tickerTimesAverageLatency = 0;
 
 
 
@@ -65,15 +65,15 @@ Loader.add([
 			sounds[name] = event.resources[name].sound;
 		}
 		
-		document.getElementById('btn-lantency-test-start').innerHTML = '开始测试<i class="mdui-icon material-icons">&#xe037;</i>';
-		document.getElementById('btn-lantency-test-start').disabled = false;
+		document.getElementById('btn-latency-test-start').innerHTML = '开始测试<i class="mdui-icon material-icons">&#xe037;</i>';
+		document.getElementById('btn-latency-test-start').disabled = false;
 	}
 );
 
 
 
 // ========此处声明函数========
-function startLantencyTest() {
+function startLatencyTest() {
 	if (tickerTimeStarted) return;
 	
 	if (
@@ -84,8 +84,8 @@ function startLantencyTest() {
 		return;
 	}
 	
-	document.getElementById('div-lantency-start').classList.add('mdui-hidden');
-	document.getElementById('div-lantency-test').classList.remove('mdui-hidden');
+	document.getElementById('div-latency-start').classList.add('mdui-hidden');
+	document.getElementById('div-latency-test').classList.remove('mdui-hidden');
 	
 	let tickerTimePlayed = false;
 	let lastTickerTimesInputLength = 0;
@@ -134,8 +134,8 @@ function startLantencyTest() {
 			}
 			
 			if (tickerTimeIndex == 0) {
-				tickerTimesAverageLantency = CalculateAverage(tickerTimesInput).toFixed(0);
-				document.getElementById('text-average-lantency').innerHTML = tickerTimesAverageLantency;
+				tickerTimesAverageLatency = CalculateAverage(tickerTimesInput).toFixed(0);
+				document.getElementById('text-average-latency').innerHTML = tickerTimesAverageLatency;
 			}
 		}
 	});
