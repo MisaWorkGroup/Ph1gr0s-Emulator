@@ -531,7 +531,7 @@ function gameInit() {
 			}
 			**/
 		}
-	}, { passive: false } ); // 设置 passive 为 false 是为了能在回调函数中调用 preventDefault()，下同
+	}, false); // 设置 passive 为 false 是为了能在回调函数中调用 preventDefault()，下同
 	
 	// 舞台触摸移动事件
 	pixi.view.addEventListener('touchmove', (e) => {
@@ -550,7 +550,7 @@ function gameInit() {
 			}
 			**/
 		}
-	}, { passive: false } );
+	}, false);
 	
 	// 舞台触摸结束事件
 	pixi.view.addEventListener('touchend', (e) => {
@@ -565,7 +565,7 @@ function gameInit() {
 				delete sprites.inputs.touches[fingerId];
 			}
 		}
-	}, { passive: false } );
+	}, false);
 	pixi.view.addEventListener('touchcancel', (e) => {
 		e.preventDefault();
 		
@@ -578,7 +578,7 @@ function gameInit() {
 			}
 			delete inputs.touches[fingerId];
 		}
-	}, { passive: false } );
+	}, false);
 	
 	sprites = CreateChartSprites(_chart.data, pixi); // 创建所有的谱面精灵
 	CreateChartInfoSprites(sprites, pixi, true); // 创建谱面信息文字

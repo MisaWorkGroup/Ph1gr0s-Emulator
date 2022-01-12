@@ -628,6 +628,9 @@ function CreateChartSprites(chart, pixi) {
 	let output = {
 		containers: [],
 		totalNotes: [],
+		tapholeNotes: [],
+		dragNotes: [],
+		flickNotes: [],
 		inputs: {
 			touches: {},
 			mouse: {}
@@ -759,6 +762,14 @@ function CreateChartSprites(chart, pixi) {
 			}
 			
 			output.totalNotes.push(note);
+			
+			if (_note.type == 1 || _note.type == 3) {
+				output.tapholeNotes.push(note);
+			} else if (_note.type == 2) {
+				output.dragNotes.push(note);
+			} else if (_note.type == 4) {
+				output.flickNotes.push(note);
+			}
 		}
 		
 		container.addChild(judgeLine);
@@ -1128,8 +1139,10 @@ function CalculateChartActualTime(delta) {
 				let betweenOffsetY = (parentOffsetY - rawNoteOffsetY) * rendererResolution;
 				let rawHoldLength = (i.raw.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
 				
-				i.children[1].height = rawHoldLength - betweenOffsetY / (noteScale * rendererResolution);
-				i.children[2].position.y = -(rawHoldLength - betweenOffsetY) / (noteScale * rendererResolution);
+				let currentHoldLength = rawHoldLength - betweenOffsetY / (noteScale * rendererResolution);
+				
+				i.children[1].height = currentHoldLength;
+				i.children[2].position.y = -currentHoldLength;
 				
 				if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY / rendererResolution);
 				else i.position.y = rawNoteOffsetY + betweenOffsetY / rendererResolution;
@@ -1138,14 +1151,18 @@ function CalculateChartActualTime(delta) {
 			
 			if (i.raw.score > 0 && i.raw.isProcessed) continue;
 			
-			if (i.raw.realTime - currentTime <= 0) {
-				let timeBetween = i.raw.type != 3 ? i.raw.realTime - currentTime : (i.raw.realTime + i.raw.realHoldTime) - currentTime;
+			if (i.raw.realTime - currentTime <= 0 && i.raw.type != 3) {
+				let timeBetween = i.raw.realTime - currentTime;
 				
 				if (timeBetween > -0.2) {
 					i.alpha = (0.2 + timeBetween) / 0.2;
 				} else {
 					i.alpha = 0;
 				}
+				
+			} else if ((i.raw.realTime + i.raw.realHoldTime) <= currentTime && i.raw.type == 3) {
+				i.alpha = 0;
+				i.raw.isProcessed = true;
 			}
 		}
 		
@@ -1162,7 +1179,9 @@ function CalculateChartActualTime(delta) {
 	}
 	
 	judgements.addJudgement(sprites.totalNotes, currentTime);
-	judgements.judgeNote(sprites.totalNotes, currentTime);
+	judgements.judgeNote(sprites.tapholeNotes, currentTime);
+	judgements.judgeNote(sprites.dragNotes, currentTime);
+	judgements.judgeNote(sprites.flickNotes, currentTime);
 	inputs.taps.length = 0;
 	
 	for (let i in inputs.touches) {
