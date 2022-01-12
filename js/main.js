@@ -465,6 +465,14 @@ function gameInit() {
 	pixi.renderer.realWidth = pixi.renderer.width / pixi.renderer.resolution;
 	pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
 	
+	pixi.renderer.fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	pixi.renderer.fixedWidthOffset = (pixi.renderer.realWidth - pixi.renderer.fixedWidth) / 2;
+	
+	pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
+	pixi.renderer.noteScale = pixi.renderer.fixedWidth / settings.noteScale;
+	
+	pixi.renderer.lineScale = pixi.renderer.realWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.realWidth / 14.0625;
+	
 	// ========此处声明监听器=========
 	// ==Windows 对象 事件监听器==
 	// 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
@@ -481,6 +489,14 @@ function gameInit() {
 		
 		pixi.renderer.realWidth = pixi.renderer.width / pixi.renderer.resolution;
 		pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
+		
+		pixi.renderer.fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+		pixi.renderer.fixedWidthOffset = (pixi.renderer.realWidth - pixi.renderer.fixedWidth) / 2;
+		
+		pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
+		pixi.renderer.noteScale = pixi.renderer.fixedWidth / settings.noteScale;
+		
+		pixi.renderer.lineScale = pixi.renderer.realWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.realWidth / 14.0625;
 		
 		ResizeChartSprites(sprites, pixi.renderer.realWidth, pixi.renderer.realHeight, settings.noteScale);
 	}

@@ -192,7 +192,12 @@ function createSelection(id, object, keyName = null) {
  *     入 array 时可选 array 中 object 的键名作为显示的文本
  * @param id {string} mdui-menu 元素的 id
  * @param object {object|array} 欲填充的对象或数组
+ * @param targetValueName {string} 选中项目后会被修改值的变量
+ * @param [anotherTargetValue] {string} 选中项目后用于修改值的变量，应该是一个 object
  * @param [keyName] {string} 数组内对象的指定键名
+ * @param [defalutValue] {string|number} 默认值。设定为 -1 则默认值为倒数第一个项目
+ * @param [extraJsText] {string} 选中后额外运行的 Js 代码
+ * @param [changedTextId] {string} 选中后修改这个 Dom 的内容为“当前选择了：...”
 ***/
 function createMenuItems(id, object, targetValueName, anotherTargetValue = null, keyName = null, defaultValue = null, extraJsText = null, changedTextId = null) {
 	let menu = document.getElementById(id);
@@ -613,9 +618,12 @@ function CreateChartSprites(chart, pixi) {
 	/***
 	 * 备忘录：Storyboard 中渲染出的图片就是改了指定贴图的判定线
 	***/
-	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
-	let fixedWidthOffset = (pixi.renderer.realWidth - fixedWidth) / 2;
-	let lineScale = fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : fixedWidth / 14.0625;
+	let realWidth = pixi.renderer.realWidth;
+	let realHeight = pixi.renderer.realHeight;
+	let fixedWidth = pixi.renderer.fixedWidth;
+	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
+	let lineScale = pixi.renderer.lineScale;
+	let noteScale = pixi.renderer.noteScale;
 	
 	let output = {
 		containers: [],
@@ -632,8 +640,8 @@ function CreateChartSprites(chart, pixi) {
 	// 创建背景图
 	if (settings.background) {
 		let background = new PIXI.Sprite(_chart.image);
-		let bgScaleWidth = pixi.renderer.realWidth / _chart.image.width;
-		let bgScaleHeight = pixi.renderer.realHeight / _chart.image.height;
+		let bgScaleWidth = realWidth / _chart.image.width;
+		let bgScaleHeight = realHeight / _chart.image.height;
 		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 		
 		if (settings.backgroundBlur && !settings.forceCanvas) {
@@ -645,7 +653,7 @@ function CreateChartSprites(chart, pixi) {
 		background.alpha = settings.backgroundDim;
 		background.anchor.set(0.5);
 		background.scale.set(bgScale);
-		background.position.set(pixi.renderer.realWidth / 2, pixi.renderer.realHeight / 2);
+		background.position.set(realWidth / 2, realHeight / 2);
 		
 		output.background = background;
 		pixi.stage.addChild(background);
@@ -691,10 +699,10 @@ function CreateChartSprites(chart, pixi) {
 				let holdHead = new PIXI.Sprite(textures['holdHead' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
 				let holdBody = new PIXI.Sprite(textures['holdBody' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
 				let holdEnd = new PIXI.Sprite(textures.holdEnd);
-				let baseLength = (pixi.renderer.height * 0.6);
-				let holdLength = (_note.holdLength * baseLength) / (pixi.renderer.width / settings.noteScale);
+				let baseLength = realHeight * 0.6;
+				let holdLength = (_note.holdLength * baseLength) / noteScale;
 				
-				_note.rawNoteScale = pixi.renderer.width / settings.noteScale;
+				_note.rawNoteScale = noteScale;
 				
 				holdHead.anchor.set(0.5);
 				holdBody.anchor.set(0.5, 1);
@@ -733,9 +741,9 @@ function CreateChartSprites(chart, pixi) {
 				note.addChild(noteName);
 			}
 			
-			note.scale.set(pixi.renderer.realWidth / settings.noteScale);
+			note.scale.set(noteScale);
 			note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
-			note.position.y = _note.offsetY * (pixi.renderer.realHeight * 0.6) * (_note.isAbove ? -1 : 1);
+			note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
 			
 			note.raw = _note;
 			note.id = _note.id;
@@ -760,8 +768,8 @@ function CreateChartSprites(chart, pixi) {
 		
 		pixi.stage.addChild(container);
 		
-		container.position.x = pixi.renderer.realWidth / 2;
-		container.position.y = pixi.renderer.realHeight / 2;
+		container.position.x = realWidth / 2;
+		container.position.y = realHeight / 2;
 		
 		output.containers.push(container);
 	}
@@ -776,9 +784,11 @@ function CreateChartSprites(chart, pixi) {
  * @param [requireFPSCounter] {bool} 是否需要创建一个 FPS 指示器，默认为 false
 ***/
 function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
-	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
-	let fixedWidthOffset = (pixi.renderer.realWidth - fixedWidth) / 2;
-	let lineScale = fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : fixedWidth / 14.0625;
+	let realWidth = pixi.renderer.realWidth;
+	let realHeight = pixi.renderer.realHeight;
+	let fixedWidth = pixi.renderer.fixedWidth;
+	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
+	let lineScale = pixi.renderer.lineScale;
 	
 	// 头部信息合集
 	if (!sprites.headInfos) {
@@ -988,33 +998,33 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	sprites.headInfos.alpha = 0;
 	sprites.footInfos.alpha = 0;
 	
-	sprites.scoreText.position.set(pixi.renderer.realWidth - lineScale * 0.65, lineScale * 1.375);
+	sprites.scoreText.position.set(fixedWidth - lineScale * 0.65 + fixedWidthOffset, lineScale * 1.375);
 	
-	sprites.comboText.position.x = pixi.renderer.realWidth / 2;
+	sprites.comboText.position.x = realWidth / 2;
 	sprites.comboText.children[0].position.y = lineScale * 1.375;
 	sprites.comboText.children[1].position.y = lineScale * 1.375 + sprites.comboText.children[0].height;
 	
-	sprites.songTitleBig.position.x = pixi.renderer.realWidth / 2;
-	sprites.songTitleBig.position.y = pixi.renderer.realHeight / 2 * 0.75;
+	sprites.songTitleBig.position.x = realWidth / 2;
+	sprites.songTitleBig.position.y = realHeight / 2 * 0.75;
 	
-	sprites.bgAuthorBig.position.x = pixi.renderer.realWidth / 2;
-	sprites.bgAuthorBig.position.y = pixi.renderer.realHeight / 2 * 1.25 + lineScale * 0.15;
+	sprites.bgAuthorBig.position.x = realWidth / 2;
+	sprites.bgAuthorBig.position.y = realHeight / 2 * 1.25 + lineScale * 0.15;
 	
-	sprites.chartAuthorBig.position.x = pixi.renderer.realWidth / 2;
-	sprites.chartAuthorBig.position.y = pixi.renderer.realHeight / 2 * 1.25 + lineScale;
+	sprites.chartAuthorBig.position.x = realWidth / 2;
+	sprites.chartAuthorBig.position.y = realHeight / 2 * 1.25 + lineScale;
 	
-	sprites.songNameBar.position.x = lineScale * 0.53;
-	sprites.songNameBar.position.y = pixi.renderer.realHeight - lineScale * 1.22;
+	sprites.songNameBar.position.x = lineScale * 0.53 + fixedWidthOffset;
+	sprites.songNameBar.position.y = realHeight - lineScale * 1.22;
 	
-	sprites.songTitle.position.x = lineScale * 0.85;
-	sprites.songTitle.position.y = pixi.renderer.realHeight - lineScale * 0.52;
+	sprites.songTitle.position.x = lineScale * 0.85 + fixedWidthOffset;
+	sprites.songTitle.position.y = realHeight - lineScale * 0.52;
 	
-	sprites.songDiff.position.x = pixi.renderer.realWidth - lineScale * 0.75;
-	sprites.songDiff.position.y = pixi.renderer.realHeight - lineScale * 0.52;
+	sprites.songDiff.position.x = realWidth - lineScale * 0.75 - fixedWidthOffset;
+	sprites.songDiff.position.y = realHeight - lineScale * 0.52;
 	
-	sprites.fps.position.set(pixi.renderer.realWidth - 1, 1);
+	sprites.fps.position.set(realWidth - 1, 1);
 	
-	sprites.watermark.position.set(pixi.renderer.realWidth - 2, pixi.renderer.realHeight - 2);
+	sprites.watermark.position.set(realWidth - 2, realHeight - 2);
 	
 	sprites.headInfos.position.y = -sprites.headInfos.height;
 	sprites.footInfos.position.y = sprites.headInfos.height;
@@ -1025,10 +1035,11 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 ***/
 function CalculateChartActualTime(delta) {
 	let currentTime = (global.audio ? (_chart.audio.duration * global.audio.progress) : 0) - _chart.data.offset - settings.chartDelay;
-	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
-	let fixedWidthOffset = (pixi.renderer.realWidth - fixedWidth) / 2;
-	let noteSpeed = pixi.renderer.realHeight * 0.6;
-	let noteScale = fixedWidth / settings.noteScale;
+	let fixedWidth = pixi.renderer.fixedWidth;
+	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
+	let noteSpeed = pixi.renderer.noteSpeed;
+	let noteScale = pixi.renderer.noteScale;
+	let rendererResolution = pixi.renderer.resolution;
 	
 	if (!sprites.containers) return;
 	
@@ -1041,110 +1052,112 @@ function CalculateChartActualTime(delta) {
 	}
 	**/
 	
-	if (sprites.progressBar)
-		sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
-	
-	for (let container of sprites.containers) {
-		let judgeLine = container.children[0];
+	if (!stat.isPaused) {
+		if (sprites.progressBar)
+			sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
 		
-		if (!judgeLine) continue;
-		
-		if (!settings.disableJudgeLineAlpha) {
-			for (let i of judgeLine.raw.judgeLineDisappearEvents) {
+		for (let container of sprites.containers) {
+			let judgeLine = container.children[0];
+			
+			if (!judgeLine) continue;
+			
+			if (!settings.disableJudgeLineAlpha) {
+				for (let i of judgeLine.raw.judgeLineDisappearEvents) {
+					if (currentTime < i.startRealTime) break;
+					if (currentTime > i.endRealTime) continue;
+					
+					let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+					let time1 = 1 - time2;
+					
+					judgeLine.alpha = i.start * time1 + i.end * time2;
+				}
+			}
+			
+			for (let i of judgeLine.raw.judgeLineMoveEvents) {
 				if (currentTime < i.startRealTime) break;
 				if (currentTime > i.endRealTime) continue;
 				
 				let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 				let time1 = 1 - time2;
 				
-				judgeLine.alpha = i.start * time1 + i.end * time2;
+				container.position.x = fixedWidth * (i.start * time1 + i.end * time2) + fixedWidthOffset;
+				container.position.y = pixi.renderer.realHeight * (1 - i.start2 * time1 - i.end2 * time2);
 			}
-		}
-		
-		for (let i of judgeLine.raw.judgeLineMoveEvents) {
-			if (currentTime < i.startRealTime) break;
-			if (currentTime > i.endRealTime) continue;
 			
-			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
-			let time1 = 1 - time2;
-			
-			container.position.x = fixedWidth * (i.start * time1 + i.end * time2);
-			container.position.y = pixi.renderer.realHeight * (1 - i.start2 * time1 - i.end2 * time2);
-		}
-		
-		for (const i of judgeLine.raw.judgeLineRotateEvents) {
-			if (currentTime < i.startRealTime) break;
-			if (currentTime > i.endRealTime) continue;
-			
-			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
-			let time1 = 1 - time2;
-			
-			container.rotation = i.startDeg * time1 + i.endDeg * time2;
-		}
-		
-		for (const i of judgeLine.raw.speedEvents) {
-			if (currentTime < i.startRealTime) break;
-			if (currentTime > i.endRealTime) continue;
-			
-			for (let x = 1; x < container.children.length; x++) {
-				let noteContainer = container.children[x];
+			for (const i of judgeLine.raw.judgeLineRotateEvents) {
+				if (currentTime < i.startRealTime) break;
+				if (currentTime > i.endRealTime) continue;
 				
-				noteContainer.position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
+				let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+				let time1 = 1 - time2;
 				
-				if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
-					for (let note of noteContainer.speedNotes) {
-						// 处理自身速度不为 1 的 Note。怀疑如此处理有性能问题，暂时未知其他解法
-						note.position.y = (
-							noteContainer.position.y + (
-								(note.raw.offsetY * noteSpeed) - 
-								(noteContainer.position.y > 0 ? noteContainer.position.y : noteContainer.position.y * -1)
-							) * note.raw.speed
-						) * noteContainer.noteDirection * -1;
+				container.rotation = i.startDeg * time1 + i.endDeg * time2;
+			}
+			
+			for (const i of judgeLine.raw.speedEvents) {
+				if (currentTime < i.startRealTime) break;
+				if (currentTime > i.endRealTime) continue;
+				
+				for (let x = 1; x < container.children.length; x++) {
+					let noteContainer = container.children[x];
+					
+					noteContainer.position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
+					
+					if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
+						for (let note of noteContainer.speedNotes) {
+							// 处理自身速度不为 1 的 Note。怀疑如此处理有性能问题，暂时未知其他解法
+							note.position.y = (
+								noteContainer.position.y + (
+									(note.raw.offsetY * noteSpeed) - 
+									(noteContainer.position.y > 0 ? noteContainer.position.y : noteContainer.position.y * -1)
+								) * note.raw.speed
+							) * noteContainer.noteDirection * -1;
+						}
 					}
 				}
 			}
 		}
-	}
-	
-	for (let i of sprites.totalNotes) {
-		// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
-		if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
-			let rawNoteOffsetY = i.raw.offsetY * noteSpeed;
-			let parentOffsetY = i.parent.position.y;
-			parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
-			
-			let betweenOffsetY = (parentOffsetY - rawNoteOffsetY) * pixi.renderer.resolution;
-			let rawHoldLength = (i.raw.holdLength * noteSpeed * pixi.renderer.resolution) / (fixedWidth * pixi.renderer.resolution / settings.noteScale);
-			
-			i.children[1].height = rawHoldLength - betweenOffsetY / (fixedWidth * pixi.renderer.resolution / settings.noteScale);
-			i.children[2].position.y = -(rawHoldLength - betweenOffsetY / (fixedWidth * pixi.renderer.resolution / settings.noteScale));
-			
-			if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY / pixi.renderer.resolution);
-			else i.position.y = rawNoteOffsetY + betweenOffsetY / pixi.renderer.resolution;
-		}
 		
-		
-		if (i.raw.score > 0 && i.raw.isProcessed) continue;
-		
-		if (i.raw.realTime - currentTime <= 0) {
-			let timeBetween = i.raw.type != 3 ? i.raw.realTime - currentTime : (i.raw.realTime + i.raw.realHoldTime) - currentTime;
+		for (let i of sprites.totalNotes) {
+			// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
+			if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
+				let rawNoteOffsetY = i.raw.offsetY * noteSpeed;
+				let parentOffsetY = i.parent.position.y;
+				parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
+				
+				let betweenOffsetY = (parentOffsetY - rawNoteOffsetY) * rendererResolution;
+				let rawHoldLength = (i.raw.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
+				
+				i.children[1].height = rawHoldLength - betweenOffsetY / (noteScale * rendererResolution);
+				i.children[2].position.y = -(rawHoldLength - betweenOffsetY) / (noteScale * rendererResolution);
+				
+				if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY / rendererResolution);
+				else i.position.y = rawNoteOffsetY + betweenOffsetY / rendererResolution;
+			}
 			
-			if (timeBetween > -0.2) {
-				i.alpha = (0.2 + timeBetween) / 0.2;
-			} else {
-				i.alpha = 0;
+			
+			if (i.raw.score > 0 && i.raw.isProcessed) continue;
+			
+			if (i.raw.realTime - currentTime <= 0) {
+				let timeBetween = i.raw.type != 3 ? i.raw.realTime - currentTime : (i.raw.realTime + i.raw.realHoldTime) - currentTime;
+				
+				if (timeBetween > -0.2) {
+					i.alpha = (0.2 + timeBetween) / 0.2;
+				} else {
+					i.alpha = 0;
+				}
 			}
 		}
-	}
-	
-	for (let i in sprites.clickAnimate.bad) {
-		let obj = sprites.clickAnimate.bad[i];
 		
-		obj.alpha -= 2 / 60;
-		
-		if (obj.alpha <= 0) {
-			obj.destroy();
-			sprites.clickAnimate.bad.splice(i, 1);
+		for (let i in sprites.clickAnimate.bad) {
+			let obj = sprites.clickAnimate.bad[i];
+			
+			obj.alpha -= 2 / 60;
+			
+			if (obj.alpha <= 0) {
+				obj.destroy();
+				sprites.clickAnimate.bad.splice(i, 1);
+			}
 		}
 	}
 	
@@ -1165,7 +1178,8 @@ function CalculateChartActualTime(delta) {
 ***/
 function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 	let obj = undefined;
-	let fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	let fixedWidth = pixi.renderer.fixedWidth;
+	let noteScale = pixi.renderer.noteScale;
 	
 	if (!pixi || !settings.clickAnimate) return;
 	
@@ -1175,7 +1189,7 @@ function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 		obj = new PIXI.AnimatedSprite(textures.clickRaw);
 		
 		obj.anchor.set(0.5);
-		obj.scale.set((fixedWidth / settings.noteScale) * (256 / obj.width) * 4 * 1.4);
+		obj.scale.set(noteScale * (256 / obj.width) * 4 * 1.4);
 		obj.position.set(x, y);
 		
 		obj.tint = type == 4 ? 0xFFECA0 : 0xB4E1FF;
@@ -1189,7 +1203,7 @@ function CreateClickAnimation(x, y, type = 4, angle = 0, performance = false) {
 		obj = new PIXI.Sprite(textures.tap2);
 		
 		obj.anchor.set(0.5);
-		obj.scale.set(fixedWidth / settings.noteScale);
+		obj.scale.set(noteScale);
 		obj.position.set(x, y);
 		obj.angle = angle;
 	}
@@ -1214,7 +1228,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	let fixedWidth = width <= height / 9 * 16 ? width : height / 9 * 16;
 	let fixedWidthOffset = (width - fixedWidth) / 2;
 	let windowRatio = width / height;
-	let lineScale = fixedWidth > height * 0.75 ? height / 18.75 : fixedWidth / 14.0625;
+	let lineScale = width > height * 0.75 ? height / 18.75 : width / 14.0625;
 	let noteScale = fixedWidth / _noteScale;
 	let noteSpeed = height * 0.6;
 	
@@ -1249,8 +1263,8 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		// 处理 Hold
 		if (note.raw.type == 3 && note.children.length == 3) {
 			// note.children[1].height = note.raw.holdLength * (height * 0.6) / note.raw.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.raw.rawNoteScale);
-			note.children[1].height = note.raw.holdLength * (height * 0.6) / (width / _noteScale);
-			note.children[2].position.y = -(note.raw.holdLength * (height * 0.6) / (width / _noteScale));
+			note.children[1].height = note.raw.holdLength * (height * 0.6) / noteScale;
+			note.children[2].position.y = -(note.raw.holdLength * (height * 0.6) / noteScale);
 		}
 		
 		note.scale.set(noteScale);
@@ -1275,7 +1289,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	// 处理分数指示器
 	if (sprites.scoreText) {
 		sprites.scoreText.style.fontSize = lineScale * 0.95 + 'px';
-		sprites.scoreText.position.set(width - lineScale * 0.65, lineScale * 1.375);
+		sprites.scoreText.position.set(width - lineScale * 0.65 - fixedWidthOffset, lineScale * 1.375);
 	}
 	
 	// 处理歌曲名称大标题
@@ -1307,7 +1321,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		sprites.songNameBar.width = lineScale * 0.119;
 		sprites.songNameBar.height = lineScale * 0.612;
 		
-		sprites.songNameBar.position.x = lineScale * 0.53;
+		sprites.songNameBar.position.x = lineScale * 0.53 + fixedWidthOffset;
 		sprites.songNameBar.position.y = height - lineScale * 1.22;
 	}
 	
@@ -1315,7 +1329,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	if (sprites.songTitle) {
 		sprites.songTitle.style.fontSize = lineScale * 0.63 + 'px';
 		
-		sprites.songTitle.position.x = lineScale * 0.85;
+		sprites.songTitle.position.x = lineScale * 0.85 + fixedWidthOffset;
 		sprites.songTitle.position.y = height - lineScale * 0.52;
 	}
 	
@@ -1323,7 +1337,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	if (sprites.songDiff) {
 		sprites.songDiff.style.fontSize = lineScale * 0.63 + 'px';
 		
-		sprites.songDiff.position.x = width - lineScale * 0.75;
+		sprites.songDiff.position.x = width - lineScale * 0.75 - fixedWidthOffset;
 		sprites.songDiff.position.y = height - lineScale * 0.52;
 	}
 	
