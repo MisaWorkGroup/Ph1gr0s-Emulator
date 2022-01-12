@@ -59,6 +59,7 @@ var settings = {
 var global = {};
 
 var stat = {
+	isTransitionEnd: false,
 	isPaused : false,
 	isFullscreen : false
 };
@@ -607,6 +608,7 @@ function gameInit() {
 			if (startAnimateTimer >= 6) {
 				sprites.titlesBig.alpha = 0;
 				
+				stat.isTransitionEnd = true;
 				global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
 				if (stat.isPaused)
 					_chart.audio.pause();
@@ -616,7 +618,10 @@ function gameInit() {
 		};
 		
 		// 留给设备处理大量数据的时间
-		setTimeout(() => { pixi.ticker.add(startAnimateTicker) }, 1000);
+		setTimeout(() => {
+			stat.isTransitionEnd = false;
+			pixi.ticker.add(startAnimateTicker);
+		}, 1000);
 	}
 }
 

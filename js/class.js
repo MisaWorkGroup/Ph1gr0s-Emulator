@@ -223,6 +223,8 @@ class Judgements extends Array {
 		const timeGood = (settings.challengeMode ? times.goodChallenge : times.good) / 1000;
 		const timeBad = (settings.challengeMode ? times.badChallenge : times.bad) / 1000;
 		
+		if (!stat.isTransitionEnd || stat.isPaused) return;
+		
 		for (const i of notes) { // 遍历所有 Note
 			let globalPosition = i.getGlobalPosition();
 			let offsetX = globalPosition.x;
