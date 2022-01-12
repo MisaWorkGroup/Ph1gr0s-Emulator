@@ -39,7 +39,7 @@
 			</div>
 		</drawer>
 		
-		<main class="mdui-container mdui-typo mdui-m-b-2" id="div-lantency-start">
+		<main class="mdui-container mdui-typo mdui-m-b-2" id="div-latency-start">
 			<h2 class="mdui-text-center">延迟自测工具</h2>
 			
 			<p>该工具将帮助你测试你的设备音频延迟。</p>
@@ -54,16 +54,16 @@
 			<p>当您准备好后，请点击下方<code>开始测试</code>按钮以启动延迟测试程序。</p>
 			
 			<button
-				onclick="startLantencyTest()"
+				onclick="startLatencyTest()"
 				class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent mdui-center"
-				id="btn-lantency-test-start"
+				id="btn-latency-test-start"
 				disabled
 			>
 				努力加载中...<div class="mdui-spinner mdui-spinner-colorful" style="width:20px;height:20px"></div>
 			</button>
 		</main>
 		
-		<main class="mdui-container mdui-typo mdui-hidden mdui-m-b-2" id="div-lantency-test">
+		<main class="mdui-container mdui-typo mdui-hidden mdui-m-b-2" id="div-latency-test">
 			<h2 class="mdui-text-center">延迟自测工具</h2>
 			
 			<p>请聆听播放的节奏，并尽可能地跟着节奏单击按钮或者按下<code>F</code>键，程序会在每 4 拍后自动计算平均延迟。</p>
@@ -71,7 +71,7 @@
 			<p>本程序不会自动停止。如果您认为平均值已趋于稳定，您可自行关闭本页面。</p>
 			
 			<p class="mdui-text-center">
-				当前平均延迟：<b><span id="text-average-lantency">0</span>ms</b>
+				当前平均延迟：<b><span id="text-average-latency">0</span>ms</b>
 			</p>
 			
 			<button class="mdui-btn mdui-color-theme-accent mdui-center" style="width:50%;height:72px" id="btn-tap">Tap / Press F</button>
@@ -85,6 +85,6 @@
 			</center>
 		</main>
 		
-		<script src="./js/lantency.js?v=0.0.0-beta0"></script>
+		<script src="./js/latency.js?v=0.0.0-beta0"></script>
 	</body>
 </html>
