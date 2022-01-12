@@ -195,7 +195,7 @@ class Judgements extends Array {
 				} else if (i.raw.type == 2) {
 					if (i.raw.realTime - realTime < 0.2) this.push(new Judgement(offsetX, offsetY, 2));
 				} else if (i.raw.type == 3) {
-					if (i.isHolding) this.push(new Judgement(offsetX, offsetY, 2));
+					if (i.raw.isPressing) this.push(new Judgement(offsetX, offsetY, 2));
 					else if (i.raw.realTime - realTime < 0.0) this.push(new Judgement(offsetX, offsetY, 1));
 				} else if (i.raw.type == 4) {
 					if (i.raw.realTime - realTime < 0.2) this.push(new Judgement(offsetX, offsetY, 3));
@@ -242,8 +242,10 @@ class Judgements extends Array {
 				i.raw.isProcessed = true;
 				i.raw.isScored = true;
 				
-				if (i.raw.type == 3)
+				if (i.raw.type == 3) {
 					i.alpha = 0.5;
+					i.raw.isProcessed = false;
+				}
 				
 			} else if (i.raw.type == 1) { // Note 类型为 Tap。在这个分支中，判定和动画是一起执行的
 				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
@@ -363,7 +365,7 @@ class Judgements extends Array {
 							break;
 						}
 						
-					} else if (this[x].isInArea(offsetX, offsetY, angle, i.width)) {
+					} else if (!i.raw.isScored && !i.raw.isProcessed && this[x].isInArea(offsetX, offsetY, angle, i.width)) {
 						i.raw.isPressing = true; // 持续判断手指是否在判定区域内
 					}
 				}
@@ -372,7 +374,6 @@ class Judgements extends Array {
 					i.raw.score = 1;
 					score.addCombo(1, i.raw.accType);
 					i.raw.isScored = true;
-					i.raw.isProcessed = true;
 					i.alpha = 0.5;
 				}
 				
