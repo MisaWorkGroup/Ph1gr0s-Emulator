@@ -495,12 +495,13 @@ function gameInit() {
 			let x = touch.offsetX - canvasPosition.x;
 			let y = touch.offsetY - canvasPosition.y;
 			
-			inputs.touches[fingerId] = Click.activate(x, y, fingerId);
+			inputs.touches[fingerId] = Click.activate(x, y, 'touches', fingerId);
 			
+			/**
 			if (settings.showFinger && !sprites.fingers[fingerId]) {
 				let circle = new PIXI.Graphics();
 				
-				circle.beginFill(0x00FFFF);
+				circle.beginFill(0xFFFFFF);
 				circle.drawCircle(0, 0, 6);
 				circle.endFill();
 				
@@ -511,6 +512,7 @@ function gameInit() {
 			} else if (settings.showFinger) {
 				sprites.fingers[fingerId].position.set(x, y);
 			}
+			**/
 		}
 	}, { passive: false } ); // 设置 passive 为 false 是为了能在回调函数中调用 preventDefault()，下同
 	
@@ -525,10 +527,11 @@ function gameInit() {
 			let y = touch.offsetY - canvasPosition.y;
 			
 			inputs.touches[fingerId].move(x, y);
-			
+			/**
 			if (settings.showFinger) {
 				sprites.fingers[fingerId].position.set(x, y);
 			}
+			**/
 		}
 	}, { passive: false } );
 	
@@ -539,11 +542,11 @@ function gameInit() {
 		for (let touch of e.changedTouches) {
 			let fingerId = touch.identifier;
 			
-			if (settings.showFinger) {
-				sprites.fingers[fingerId].destroy();
-				delete sprites.fingers[fingerId];
-			}
 			delete inputs.touches[fingerId];
+			if (settings.showFinger) {
+				sprites.inputs.touches[fingerId].destroy();
+				delete sprites.inputs.touches[fingerId];
+			}
 		}
 	}, { passive: false } );
 	pixi.view.addEventListener('touchcancel', (e) => {

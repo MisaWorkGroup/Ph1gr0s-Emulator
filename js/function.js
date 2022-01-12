@@ -620,7 +620,10 @@ function CreateChartSprites(chart, pixi) {
 	let output = {
 		containers: [],
 		totalNotes: [],
-		fingers: {},
+		inputs: {
+			touches: {},
+			mouse: {}
+		},
 		clickAnimate: {
 			bad: []
 		}
@@ -1148,6 +1151,13 @@ function CalculateChartActualTime(delta) {
 	judgements.addJudgement(sprites.totalNotes, currentTime);
 	judgements.judgeNote(sprites.totalNotes, currentTime);
 	inputs.taps.length = 0;
+	
+	for (let i in inputs.touches) {
+		if (inputs.touches[i] instanceof Click) inputs.touches[i].animate();
+	}
+	for (let i in inputs.mouse) {
+		if (inputs.mouse[i] instanceof Click) inputs.mouse[i].animate();
+	}
 }
 
 /***
@@ -1436,4 +1446,46 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 		
 		return accGraphic;
 	}
+}
+
+/***
+ * @function 绘制输入点并上色。本方法不会自行删除输入点
+ * @param x {number} 输入点 x 坐标
+ * @paran y {number} 输入点 y 坐标
+ * @param inputType {string} 输入类型，用于将输入点传入到指定的精灵对象内
+ * @param inputId {number} 输入标识，用处同上
+ * @param [type] {number} 该输入点状态，0 = 单击，1 = 移动，2 = 长按
+ * @return {object} 返回当前输入点的精灵
+***/
+function DrawInputPoint(x, y, inputType, inputId, type = 0) {
+	let inputPoints = sprites.inputs[inputType];
+	let inputPoint = inputPoints ? inputPoints[inputId] : null;
+	
+	if (!settings.showFinger) return;
+	
+	if (!inputPoint) {
+		inputPoint = new PIXI.Graphics();
+		
+		inputPoint.beginFill(0xFFFFFF);
+		inputPoint.drawCircle(0, 0, 6);
+		inputPoint.endFill();
+		
+		pixi.stage.addChild(inputPoint);
+		inputPoints[inputId] = inputPoint;
+		
+		sprites.inputs[inputType] = inputPoints;
+	}
+	
+	inputPoint.position.set(x, y);
+	
+	// type == 0 : Tap ; type == 1 : Move ; type == 2 : Hold;
+	if (type == 0) {
+		inputPoint.tint = 0x00FFFF;
+	} else if (type == 1) {
+		inputPoint.tint = 0xFFFF00;
+	} else if (type == 2) {
+		inputPoint.tint = 0xFF00FF;
+	}
+	
+	return inputPoint;
 }

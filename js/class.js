@@ -12,19 +12,21 @@
  *     time: 推测是按下的持续时长
 ***/
 class Click {
-	constructor(offsetX, offsetY) {
+	constructor(offsetX, offsetY, type = null, inputId = null) {
 		this.offsetX = Number(offsetX);
 		this.offsetY = Number(offsetY);
 		this.isMoving = false;
 		this.time = 0;
+		this.type = type;
+		this.inputId = inputId;
 	}
 	
 	/***
 	 * 该静态方法用于判断输入的坐标是否为四个角，如是则触发 specialCick
 	 * 无论是否触发 specialClick 该方法都会返回一个新的 Click 并将其 push 到 taps 数组内。
 	***/
-	static activate(offsetX, offsetY, inputId = 0) {
-		inputs.taps.push(new Click(offsetX, offsetY));
+	static activate(offsetX, offsetY, type = null, inputId = null) {
+		inputs.taps.push(new Click(offsetX, offsetY, type, inputId));
 		/**
 		// 左上角判断
 		if (offsetX < lineScale * 1.5 &&
@@ -55,7 +57,7 @@ class Click {
 		}
 		**/
 		
-		return new Click(offsetX, offsetY);
+		return new Click(offsetX, offsetY, type, inputId);
 	}
 	
 	// 猜测当手指在移动时会调用此函数。
@@ -67,18 +69,20 @@ class Click {
 		this.time = 0;
 	}
 	
-	// 暂时未知。推测该方法用于标明该点击的类型
-	// 备忘录：calcqwq() 函数中调用了此方法
+	// 该方法用于增加输入点输入持续时间，并在允许的情况下绘制输入点
 	animate() {
 		if (!this.time++) { // 先判断 time 是否为 0，再自增
 			if (this.isMoving) {
-				clickEvents0.push(ClickEvent0.getClickMove(this.offsetX, this.offsetY));
+				// clickEvents0.push(ClickEvent0.getClickMove(this.offsetX, this.offsetY));
+				DrawInputPoint(this.offsetX, this.offsetY, this.type, this.inputId, 1);
 			} else {
-				clickEvents0.push(ClickEvent0.getClickTap(this.offsetX, this.offsetY));
+				// clickEvents0.push(ClickEvent0.getClickTap(this.offsetX, this.offsetY));
+				DrawInputPoint(this.offsetX, this.offsetY, this.type, this.inputId, 0);
 			}
 			
 		} else {
-			clickEvents0.push(ClickEvent0.getClickHold(this.offsetX, this.offsetY));
+			// clickEvents0.push(ClickEvent0.getClickHold(this.offsetX, this.offsetY));
+			DrawInputPoint(this.offsetX, this.offsetY, this.type, this.inputId, 2);
 		}
 	}
 }
