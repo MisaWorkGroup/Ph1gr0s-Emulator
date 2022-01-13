@@ -6,12 +6,14 @@
 		
 		<link rel="stylesheet" href="./css/font-mina.css" />
 		<link rel="stylesheet" href="./css/mdui.min.css?v=1.0.1" />
-		<script src="http://cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
-		<!--script>
+		<!--script src="http://cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
+		<script>
 			var vConsole = new VConsole();
 		</script-->
 		
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
+		<script src="./js/stackblur.min.js?v=2.5.0"></script>
+		<script src="./js/Browser.js"></script>
 		
 		<script src="./js/pixi/pixi.min.js?v=6.2.1"></script>
 		<script src="./js/pixi/canvas-renderer.min.js?v=6.2.1"></script>
@@ -23,9 +25,54 @@
 		<script src="./js/mdui.min.js?v=1.0.1"></script>
 		
 		<script src="./js/console.js?v=0.0.0-beta2"></script>
-		<script src="./js/function.js?v=0.0.0-beta16"></script>
+		<script src="./js/function.js?v=0.0.0-beta17"></script>
 		<script src="./js/class.js?v=0.0.0-beta13"></script>
 		<script src="./js/convert.js?v=0.0.0-beta3"></script>
+		
+		<script>
+			const BrowserInfo = new Browser();
+			const DeviceInfo = {
+				system         : BrowserInfo.os,
+				systemVersion  : BrowserInfo.osVersion,
+				systemType     : BrowserInfo.device,
+				systemLanguage : BrowserInfo.language,
+				
+				browser        : BrowserInfo.browser,
+				browserVersion : BrowserInfo.version,
+				browserEngine  : BrowserInfo.engine,
+				
+				supportWebGL   : PIXI.utils.isWebGLSupported()
+			};
+			
+			// 用户设置数据
+			var settings = {
+				windowRatio         : 16 / 9, // 屏幕宽高比
+				antiAlias           : true, // 抗锯齿
+				resolution          : 2, // 清晰度
+				background          : true, // 启用背景图
+				backgroundDim       : 0.75, // 背景图亮度
+				backgroundBlur      : true, // 背景图模糊
+				clickAnimate        : true, // 打击动画
+				accIndicator        : false, // 准度指示器
+				showFinger          : false, // 手指触摸点
+				noteScale           : 8e3, // 按键缩放
+				accIndicatorScale   : 500, // 准度指示器缩放
+				multiNotesHighlight : true, // 多押高亮
+				showApStatus        : true, // AP/FC 指示器
+				forceCanvas         : (DeviceInfo.supportWebGL ? false : true), // 强制 Canvas 方式绘图
+				
+				hitsound            : true, // 开启打击音
+				musicVolume         : 1, // 音乐音量
+				hitsoundVolume      : 0.75, // 打击音音量
+				
+				challengeMode       : false, // 课题模式
+				autoPlay            : false, // 自动播放
+				chartDelay          : 0, // 谱面延迟
+				
+				developMode         : false,
+				disableJudgeLineAlpha : false
+			};
+		</script>
 		
 		<style>
 			html, body {
@@ -38,27 +85,6 @@
 			}
 			.mdui-list .mdui-list-item.mdui-list-item-full-width .mdui-list-item-content {
 				padding-bottom: 0;
-			}
-			
-			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text {
-				padding: 0;
-				border: none;
-				background: none;
-			}
-			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text:hover {
-				padding: 0;
-				border: none;
-				background: none;
-			}
-			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text:active {
-				padding: 0;
-				border: none;
-				background: none;
-			}
-			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text::before,
-			.mdui-list .mdui-list-item .mdui-list-item-content select.mdui-list-item-text::after {
-				content: '';
-				display: none;
 			}
 		</style>
 		
@@ -77,6 +103,23 @@
 				<a class="mdui-list-item mdui-ripple">
 					<i class="mdui-list-item-icon mdui-icon material-icons">home</i>
 					<div class="mdui-list-item-content">首页</div>
+				</a>
+				
+				<a
+					onclick="
+						mdui.alert(
+							'设备类型：' + DeviceInfo.systemType + '<br>' +
+							'设备系统：' + DeviceInfo.system + ' ' + DeviceInfo.systemVersion + '<br>' +
+							'当前浏览器：' + DeviceInfo.browser + ' ' + DeviceInfo.browserVersion + '<br>' +
+							'浏览器内核：' + DeviceInfo.browserEngine + '<br>' + 
+							'是否支持 WebGL：' + (DeviceInfo.supportWebGL ? '是' : '否'), 
+							'设备信息'
+						);
+					"
+					class="mdui-list-item mdui-ripple"
+				>
+					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe8a5;</i>
+					<div class="mdui-list-item-content">设备信息</div>
 				</a>
 				
 				<a href="./latency_test.html" target="_blank" class="mdui-list-item mdui-ripple">
@@ -336,6 +379,18 @@
 							</label>
 							
 							<label class="mdui-list-item mdui-ripple">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe25f;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">启用 FC/AP 指示器</div>
+									<div class="mdui-list-item-text">四字口诀，黄蓝白没</div>
+								</div>
+								<div class="mdui-checkbox">
+									<input oninput="settings.showApStatus = this.checked" type="checkbox" id="settings-graphics-show-ap-status" checked/>
+									<i class="mdui-checkbox-icon"></i>
+								</div>
+							</label>
+							
+							<label class="mdui-list-item mdui-ripple">
 								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe55e;</i>
 								<div class="mdui-list-item-content">
 									<div class="mdui-list-item-title">启用准度指示器</div>
@@ -531,6 +586,16 @@
 									<i class="mdui-checkbox-icon"></i>
 								</div>
 							</label>
+							<script>
+								if (!DeviceInfo.supportWebGL) {
+									let checkbox = document.getElementById('settings-graphics-force-canvas');
+									
+									checkbox.checked = true;
+									checkbox.disabled = true;
+									
+									checkbox.labels[0].disabled = true;
+								}
+							</script>
 						</div>
 						
 						<div class="mdui-p-l-2 mdui-p-r-2">
@@ -673,19 +738,38 @@
 					</div>
 					<div class="mdui-panel-item-body">
 						<div class="mdui-m-t-1 mdui-m-b-1" id="game-canvas-box" style="margin:auto">
-							<div class="mdui-text-center mdui-text-color-theme-disabled" style="font-family:'Mina'">
-								还没有启动模拟器<br>
-								You havn't start the emulator yet.
+							<div class="mdui-text-color-theme-disabled" style="font-family:'Mina'">
+								你还没有启动模拟器
 							</div>
 						</div>
 						
+						<script>
+							document.getElementById('game-canvas-box').innerHTML = 
+								'<div class="mdui-text-color-theme-disabled" style="font-family:\'Mina\'">' +
+								'============== 设备信息 ==============<br>' +
+								'设备类型：' + DeviceInfo.systemType + '<br>' +
+								'设备系统：' + DeviceInfo.system + ' ' + DeviceInfo.systemVersion + '<br>' +
+								'当前浏览器：' + DeviceInfo.browser + ' ' + DeviceInfo.browserVersion + '<br>' +
+								'浏览器内核：' + DeviceInfo.browserEngine + '<br>' + 
+								'是否支持 WebGL：' + (DeviceInfo.supportWebGL ? '是' : '否') + '<br>' +
+								'=========== 等待启动模拟器 ===========' +
+								'</div>'
+							;
+						</script>
+						
 						<div class="mdui-panel-item-actions">
+							<button onclick="gamePause()" class="mdui-btn mdui-ripple mdui-float-left mdui-text-color-theme-accent" id="game-btn-pause">
+								<i class="mdui-icon material-icons">&#xe037;</i>
+								继续
+							</button>
+							<button onclick="gameRestart()" class="mdui-btn mdui-ripple mdui-float-left mdui-text-color-theme-accent">
+								<i class="mdui-icon material-icons">&#xe419;</i>
+								重试
+							</button>
+							
 							<button onclick="setCanvasFullscreen()" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
 								全屏
 								<i class="mdui-icon material-icons">&#xe5d0;</i>
-							</button>
-							<button onclick="gamePause()" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
-								暂停/继续
 							</button>
 						</div>
 					</div>
@@ -705,6 +789,6 @@
 			<i class="mdui-icon material-icons">&#xe002;</i>
 		</button>
 		
-		<script src="./js/main.js?v=0.0.0-beta15"></script>
+		<script src="./js/main.js?v=0.0.0-beta16"></script>
 	</body>
 </html>
