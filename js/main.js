@@ -1,5 +1,5 @@
 var panelInst = new mdui.Panel('#panel');
-var drawerInst = new mdui.Drawer('#drawer', { swipe: true } );
+var drawerInst = new mdui.Drawer('#drawer');
 
 var pixi = null; // 备用
 var Loader = new PIXI.Loader(); // Pixi.js 自带的资源加载器
@@ -29,36 +29,10 @@ var inputs = {
 	keyboard: {}
 };
 
-// 用户设置数据
-var settings = {
-	windowRatio         : 16 / 9, // 屏幕宽高比
-	antiAlias           : true, // 抗锯齿
-	resolution          : 2, // 清晰度
-	background          : true, // 启用背景图
-	backgroundDim       : 0.75, // 背景图亮度
-	backgroundBlur      : true, // 背景图模糊
-	clickAnimate        : true, // 打击动画
-	accIndicator        : false, // 准度指示器
-	showFinger          : false, // 手指触摸点
-	noteScale           : 8e3, // 按键缩放
-	accIndicatorScale   : 500, // 准度指示器缩放
-	multiNotesHighlight : true, // 多押高亮
-	forceCanvas         : false, // 强制 Canvas 方式绘图
-	
-	hitsound            : true, // 开启打击音
-	musicVolume         : 1, // 音乐音量
-	hitsoundVolume      : 0.75, // 打击音音量
-	
-	challengeMode       : false, // 课题模式
-	autoPlay            : false, // 自动播放
-	chartDelay          : 0, // 谱面延迟
-	
-	developMode         : false,
-	disableJudgeLineAlpha : false
-};
 var global = {};
 
 var stat = {
+	isRetrying : false,
 	isTransitionEnd: false,
 	isPaused : false,
 	isFullscreen : false
@@ -182,7 +156,7 @@ function decodeZip(input) {
 	
 	// 监听文件读取进度
 	reader.onprogress = (e) => {
-		if (e.loaded != input.files[0].size) {
+		if (e.loaded < input.files[0].size) {
 			setProgress('loading-chart-zip', '正在读取谱面包...', e.loaded / input.files[0].size);
 		} else {
 			setProgress('loading-chart-zip', '谱面包读取完成！', 1);
@@ -258,11 +232,11 @@ function decodeZip(input) {
 				
 			} else if (imageFormat.indexOf(format.toLowerCase()) !== -1) { // 处理图片
 				try {
-					// let blur = new PIXI.filters.BlurFilter();
 					let texture = await PIXI.Texture.fromURL('data:image/' + format + ';base64,' + (await file.async('base64')));
-					
+					let blur = PIXI.Texture.from(BlurImage(texture.baseTexture, 20));
 					
 					chartData.images[file.name] = texture;
+					chartData.imagesBlur[file.name] = blur;
 					
 				} catch (e) {
 					console.warn('"' + file.name + '" 可能不是一个有效的图像文件，将不会加载该文件。', e);
@@ -316,7 +290,7 @@ function decodeZip(input) {
 		
 		createMenuItems('menu-chart-file', chartData.charts, '_chart.data', 'chartData.charts', null, -1, 'switchChart(this.getAttribute(\'menu-value\'))', 'list-text-chart-file');
 		createMenuItems('menu-chart-audio', chartData.audios, '_chart.audio', 'chartData.audios', null, null, null, 'list-text-chart-audio');
-		createMenuItems('menu-chart-image', chartData.images, '_chart.image', 'chartData.images', null, null, null, 'list-text-chart-image');
+		createMenuItems('menu-chart-image', chartData.images, '_chart.image', 'chartData.images', null, null, '_chart.imageBlur = chartData.imagesBlur[this.getAttribute(\'menu-value\')]', 'list-text-chart-image');
 		
 		// 不知道该怎么简写
 		{
@@ -358,16 +332,17 @@ function switchChart(name) {
 		for (let keyName in chartInfo) {
 			if (keyName.indexOf('Chart') >= 0 && chartInfo[keyName] == name) {
 				chart = {
-					info  : {
+					info      : {
 						name        : chartInfo.Name,
 						level       : chartInfo.Level,
 						illustrator : chartInfo.Illustrator,
 						designer    : chartInfo.Designer
 					},
-					data  : chartData.charts[name],
-					audio : chartData.audios[chartInfo.Music],
-					image : chartData.images[chartInfo.Image],
-					lines : []
+					data      : chartData.charts[name],
+					audio     : chartData.audios[chartInfo.Music],
+					image     : chartData.images[chartInfo.Image],
+					imageBlur : chartData.imagesBlur[chartInfo.Image],
+					lines     : []
 				};
 				
 				if (chartData.lines instanceof Array) {
@@ -471,9 +446,15 @@ function gameInit() {
 	pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
 	pixi.renderer.noteScale = pixi.renderer.fixedWidth / settings.noteScale;
 	
-	pixi.renderer.lineScale = pixi.renderer.realWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.realWidth / 14.0625;
+	pixi.renderer.lineScale = pixi.renderer.fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.fixedWidth / 14.0625;
 	
 	// ========此处声明监听器=========
+	// ==Passive 兼容性检测，代码来自 Moz://a==
+	let passiveIfSupported = false;
+	try {
+		pixi.addEventListener('test', null, Object.defineProperty({}, 'passive', { get: function() { passiveIfSupported = { passive: false }; } }));
+	} catch(err) {}
+	
 	// ==Windows 对象 事件监听器==
 	// 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
 	window.onresize = (e) => {
@@ -496,7 +477,7 @@ function gameInit() {
 		pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
 		pixi.renderer.noteScale = pixi.renderer.fixedWidth / settings.noteScale;
 		
-		pixi.renderer.lineScale = pixi.renderer.realWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.realWidth / 14.0625;
+		pixi.renderer.lineScale = pixi.renderer.fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.fixedWidth / 14.0625;
 		
 		ResizeChartSprites(sprites, pixi.renderer.realWidth, pixi.renderer.realHeight, settings.noteScale);
 	}
@@ -531,7 +512,7 @@ function gameInit() {
 			}
 			**/
 		}
-	}, false); // 设置 passive 为 false 是为了能在回调函数中调用 preventDefault()，下同
+	}, passiveIfSupported); // 设置 passive 为 false 是为了能在回调函数中调用 preventDefault()，下同
 	
 	// 舞台触摸移动事件
 	pixi.view.addEventListener('touchmove', (e) => {
@@ -550,7 +531,7 @@ function gameInit() {
 			}
 			**/
 		}
-	}, false);
+	}, passiveIfSupported);
 	
 	// 舞台触摸结束事件
 	pixi.view.addEventListener('touchend', (e) => {
@@ -565,7 +546,7 @@ function gameInit() {
 				delete sprites.inputs.touches[fingerId];
 			}
 		}
-	}, false);
+	}, passiveIfSupported);
 	pixi.view.addEventListener('touchcancel', (e) => {
 		e.preventDefault();
 		
@@ -578,7 +559,7 @@ function gameInit() {
 			}
 			delete inputs.touches[fingerId];
 		}
-	}, false);
+	}, passiveIfSupported);
 	
 	sprites = CreateChartSprites(_chart.data, pixi); // 创建所有的谱面精灵
 	CreateChartInfoSprites(sprites, pixi, true); // 创建谱面信息文字
@@ -642,6 +623,8 @@ function gameInit() {
 			pixi.ticker.add(startAnimateTicker);
 		}, 1000);
 	}
+	
+	document.getElementById('game-btn-pause').innerHTML = '<i class="mdui-icon material-icons">&#xe034;</i> 暂停';
 }
 
 function setCanvasFullscreen() {
@@ -657,6 +640,7 @@ function setCanvasFullscreen() {
 }
 
 function gamePause() {
+	if (!pixi) return;
 	if (!_chart.audio) return;
 	
 	if (!stat.isPaused) {
@@ -664,9 +648,150 @@ function gamePause() {
 		sprites.comboText.children[1].text = 'Paused';
 		stat.isPaused = true;
 		
+		document.getElementById('game-btn-pause').innerHTML = '<i class="mdui-icon material-icons">&#xe037;</i> 继续';
+		
 	} else {
 		global.audio = _chart.audio.play({start: _chart.audio.duration * global.audio.progress, volume: settings.musicVolume});
 		sprites.comboText.children[1].text = settings.autoPlay ? 'Autoplay' : 'combo';
 		stat.isPaused = false;
+		
+		document.getElementById('game-btn-pause').innerHTML = '<i class="mdui-icon material-icons">&#xe034;</i> 暂停';
 	}
+}
+
+function gameRestart() {
+	if (!pixi) return;
+	if (!stat.isTransitionEnd || stat.isRetrying) return;
+	
+	stat.isRetrying = true;
+	
+	let fixedWidth = pixi.renderer.fixedWidth;
+	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
+	let noteSpeed = pixi.renderer.noteSpeed;
+	let noteScale = pixi.renderer.noteScale;
+	let rendererResolution = pixi.renderer.resolution;
+	
+	stat.isPaused = false;
+	_chart.audio.stop();
+	pixi.ticker.remove(CalculateChartActualTime);
+	
+	for (let container of sprites.containers) {
+		container.position.set(pixi.renderer.realWidth / 2, pixi.renderer.realHeight / 2);
+		container.angle = 0;
+		
+		container.children[0].alpha = 0;
+		container.children[0].tint = settings.showApStatus ? 0xFFECA0 : 0xFFFFFF;
+		
+		for (let i = 1; i < container.children.length; i++) {
+			if (!container.children[i]) continue;
+			
+			let noteContainer = container.children[i];
+			noteContainer.position.y = 0;
+			
+			if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
+				for (let note of noteContainer.speedNotes) {
+					note.position.y = (
+						((note.raw.offsetY * noteSpeed) - 0) * note.raw.speed
+					) * noteContainer.noteDirection * -1;
+				}
+			}
+		}
+	}
+	
+	for (let note of sprites.totalNotes) {
+		note.alpha = 1;
+		
+		note.raw.score = 0;
+		note.raw.accType = 0;
+		note.raw.isScored = false;
+		note.raw.isProcessed = false;
+		
+		note.raw.isPressing = false;
+		note.raw.pressTime = null;
+		
+		if (note.raw.type == 3) {
+			let rawNoteOffsetY = note.raw.offsetY * noteSpeed;
+			let rawHoldLength = (note.raw.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
+			
+			note.children[1].height = rawHoldLength;
+			note.children[2].position.y = -rawHoldLength;
+			
+			if (note.raw.isAbove) note.position.y = -rawNoteOffsetY;
+			else note.position.y = rawNoteOffsetY;
+		}
+	}
+	
+	sprites.headInfos.position.y = -sprites.headInfos.height;
+	sprites.footInfos.position.y = sprites.headInfos.height;
+	
+	sprites.comboText.alpha = 0;
+	sprites.comboText.children[0].text = '0';
+	sprites.scoreText.text = '0000000';
+	
+	judgements = new Judgements();
+		inputs = {
+		taps: [],
+		touches: {},
+		mouse: {},
+		keyboard: {}
+	};
+	global = {};
+	
+	score.init(sprites.totalNotes.length, settings.challengeMode);
+	pixi.ticker.add(CalculateChartActualTime);
+	
+	_chart.audio.baseLatency = _chart.audio.context.audioContext.baseLatency ? _chart.audio.context.audioContext.baseLatency : 0;
+	
+	{
+		let startAnimateTimer = 0;
+		
+		let startAnimateTicker = function() {
+			startAnimateTimer += 1 / pixi.ticker.FPS;
+			
+			if (sprites.headInfos.position.y < 0) {
+				sprites.headInfos.position.y = -sprites.headInfos.height + sprites.headInfos.height * (startAnimateTimer / 0.5);
+				sprites.headInfos.alpha = 1 * (startAnimateTimer / 0.5);
+				
+			} else {
+				sprites.headInfos.position.y = 0;
+				sprites.headInfos.alpha = 1;
+			}
+			
+			if (sprites.footInfos.position.y > 0) {
+				sprites.footInfos.position.y = sprites.headInfos.height - sprites.headInfos.height * (startAnimateTimer / 0.5);
+				sprites.footInfos.alpha = 1 * (startAnimateTimer / 0.5);
+				
+			} else {
+				sprites.footInfos.position.y = 0;
+				sprites.footInfos.alpha = 1;
+			}
+			
+			if (sprites.titlesBig.alpha < 1 && startAnimateTimer < 5) {
+				sprites.titlesBig.alpha += 2 / pixi.ticker.FPS;
+			}
+			
+			if (sprites.titlesBig.alpha > 0 && startAnimateTimer >= 5.5) {
+				sprites.titlesBig.alpha -= 2 / pixi.ticker.FPS;
+			}
+			
+			if (startAnimateTimer >= 6) {
+				sprites.titlesBig.alpha = 0;
+				
+				stat.isTransitionEnd = true;
+				global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
+				if (stat.isPaused)
+					_chart.audio.pause();
+				
+				pixi.ticker.remove(startAnimateTicker);
+			}
+		};
+		
+		setTimeout(() => {
+			stat.isTransitionEnd = false;
+			stat.isRetrying = false;
+			pixi.ticker.add(startAnimateTicker);
+		}, 200); // 这里就不需要很多时间了
+	}
+	
+	document.getElementById('game-btn-pause').innerHTML = '<i class="mdui-icon material-icons">&#xe034;</i> 暂停';
 }
