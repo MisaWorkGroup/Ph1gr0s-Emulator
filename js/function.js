@@ -1112,118 +1112,116 @@ function CalculateChartActualTime(delta) {
 	}
 	**/
 	
-	if (!stat.isPaused) {
-		if (sprites.progressBar)
-			sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
+	if (sprites.progressBar)
+		sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
+	
+	for (let container of sprites.containers) {
+		let judgeLine = container.children[0];
 		
-		for (let container of sprites.containers) {
-			let judgeLine = container.children[0];
-			
-			if (!judgeLine) continue;
-			
-			if (!settings.disableJudgeLineAlpha) {
-				for (let i of judgeLine.raw.judgeLineDisappearEvents) {
-					if (currentTime < i.startRealTime) break;
-					if (currentTime > i.endRealTime) continue;
-					
-					let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
-					let time1 = 1 - time2;
-					
-					judgeLine.alpha = i.start * time1 + i.end * time2;
-				}
-			}
-			
-			for (let i of judgeLine.raw.judgeLineMoveEvents) {
+		if (!judgeLine) continue;
+		
+		if (!settings.disableJudgeLineAlpha) {
+			for (let i of judgeLine.raw.judgeLineDisappearEvents) {
 				if (currentTime < i.startRealTime) break;
 				if (currentTime > i.endRealTime) continue;
 				
 				let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 				let time1 = 1 - time2;
 				
-				container.position.x = fixedWidth * (i.start * time1 + i.end * time2) + fixedWidthOffset;
-				container.position.y = pixi.renderer.realHeight * (1 - i.start2 * time1 - i.end2 * time2);
+				judgeLine.alpha = i.start * time1 + i.end * time2;
 			}
+		}
+		
+		for (let i of judgeLine.raw.judgeLineMoveEvents) {
+			if (currentTime < i.startRealTime) break;
+			if (currentTime > i.endRealTime) continue;
 			
-			for (const i of judgeLine.raw.judgeLineRotateEvents) {
-				if (currentTime < i.startRealTime) break;
-				if (currentTime > i.endRealTime) continue;
-				
-				let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
-				let time1 = 1 - time2;
-				
-				container.rotation = i.startDeg * time1 + i.endDeg * time2;
-			}
+			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+			let time1 = 1 - time2;
 			
-			for (const i of judgeLine.raw.speedEvents) {
-				if (currentTime < i.startRealTime) break;
-				if (currentTime > i.endRealTime) continue;
+			container.position.x = fixedWidth * (i.start * time1 + i.end * time2) + fixedWidthOffset;
+			container.position.y = pixi.renderer.realHeight * (1 - i.start2 * time1 - i.end2 * time2);
+		}
+		
+		for (const i of judgeLine.raw.judgeLineRotateEvents) {
+			if (currentTime < i.startRealTime) break;
+			if (currentTime > i.endRealTime) continue;
+			
+			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+			let time1 = 1 - time2;
+			
+			container.rotation = i.startDeg * time1 + i.endDeg * time2;
+		}
+		
+		for (const i of judgeLine.raw.speedEvents) {
+			if (currentTime < i.startRealTime) break;
+			if (currentTime > i.endRealTime) continue;
+			
+			for (let x = 1; x < container.children.length; x++) {
+				let noteContainer = container.children[x];
 				
-				for (let x = 1; x < container.children.length; x++) {
-					let noteContainer = container.children[x];
-					
-					noteContainer.position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
-					
-					if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
-						for (let note of noteContainer.speedNotes) {
-							// 处理自身速度不为 1 的 Note。怀疑如此处理有性能问题，暂时未知其他解法
-							note.position.y = (
-								noteContainer.position.y + (
-									(note.raw.offsetY * noteSpeed) - 
-									(noteContainer.position.y > 0 ? noteContainer.position.y : noteContainer.position.y * -1)
-								) * note.raw.speed
-							) * noteContainer.noteDirection * -1;
-						}
+				noteContainer.position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
+				
+				if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
+					for (let note of noteContainer.speedNotes) {
+						// 处理自身速度不为 1 的 Note。怀疑如此处理有性能问题，暂时未知其他解法
+						note.position.y = (
+							noteContainer.position.y + (
+								(note.raw.offsetY * noteSpeed) - 
+								(noteContainer.position.y > 0 ? noteContainer.position.y : noteContainer.position.y * -1)
+							) * note.raw.speed
+						) * noteContainer.noteDirection * -1;
 					}
 				}
 			}
 		}
-		
-		for (let i of sprites.totalNotes) {
-			// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
-			if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
-				let rawNoteOffsetY = i.raw.offsetY * noteSpeed;
-				let parentOffsetY = i.parent.position.y;
-				parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
-				
-				let betweenOffsetY = (parentOffsetY - rawNoteOffsetY) * rendererResolution;
-				let rawHoldLength = (i.raw.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
-				
-				let currentHoldLength = rawHoldLength - betweenOffsetY / (noteScale * rendererResolution);
-				
-				i.children[1].height = currentHoldLength;
-				i.children[2].position.y = -currentHoldLength;
-				
-				if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY / rendererResolution);
-				else i.position.y = rawNoteOffsetY + betweenOffsetY / rendererResolution;
-			}
+	}
+	
+	for (let i of sprites.totalNotes) {
+		// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
+		if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
+			let rawNoteOffsetY = i.raw.offsetY * noteSpeed;
+			let parentOffsetY = i.parent.position.y;
+			parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
 			
+			let betweenOffsetY = (parentOffsetY - rawNoteOffsetY) * rendererResolution;
+			let rawHoldLength = (i.raw.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
 			
-			if (i.raw.score > 0 && i.raw.isProcessed) continue;
+			let currentHoldLength = rawHoldLength - betweenOffsetY / (noteScale * rendererResolution);
 			
-			if (i.raw.realTime - currentTime <= 0 && i.raw.type != 3) {
-				let timeBetween = i.raw.realTime - currentTime;
-				
-				if (timeBetween > -0.2) {
-					i.alpha = (0.2 + timeBetween) / 0.2;
-				} else {
-					i.alpha = 0;
-				}
-				
-			} else if ((i.raw.realTime + i.raw.realHoldTime) <= currentTime && i.raw.type == 3) {
-				i.alpha = 0;
-				i.raw.isProcessed = true;
-			}
+			i.children[1].height = currentHoldLength;
+			i.children[2].position.y = -currentHoldLength;
+			
+			if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY / rendererResolution);
+			else i.position.y = rawNoteOffsetY + betweenOffsetY / rendererResolution;
 		}
 		
-		for (let i in sprites.clickAnimate.bad) {
-			let obj = sprites.clickAnimate.bad[i];
+		
+		if (i.raw.score > 0 && i.raw.isProcessed) continue;
+		
+		if (i.raw.realTime - currentTime <= 0 && i.raw.type != 3) {
+			let timeBetween = i.raw.realTime - currentTime;
 			
-			obj.alpha -= 2 / 60;
-			
-			if (obj.alpha <= 0) {
-				obj.destroy();
-				sprites.clickAnimate.bad.splice(i, 1);
+			if (timeBetween > -0.2) {
+				i.alpha = (0.2 + timeBetween) / 0.2;
+			} else {
+				i.alpha = 0;
 			}
+			
+		} else if ((i.raw.realTime + i.raw.realHoldTime) <= currentTime && i.raw.type == 3) {
+			i.alpha = 0;
+			i.raw.isProcessed = true;
+		}
+	}
+	
+	for (let i in sprites.clickAnimate.bad) {
+		let obj = sprites.clickAnimate.bad[i];
+		
+		obj.alpha -= 2 / 60;
+		
+		if (obj.alpha <= 0) {
+			obj.destroy();
+			sprites.clickAnimate.bad.splice(i, 1);
 		}
 	}
 	
@@ -1552,6 +1550,8 @@ function DrawInputPoint(x, y, inputType, inputId, type = 0) {
 		inputPoint.beginFill(0xFFFFFF);
 		inputPoint.drawCircle(0, 0, 6);
 		inputPoint.endFill();
+		
+		inputPoint.scale.set(pixi.renderer.lineScale * 0.08);
 		
 		pixi.stage.addChild(inputPoint);
 		inputPoints[inputId] = inputPoint;
