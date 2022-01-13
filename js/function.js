@@ -684,7 +684,7 @@ function CreateChartSprites(chart, pixi) {
 	// 创建背景图
 	if (settings.background) {
 		let background = new PIXI.Sprite(settings.backgroundBlur ? _chart.imageBlur : _chart.image);
-		let bgScaleWidth = realWidth / _chart.image.width;
+		let bgScaleWidth = fixedWidth / _chart.image.width;
 		let bgScaleHeight = realHeight / _chart.image.height;
 		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 		
@@ -854,6 +854,8 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.headInfos) {
 		sprites.headInfos = new PIXI.Container();
 	}
+	if (!sprites.headInfos.parent)
+		pixi.stage.addChild(sprites.headInfos);
 	
 	// 进度条
 	if (!sprites.progressBar) {
@@ -962,6 +964,8 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	if (!sprites.footInfos) {
 		sprites.footInfos = new PIXI.Container();
 	}
+	if (!sprites.footInfos.parent)
+		pixi.stage.addChild(sprites.footInfos);
 	
 	// 底部信息-歌曲名称侧边横线
 	if (!sprites.songNameBar) {
@@ -999,6 +1003,50 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 		sprites.songDiff.anchor.set(1);
 		
 		sprites.footInfos.addChild(sprites.songDiff);
+	}
+	
+	// 对于超宽屏所创建的背景图盖板
+	if (!sprites.backgroundCover) {
+		let bgImage = new PIXI.Sprite(settings.backgroundBlur ? _chart.imageBlur : _chart.image);
+		let bgBright = new PIXI.Graphics();
+		let bgCovers = new PIXI.Container();
+		
+		let bgScaleWidth = realWidth / _chart.image.width;
+		let bgScaleHeight = realHeight / _chart.image.height;
+		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
+		
+		bgBright.beginFill(0x000000);
+		bgBright.drawRect(0, 0, bgImage.width, bgImage.height);
+		bgBright.endFill();
+		
+		bgBright.position.set(-bgImage.width / 2, -bgImage.height / 2);
+		bgBright.alpha = 0.5;
+		bgImage.addChild(bgBright);
+		
+		bgImage.anchor.set(0.5);
+		bgImage.scale.set(bgScale);
+		bgImage.position.set(realWidth / 2, realHeight / 2);
+		bgImage.alpha = realWidth != fixedWidth ? 1 : 0;
+		
+		pixi.stage.addChild(bgImage);
+		
+		bgCovers.addChild(
+			new PIXI.Graphics()
+				.beginFill(0xFFFFFF)
+				.drawRect(0, 0, fixedWidthOffset, realHeight)
+				.endFill()
+			, new PIXI.Graphics()
+				.beginFill(0xFFFFFF)
+				.drawRect(realWidth - fixedWidthOffset, 0, fixedWidthOffset, realHeight)
+				.endFill()
+		);
+		
+		bgImage.mask = bgCovers;
+		
+		sprites.backgroundCover = {
+			image: bgImage,
+			cover: bgCovers
+		}
 	}
 	
 	// FPS 计数器
@@ -1044,12 +1092,6 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 		pixi.stage.addChild(watermark);
 		sprites.watermark = watermark;
 	}
-	
-	if (!sprites.headInfos.parent)
-		pixi.stage.addChild(sprites.headInfos);
-	
-	if (!sprites.footInfos.parent)
-		pixi.stage.addChild(sprites.footInfos);
 	
 	// 统一调整位置和透明度
 	sprites.progressBar.alpha = 0.8;
@@ -1300,7 +1342,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理背景图
 	if (sprites.background) {
-		let bgScaleWidth = pixi.renderer.realWidth / _chart.image.width;
+		let bgScaleWidth = fixedWidth / _chart.image.width;
 		let bgScaleHeight = pixi.renderer.realHeight / _chart.image.height;
 		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 		
@@ -1406,6 +1448,27 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		
 		sprites.songDiff.position.x = width - lineScale * 0.75 - fixedWidthOffset;
 		sprites.songDiff.position.y = height - lineScale * 0.52;
+	}
+	
+	// 处理对于超宽屏所创建的背景图盖板
+	if (sprites.backgroundCover) {
+		let bgScaleWidth = width / _chart.image.width;
+		let bgScaleHeight = height / _chart.image.height;
+		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
+		
+		sprites.backgroundCover.image.scale.set(bgScale);
+		sprites.backgroundCover.image.position.set(width / 2, height / 2);
+		sprites.backgroundCover.image.alpha = width != fixedWidth ? 1 : 0;
+		
+		sprites.backgroundCover.cover.children[0].clear();
+		sprites.backgroundCover.cover.children[0].beginFill(0xFFFFFF)
+				.drawRect(0, 0, fixedWidthOffset, height)
+				.endFill();
+		
+		sprites.backgroundCover.cover.children[1].clear();
+		sprites.backgroundCover.cover.children[1].beginFill(0xFFFFFF)
+				.drawRect(width - fixedWidthOffset, 0, fixedWidthOffset, height)
+				.endFill();
 	}
 	
 	// 处理 FPS 指示器
@@ -1561,7 +1624,6 @@ function DrawInputPoint(x, y, inputType, inputId, type = 0) {
 	
 	inputPoint.position.set(x, y);
 	
-	// type == 0 : Tap ; type == 1 : Move ; type == 2 : Hold;
 	if (type == 0) {
 		inputPoint.tint = 0x00FFFF;
 	} else if (type == 1) {
