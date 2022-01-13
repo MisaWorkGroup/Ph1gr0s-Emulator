@@ -7,7 +7,8 @@ const score = {
 		this.score = 0;
 		this.combo = 0;
 		this.maxCombo = 0;
-	
+		this.apType = 2;
+		
 		this.perfect = 0;
 		this.good = 0;
 		this.bad = 0;
@@ -31,27 +32,46 @@ const score = {
 			
 			if (!!acc)
 				this.perfectAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 3) {
+			
+		} else if (type == 3) {
 			this.good += 1;
 			this.combo += 1;
 			
 			if (!!acc)
 				this.goodAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 2) {
+			
+		} else if (type == 2) {
 			this.bad += 1;
 			this.combo = 0;
 			
 			if (!!acc)
 				this.badAcc[(acc < 0 ? 0 : 1)] += 1;
-		}
-		if (type == 1) {
+			
+		} else {
 			this.miss += 1;
 			this.combo = 0;
 			
 			if (!!acc)
 				this.missAcc[(acc < 0 ? 0 : 1)] += 1;
+		}
+		
+		if ((this.bad > 0 || this.miss > 0) && this.apType > 0) {
+			this.apType = 0;
+			
+			if (settings.showApStatus) {
+				for (let container of sprites.containers) {
+					container.children[0].tint = 0xFFFFFF;
+				}
+			}
+			
+		} else if (this.good > 0 && this.apType > 1) {
+			this.apType = 1;
+			
+			if (settings.showApStatus) {
+				for (let container of sprites.containers) {
+					container.children[0].tint = 0xB4E1FF;
+				}
+			}
 		}
 		
 		if (this.combo > this.maxCombo) {
@@ -314,6 +334,27 @@ function selectMenuItem(menuId, itemDom, textId = null) {
 	if (textId) {
 		document.getElementById(textId).innerHTML = '当前选择了：' + itemDom.getAttribute('menu-value');
 	}
+}
+
+/***
+ * @function 对图片进行模糊处理。此处使用了 StackBlur 模块
+ * @param _texture {object} 传入 BaseTextute、Image 或者 Canvas
+ * @param [radius] {number} 模糊半径，默认为 10
+ * @return {object} 返回已处理好的 Canvas 元素
+***/
+function BlurImage(_texture, radius = 10) {
+	let canvas = document.createElement('canvas');
+	let texture = null;
+	
+	if (_texture instanceof PIXI.BaseTexture) {
+		texture = _texture.resource.source;
+	} else {
+		texture = _texture;
+	}
+	
+	StackBlur.image(texture, canvas, radius);
+	
+	return canvas;
 }
 
 /***
@@ -642,18 +683,23 @@ function CreateChartSprites(chart, pixi) {
 	
 	// 创建背景图
 	if (settings.background) {
-		let background = new PIXI.Sprite(_chart.image);
+		let background = new PIXI.Sprite(settings.backgroundBlur ? _chart.imageBlur : _chart.image);
 		let bgScaleWidth = realWidth / _chart.image.width;
 		let bgScaleHeight = realHeight / _chart.image.height;
 		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 		
-		if (settings.backgroundBlur && !settings.forceCanvas) {
-			let blur = new PIXI.filters.BlurFilter();
-			blur.repeatEdgePixels = true;
-			background.filters = [blur];
-		}
+		let backgroundCover = new PIXI.Graphics();
 		
-		background.alpha = settings.backgroundDim;
+		backgroundCover.beginFill(0x000000);
+		backgroundCover.drawRect(0, 0, background.width, background.height);
+		backgroundCover.endFill();
+		
+		backgroundCover.position.x = -background.width / 2;
+		backgroundCover.position.y = -background.height / 2;
+		backgroundCover.alpha = 1 - settings.backgroundDim;
+		background.addChild(backgroundCover);
+		
+		// background.alpha = settings.backgroundDim;
 		background.anchor.set(0.5);
 		background.scale.set(bgScale);
 		background.position.set(realWidth / 2, realHeight / 2);
@@ -678,8 +724,11 @@ function CreateChartSprites(chart, pixi) {
 		
 		// 调整判定线位置
 		judgeLine.position.set(0, 0);
-		
 		judgeLine.zIndex = 1;
+		
+		if (settings.showApStatus) {
+			judgeLine.tint = 0xFFECA0;
+		}
 		
 		if (settings.developMode) {
 			let judgeLineName = new PIXI.Text(_judgeLine.id, { fill: 'rgb(255,100,100)' });
@@ -811,7 +860,7 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 		let progressBar = new PIXI.Sprite(textures.progressBar);
 		
 		progressBar.anchor.x = 1;
-		progressBar.scale.set(pixi.renderer.width / progressBar.texture.width);
+		progressBar.scale.set(fixedWidth / (1920 / pixi.renderer.resolution));
 		
 		sprites.headInfos.addChild(progressBar);
 		sprites.progressBar = progressBar;
@@ -1247,7 +1296,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	let fixedWidth = width <= height / 9 * 16 ? width : height / 9 * 16;
 	let fixedWidthOffset = (width - fixedWidth) / 2;
 	let windowRatio = width / height;
-	let lineScale = width > height * 0.75 ? height / 18.75 : width / 14.0625;
+	let lineScale = fixedWidth > height * 0.75 ? height / 18.75 : fixedWidth / 14.0625;
 	let noteScale = fixedWidth / _noteScale;
 	let noteSpeed = height * 0.6;
 	
@@ -1292,8 +1341,9 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	}
 	
 	// 处理进度条
-	if (sprites.progressBar)
-		sprites.progressBar.scale.set(width / sprites.progressBar.texture.width);
+	if (sprites.progressBar) {
+		sprites.progressBar.scale.set(fixedWidth / (1920 / pixi.renderer.resolution));
+	}
 	
 	// 处理 Combo 文字
 	if (sprites.comboText) {
