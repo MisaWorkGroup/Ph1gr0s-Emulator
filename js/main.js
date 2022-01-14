@@ -770,12 +770,6 @@ function gameRestart() {
 	sprites.scoreText.text = '0000000';
 	
 	judgements = new Judgements();
-		inputs = {
-		taps: [],
-		touches: {},
-		mouse: {},
-		keyboard: {}
-	};
 	global.audio = null;
 	
 	score.init(sprites.totalNotes.length, settings.challengeMode);
