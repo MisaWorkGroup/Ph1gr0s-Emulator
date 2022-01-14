@@ -6,11 +6,8 @@
 		
 		<link rel="stylesheet" href="./css/font-mina.css" />
 		<link rel="stylesheet" href="./css/mdui.min.css?v=1.0.1" />
-		<!--script src="http://cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
-		<script>
-			var vConsole = new VConsole();
-		</script-->
 		
+		<script src="//cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
 		<script src="./js/stackblur.min.js?v=2.5.0"></script>
 		<script src="./js/Browser.js"></script>
@@ -30,6 +27,7 @@
 		<script src="./js/convert.js?v=0.0.0-beta3"></script>
 		
 		<script>
+			var vConsole;
 			const BrowserInfo = new Browser();
 			const DeviceInfo = {
 				system         : BrowserInfo.os,
@@ -72,9 +70,33 @@
 				developMode         : false,
 				disableJudgeLineAlpha : false
 			};
+			
+			
+			if (getSearchQuery('debug') == 'true') {
+				vConsole = new VConsole();
+			}
+			
+			function getSearchQuery(name) {
+				let queryArray = location.search.substr(1).split('&');
+				let queryObject = {};
+				
+				for (let query of queryArray) {
+					let querySplit = query.split('=');
+					queryObject[querySplit[0]] = querySplit[1];
+				}
+				
+				return queryObject[name];
+			}
 		</script>
 		
 		<style>
+			* {
+				user-select: none;
+				-moz-user-select: none;
+				-webkit-user-select: none;
+				-ms-user-select: none;
+			}
+			
 			html, body {
 				height: 100%;
 				scroll-behavior: smooth;
@@ -793,6 +815,6 @@
 			<i class="mdui-icon material-icons">&#xe002;</i>
 		</button>
 		
-		<script src="./js/main.js?v=0.0.0-beta21"></script>
+		<script src="./js/main.js?v=0.0.0-beta22"></script>
 	</body>
 </html>
