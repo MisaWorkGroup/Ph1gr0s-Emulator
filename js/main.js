@@ -461,11 +461,7 @@ function gameInit() {
 		let canvasBox = document.getElementById('game-canvas-box');
 		
 		if (stat.isFullscreen && full.check(pixi.view)) {
-			if (full.type == 2) {
-				pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
-			} else {
-				pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
-			}
+			pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
 		} else {
 			if (stat.isFullscreen) pixi.renderer.resize(1, 1);
 			pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
@@ -500,23 +496,6 @@ function gameInit() {
 			let fixedPosition = getCurrentInputPosition(touch);
 			
 			inputs.touches[fingerId] = Click.activate(fixedPosition.x, fixedPosition.y, 'touches', fingerId);
-			
-			/**
-			if (settings.showFinger && !sprites.fingers[fingerId]) {
-				let circle = new PIXI.Graphics();
-				
-				circle.beginFill(0xFFFFFF);
-				circle.drawCircle(0, 0, 6);
-				circle.endFill();
-				
-				pixi.stage.addChild(circle);
-				circle.position.set(x, y);
-				sprites.fingers[fingerId] = circle;
-				
-			} else if (settings.showFinger) {
-				sprites.fingers[fingerId].position.set(x, y);
-			}
-			**/
 		}
 	}, passiveIfSupported); // 设置 passive 为 false 是为了能在回调函数中调用 preventDefault()，下同
 	
@@ -529,11 +508,6 @@ function gameInit() {
 			let fixedPosition = getCurrentInputPosition(touch);
 			
 			inputs.touches[fingerId].move(fixedPosition.x, fixedPosition.y);
-			/**
-			if (settings.showFinger) {
-				sprites.fingers[fingerId].position.set(x, y);
-			}
-			**/
 		}
 	}, passiveIfSupported);
 	
@@ -545,7 +519,7 @@ function gameInit() {
 			let fingerId = touch.identifier;
 			
 			delete inputs.touches[fingerId];
-			if (settings.showFinger) {
+			if (settings.showFinger && sprites.inputs.touches[fingerId]) {
 				sprites.inputs.touches[fingerId].destroy();
 				delete sprites.inputs.touches[fingerId];
 			}
@@ -557,11 +531,11 @@ function gameInit() {
 		for (let touch of e.changedTouches) {
 			let fingerId = touch.identifier;
 			
-			if (settings.showFinger) {
-				sprites.fingers[fingerId].destroy();
-				delete sprites.fingers[fingerId];
-			}
 			delete inputs.touches[fingerId];
+			if (settings.showFinger && sprites.inputs.touches[fingerId]) {
+				sprites.inputs.touches[fingerId].destroy();
+				delete sprites.inputs.touches[fingerId];
+			}
 		}
 	}, passiveIfSupported);
 	
@@ -574,7 +548,7 @@ function gameInit() {
 		
 		inputs.mouse[btnId] = Click.activate(fixedPosition.x, fixedPosition.y, 'mouse', btnId);
 		inputs.isMouseDown[btnId] = true;
-	});
+	}, passiveIfSupported);
 	
 	// 舞台鼠标移动事件
 	pixi.view.addEventListener('mousemove', (e) => {
@@ -582,12 +556,12 @@ function gameInit() {
 		
 		for (let btnId in inputs.isMouseDown) {
 			if (inputs.isMouseDown[btnId]) {
-				let fixedPosition = getCurrentInputPosition(touch);
+				let fixedPosition = getCurrentInputPosition(e);
 				
 				inputs.mouse[btnId].move(fixedPosition.x, fixedPosition.y);
 			}
 		}
-	});
+	}, passiveIfSupported);
 	
 	// 舞台鼠标结束事件
 	pixi.view.addEventListener('mouseup', (e) => {
@@ -597,7 +571,7 @@ function gameInit() {
 		
 		delete inputs.mouse[btnId];
 		delete inputs.isMouseDown[btnId];
-	});
+	}, passiveIfSupported);
 	pixi.view.addEventListener('mouseout', (e) => {
 		e.preventDefault();
 		
@@ -607,23 +581,18 @@ function gameInit() {
 				delete inputs.isMouseDown[btnId];
 			}
 		}
-	});
+	}, passiveIfSupported);
 	
+	// 校正输入点的位置
 	function getCurrentInputPosition(e) {
-		let output = {
-			x: 0,
-			y: 0
-		};
-		
+		let output = { x: 0, y: 0 };
 		if (!full.check(pixi.view)) {
 			output.x = e.pageX - pixi.view.offsetLeft;
 			output.y = e.pageY - pixi.view.offsetTop;
-			
 		} else {
 			output.x = e.clientX;
 			output.y = e.clientY;
 		}
-		
 		return output;
 	}
 	
