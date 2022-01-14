@@ -455,13 +455,16 @@ function gameInit() {
 		pixi.addEventListener('test', null, Object.defineProperty({}, 'passive', { get: function() { passiveIfSupported = { passive: false }; } }));
 	} catch(err) {}
 	
-	// ==Windows 对象 事件监听器==
-	// 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
-	window.onresize = (e) => {
+	global.functions = {};
+	global.functions.resizeCanvas = function () {
 		let canvasBox = document.getElementById('game-canvas-box');
 		
 		if (stat.isFullscreen && full.check(pixi.view)) {
-			pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
+			if (full.type == 2) {
+				pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
+			} else {
+				pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
+			}
 		} else {
 			if (stat.isFullscreen) pixi.renderer.resize(1, 1);
 			pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
@@ -480,7 +483,11 @@ function gameInit() {
 		pixi.renderer.lineScale = pixi.renderer.fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.fixedWidth / 14.0625;
 		
 		ResizeChartSprites(sprites, pixi.renderer.realWidth, pixi.renderer.realHeight, settings.noteScale);
-	}
+	};
+	
+	// ==Windows 对象 事件监听器==
+	// 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
+	window.addEventListener('resize', global.functions.resizeCanvas);
 	
 	// ==舞台用户输入事件监听器==
 	// 舞台触摸开始事件
@@ -627,16 +634,18 @@ function gameInit() {
 	document.getElementById('game-btn-pause').innerHTML = '<i class="mdui-icon material-icons">&#xe034;</i> 暂停';
 }
 
-function setCanvasFullscreen() {
+function setCanvasFullscreen(forceInDocumentFull = false) {
 	if (!pixi || !pixi.view) return;
 	
+	/**
 	if (!full.enabled) {
 		mdui.alert('你的浏览器不支持全屏！', '前方高能');
 		return;
 	}
+	**/
 	
 	stat.isFullscreen = true;
-	full.toggle(pixi.view);
+	full.toggle(pixi.view, (forceInDocumentFull ? true : (full.enabled ? false : true)));
 }
 
 function gamePause() {
@@ -726,6 +735,7 @@ function gameRestart() {
 	
 	sprites.comboText.alpha = 0;
 	sprites.comboText.children[0].text = '0';
+	sprites.comboText.children[1].text = settings.autoPlay ? 'Autoplay' : 'combo';
 	sprites.scoreText.text = '0000000';
 	
 	judgements = new Judgements();
