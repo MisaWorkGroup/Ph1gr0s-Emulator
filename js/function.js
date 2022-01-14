@@ -107,7 +107,7 @@ const score = {
 };
 
 // 全屏相关。代码来自 lchzh3473
-const full = {
+const fullscreen = {
 	// 切换全屏状态
 	toggle(elem, inDocument = false) {
 		// if (!this.enabled) return false;
@@ -122,10 +122,8 @@ const full = {
 			
 			if (this.element == elem) {
 				elem.style.position = 'relative';
-				elem.style.top = '0';
-				elem.style.left = '0';
-				elem.style.width = '1px';
-				elem.style.height = '1px';
+				elem.style.top = 'unset';
+				elem.style.left = 'unset';
 				elem.style.zIndex = 'unset';
 				document.body.style.overflow = 'auto';
 				
@@ -149,8 +147,6 @@ const full = {
 				elem.style.position = 'fixed';
 				elem.style.top = '0';
 				elem.style.left = '0';
-				elem.style.width = document.body.clientWidth + 'px';
-				elem.style.height = document.body.clientHeight + 'px';
 				elem.style.zIndex = '5050';
 				document.body.style.overflow = 'hidden';
 				
@@ -163,22 +159,23 @@ const full = {
 		}
 	},
 	
-	// 检查当前全屏的元素是否一致
+	// 检查当前全屏的元素
 	check(elem) {
 		if (!(elem instanceof HTMLElement)) elem = document.body;
 		return this.element == elem;
 	},
 	
-	// 返回当前浏览器可用的全屏方法。
+	// 返回当前浏览器的全屏组件。
 	get element() {
 		return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || document.inDocumentFullscreenElement;
 	},
 	
-	// 返回当前浏览器的全屏支持状态检测方法。
+	// 返回当前浏览器是否支持全屏 API。
 	get enabled() {
 		return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
 	},
 	
+	// 返回当前的全屏模式。2 == 网页内全屏，1 == API 全屏，0 == 没有开启全屏
 	get type() {
 		if (document.inDocumentFullscreenElement) {
 			return 2;

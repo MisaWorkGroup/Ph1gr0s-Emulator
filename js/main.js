@@ -132,6 +132,35 @@ Loader.add([
 
 
 // =======此处声明一些函数，工具函数请在 function.js 中声明========
+// 重修改舞台尺寸
+global.functions = {};
+global.functions.resizeCanvas = function () {
+	if (!pixi) return;
+	
+	let canvasBox = document.getElementById('game-canvas-box');
+	
+	if (stat.isFullscreen && fullscreen.check(pixi.view)) {
+		pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
+	} else {
+		if (stat.isFullscreen) pixi.renderer.resize(1, 1);
+		pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
+		stat.isFullscreen = false;
+	}
+	
+	pixi.renderer.realWidth = pixi.renderer.width / pixi.renderer.resolution;
+	pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
+	
+	pixi.renderer.fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	pixi.renderer.fixedWidthOffset = (pixi.renderer.realWidth - pixi.renderer.fixedWidth) / 2;
+	
+	pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
+	pixi.renderer.noteScale = pixi.renderer.fixedWidth / settings.noteScale;
+	
+	pixi.renderer.lineScale = pixi.renderer.fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.fixedWidth / 14.0625;
+	
+	ResizeChartSprites(sprites, pixi.renderer.realWidth, pixi.renderer.realHeight, settings.noteScale);
+};
+	
 // 选择一个 zip 文件
 function selectZip() {
 	let input = document.getElementById('input-select-chart');
@@ -453,38 +482,12 @@ function gameInit() {
 	// ==Passive 兼容性检测，代码来自 Moz://a==
 	let passiveIfSupported = false;
 	try {
-		pixi.addEventListener('test', null, Object.defineProperty({}, 'passive', { get: function() { passiveIfSupported = { passive: false }; } }));
+		pixi.view.addEventListener('test', null, Object.defineProperty({}, 'passive', { get: function() { passiveIfSupported = { passive: false }; } }));
 	} catch(err) {}
-	
-	global.functions = {};
-	global.functions.resizeCanvas = function () {
-		let canvasBox = document.getElementById('game-canvas-box');
-		
-		if (stat.isFullscreen && full.check(pixi.view)) {
-			pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
-		} else {
-			if (stat.isFullscreen) pixi.renderer.resize(1, 1);
-			pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
-			stat.isFullscreen = false;
-		}
-		
-		pixi.renderer.realWidth = pixi.renderer.width / pixi.renderer.resolution;
-		pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
-		
-		pixi.renderer.fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
-		pixi.renderer.fixedWidthOffset = (pixi.renderer.realWidth - pixi.renderer.fixedWidth) / 2;
-		
-		pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
-		pixi.renderer.noteScale = pixi.renderer.fixedWidth / settings.noteScale;
-		
-		pixi.renderer.lineScale = pixi.renderer.fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.fixedWidth / 14.0625;
-		
-		ResizeChartSprites(sprites, pixi.renderer.realWidth, pixi.renderer.realHeight, settings.noteScale);
-	};
 	
 	// ==Windows 对象 事件监听器==
 	// 监听窗口尺寸修改事件，以实时修改舞台宽高和材质缩放值
-	window.addEventListener('resize', global.functions.resizeCanvas);
+	window.addEventListener('resize', () => { global.functions.resizeCanvas(pixi) });
 	
 	// ==舞台用户输入事件监听器==
 	// 舞台触摸开始事件
@@ -586,7 +589,7 @@ function gameInit() {
 	// 校正输入点的位置
 	function getCurrentInputPosition(e) {
 		let output = { x: 0, y: 0 };
-		if (!full.check(pixi.view)) {
+		if (!fullscreen.check(pixi.view)) {
 			output.x = e.pageX - pixi.view.offsetLeft;
 			output.y = e.pageY - pixi.view.offsetTop;
 		} else {
@@ -666,14 +669,14 @@ function setCanvasFullscreen(forceInDocumentFull = false) {
 	if (!pixi || !pixi.view) return;
 	
 	/**
-	if (!full.enabled) {
+	if (!fullscreen.enabled) {
 		mdui.alert('你的浏览器不支持全屏！', '前方高能');
 		return;
 	}
 	**/
 	
 	stat.isFullscreen = true;
-	full.toggle(pixi.view, (forceInDocumentFull ? true : (!full.enabled || full.type == 2 ? true : false)));
+	fullscreen.toggle(pixi.view, (forceInDocumentFull ? true : (!fullscreen.enabled || fullscreen.type == 2 ? true : false)));
 }
 
 function gamePause() {
@@ -773,7 +776,7 @@ function gameRestart() {
 		mouse: {},
 		keyboard: {}
 	};
-	global = {};
+	global.audio = null;
 	
 	score.init(sprites.totalNotes.length, settings.challengeMode);
 	pixi.ticker.add(CalculateChartActualTime);
