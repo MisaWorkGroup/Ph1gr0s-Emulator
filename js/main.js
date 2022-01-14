@@ -574,14 +574,24 @@ function gameInit() {
 		
 		delete inputs.mouse[btnId];
 		delete inputs.isMouseDown[btnId];
+		
+		if (settings.showFinger && sprites.inputs.mouse[btnId]) {
+			sprites.inputs.mouse[btnId].destroy();
+			delete sprites.inputs.mouse[btnId];
+		}
 	}, passiveIfSupported);
 	pixi.view.addEventListener('mouseout', (e) => {
 		e.preventDefault();
 		
-		for (let btnId in inputs.isMouseDown) {
+		for (let btnId in inputs.mouse) {
 			if (inputs.isMouseDown[btnId]) {
 				delete inputs.mouse[btnId];
 				delete inputs.isMouseDown[btnId];
+				
+				if (settings.showFinger && sprites.inputs.mouse[btnId]) {
+					sprites.inputs.mouse[btnId].destroy();
+					delete sprites.inputs.mouse[btnId];
+				}
 			}
 		}
 	}, passiveIfSupported);

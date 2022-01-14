@@ -147,8 +147,8 @@ class Judgements extends Array {
 				if (click instanceof Click) {
 					if (click.time) {
 						this.push(new Judgement(click.offsetX, click.offsetY, 2));
-					} else if (i.isMoving) {
-						this.push(new Judgement(i.offsetX, i.offsetY, 3));
+					} else if (click.isMoving) {
+						this.push(new Judgement(click.offsetX, click.offsetY, 3));
 					}
 					//else this.push(new Judgement(i.offsetX, i.offsetY, 1));
 				}
