@@ -109,20 +109,55 @@ const score = {
 // 全屏相关。代码来自 lchzh3473
 const full = {
 	// 切换全屏状态
-	toggle(elem) {
-		if (!this.enabled) return false;
+	toggle(elem, inDocument = false) {
+		// if (!this.enabled) return false;
 		if (this.element) {
-			if (document.exitFullscreen) return document.exitFullscreen();
-			if (document.cancelFullScreen) return document.cancelFullScreen();
-			if (document.webkitCancelFullScreen) return document.webkitCancelFullScreen();
-			if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
-			if (document.msExitFullscreen) return document.msExitFullscreen();
+			if (!inDocument) {
+				if (document.exitFullscreen) return document.exitFullscreen();
+				if (document.cancelFullScreen) return document.cancelFullScreen();
+				if (document.webkitCancelFullScreen) return document.webkitCancelFullScreen();
+				if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
+				if (document.msExitFullscreen) return document.msExitFullscreen();
+			}
+			
+			if (this.element == elem) {
+				elem.style.position = 'relative';
+				elem.style.top = '0';
+				elem.style.left = '0';
+				elem.style.width = '1px';
+				elem.style.height = '1px';
+				elem.style.zIndex = 'unset';
+				
+				document.inDocumentFullscreenElement = null;
+				if (global.functions.resizeCanvas) global.functions.resizeCanvas();
+				return true;
+			}
+			
+			return false;
+			
 		} else {
-			if (!(elem instanceof HTMLElement)) elem = document.body;
-			if (elem.requestFullscreen) return elem.requestFullscreen();
-			if (elem.webkitRequestFullscreen) return elem.webkitRequestFullscreen();
-			if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
-			if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
+			if (!inDocument) {
+				if (!(elem instanceof HTMLElement)) elem = document.body;
+				if (elem.requestFullscreen) return elem.requestFullscreen();
+				if (elem.webkitRequestFullscreen) return elem.webkitRequestFullscreen();
+				if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
+				if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
+			}
+			
+			if (elem != document.body) {
+				elem.style.position = 'fixed';
+				elem.style.top = '0';
+				elem.style.left = '0';
+				elem.style.width = document.body.clientWidth + 'px';
+				elem.style.height = document.body.clientHeight + 'px';
+				elem.style.zIndex = '5050';
+				
+				document.inDocumentFullscreenElement = elem;
+				if (global.functions.resizeCanvas) global.functions.resizeCanvas();
+				return true;
+			}
+			
+			return false;
 		}
 	},
 	
@@ -134,18 +169,41 @@ const full = {
 	
 	// 返回当前浏览器可用的全屏方法。
 	get element() {
-		return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+		return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || document.inDocumentFullscreenElement;
 	},
 	
 	// 返回当前浏览器的全屏支持状态检测方法。
 	get enabled() {
 		return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
+	},
+	
+	get type() {
+		if (document.inDocumentFullscreenElement) {
+			return 2;
+		} else if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+			return 1;
+		} else {
+			return 0;
+		}
 	}
 };
 
 // 特殊点击事件相关，代码参考 lchzh3473
 const specialClick = {
-	
+	clicks : [0, 0, 0, 0],
+	functions : [
+		() => { gamePause() },
+		() => { gameRestart() },
+		() => {},
+		() => { setCanvasFullscreen() }
+	],
+	click : function(id) {
+		let currentTime = Date.now();
+		if (currentTime - this.clicks[id] < 300) {
+			this.functions[id]();
+		}
+		this.clicks[id] = currentTime;
+	}
 }
 
 /***
