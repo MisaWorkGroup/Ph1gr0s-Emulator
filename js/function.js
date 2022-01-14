@@ -127,6 +127,7 @@ const full = {
 				elem.style.width = '1px';
 				elem.style.height = '1px';
 				elem.style.zIndex = 'unset';
+				document.body.style.overflow = 'auto';
 				
 				document.inDocumentFullscreenElement = null;
 				if (global.functions.resizeCanvas) global.functions.resizeCanvas();
@@ -151,6 +152,7 @@ const full = {
 				elem.style.width = document.body.clientWidth + 'px';
 				elem.style.height = document.body.clientHeight + 'px';
 				elem.style.zIndex = '5050';
+				document.body.style.overflow = 'hidden';
 				
 				document.inDocumentFullscreenElement = elem;
 				if (global.functions.resizeCanvas) global.functions.resizeCanvas();
