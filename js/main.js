@@ -496,12 +496,10 @@ function gameInit() {
 		e.preventDefault();
 		
 		for (let touch of e.changedTouches) {
-			let canvasPosition = pixi.view.getBoundingClientRect();
 			let fingerId = touch.identifier;
-			let x = touch.pageX - canvasPosition.x;
-			let y = touch.pageY - canvasPosition.y;
+			let fixedPosition = getCurrentInputPosition(touch);
 			
-			inputs.touches[fingerId] = Click.activate(x, y, 'touches', fingerId);
+			inputs.touches[fingerId] = Click.activate(fixedPosition.x, fixedPosition.y, 'touches', fingerId);
 			
 			/**
 			if (settings.showFinger && !sprites.fingers[fingerId]) {
@@ -527,12 +525,10 @@ function gameInit() {
 		e.preventDefault();
 		
 		for (let touch of e.changedTouches) {
-			let canvasPosition = pixi.view.getBoundingClientRect();
 			let fingerId = touch.identifier;
-			let x = touch.pageX - canvasPosition.x;
-			let y = touch.pageY - canvasPosition.y;
+			let fixedPosition = getCurrentInputPosition(touch);
 			
-			inputs.touches[fingerId].move(x, y);
+			inputs.touches[fingerId].move(fixedPosition.x, fixedPosition.y);
 			/**
 			if (settings.showFinger) {
 				sprites.fingers[fingerId].position.set(x, y);
@@ -573,12 +569,10 @@ function gameInit() {
 	pixi.view.addEventListener('mousedown', (e) => {
 		e.preventDefault();
 		
-		let canvasPosition = pixi.view.getBoundingClientRect();
 		let btnId = e.button;
-		let x = e.pageX - canvasPosition.x;
-		let y = e.pageY - canvasPosition.y;
+		let fixedPosition = getCurrentInputPosition(e);
 		
-		inputs.mouse[btnId] = Click.activate(x, y, 'mouse', btnId);
+		inputs.mouse[btnId] = Click.activate(fixedPosition.x, fixedPosition.y, 'mouse', btnId);
 		inputs.isMouseDown[btnId] = true;
 	});
 	
@@ -588,11 +582,9 @@ function gameInit() {
 		
 		for (let btnId in inputs.isMouseDown) {
 			if (inputs.isMouseDown[btnId]) {
-				let canvasPosition = pixi.view.getBoundingClientRect();
-				let x = e.pageX - canvasPosition.x;
-				let y = e.pageY - canvasPosition.y;
+				let fixedPosition = getCurrentInputPosition(touch);
 				
-				inputs.mouse[btnId].move(x, y);
+				inputs.mouse[btnId].move(fixedPosition.x, fixedPosition.y);
 			}
 		}
 	});
@@ -616,6 +608,24 @@ function gameInit() {
 			}
 		}
 	});
+	
+	function getCurrentInputPosition(e) {
+		let output = {
+			x: 0,
+			y: 0
+		};
+		
+		if (!full.check(pixi.view)) {
+			output.x = e.pageX - pixi.view.offsetLeft;
+			output.y = e.pageY - pixi.view.offsetTop;
+			
+		} else {
+			output.x = e.clientX;
+			output.y = e.clientY;
+		}
+		
+		return output;
+	}
 	
 	sprites = CreateChartSprites(_chart.data, pixi); // 创建所有的谱面精灵
 	CreateChartInfoSprites(sprites, pixi, true); // 创建谱面信息文字
