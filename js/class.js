@@ -27,35 +27,34 @@ class Click {
 	***/
 	static activate(offsetX, offsetY, type = null, inputId = null) {
 		inputs.taps.push(new Click(offsetX, offsetY, type, inputId));
-		/**
+		
 		// 左上角判断
-		if (offsetX < lineScale * 1.5 &&
-			offsetY < lineScale * 1.5)
+		if (offsetX < pixi.renderer.lineScale * 1.5 &&
+			offsetY < pixi.renderer.lineScale * 1.5)
 		{
 			specialClick.click(0);
 		}
 		
 		// 右上角判断
-		if (offsetX > canvasos.width - lineScale * 1.5 &&
-			offsetY < lineScale * 1.5)
+		if (offsetX > pixi.renderer.realWidth - pixi.renderer.lineScale * 1.5 &&
+			offsetY < pixi.renderer.lineScale * 1.5)
 		{
 			specialClick.click(1);
 		}
 		
 		// 左下角判断
-		if (offsetX < lineScale * 1.5 &&
-			offsetY > canvasos.height - lineScale * 1.5)
+		if (offsetX < pixi.renderer.lineScale * 1.5 &&
+			offsetY > pixi.renderer.realHeight - pixi.renderer.lineScale * 1.5)
 		{
 			specialClick.click(2);
 		}
 		
 		// 右下角判断
-		if (offsetX > canvasos.width - lineScale * 1.5 &&
-			offsetY > canvasos.height - lineScale * 1.5)
+		if (offsetX > pixi.renderer.realWidth - pixi.renderer.lineScale * 1.5 &&
+			offsetY > pixi.renderer.realHeight - pixi.renderer.lineScale * 1.5)
 		{
 			specialClick.click(3);
 		}
-		**/
 		
 		return new Click(offsetX, offsetY, type, inputId);
 	}
