@@ -26,6 +26,7 @@ var inputs = {
 	taps: [],
 	touches: {},
 	mouse: {},
+	isMouseDown: {},
 	keyboard: {}
 };
 
@@ -497,8 +498,8 @@ function gameInit() {
 		for (let touch of e.changedTouches) {
 			let canvasPosition = pixi.view.getBoundingClientRect();
 			let fingerId = touch.identifier;
-			let x = touch.offsetX - canvasPosition.x;
-			let y = touch.offsetY - canvasPosition.y;
+			let x = touch.pageX - canvasPosition.x;
+			let y = touch.pageY - canvasPosition.y;
 			
 			inputs.touches[fingerId] = Click.activate(x, y, 'touches', fingerId);
 			
@@ -528,8 +529,8 @@ function gameInit() {
 		for (let touch of e.changedTouches) {
 			let canvasPosition = pixi.view.getBoundingClientRect();
 			let fingerId = touch.identifier;
-			let x = touch.offsetX - canvasPosition.x;
-			let y = touch.offsetY - canvasPosition.y;
+			let x = touch.pageX - canvasPosition.x;
+			let y = touch.pageY - canvasPosition.y;
 			
 			inputs.touches[fingerId].move(x, y);
 			/**
@@ -567,6 +568,54 @@ function gameInit() {
 			delete inputs.touches[fingerId];
 		}
 	}, passiveIfSupported);
+	
+	// 舞台鼠标开始事件
+	pixi.view.addEventListener('mousedown', (e) => {
+		e.preventDefault();
+		
+		let canvasPosition = pixi.view.getBoundingClientRect();
+		let btnId = e.button;
+		let x = e.pageX - canvasPosition.x;
+		let y = e.pageY - canvasPosition.y;
+		
+		inputs.mouse[btnId] = Click.activate(x, y, 'mouse', btnId);
+		inputs.isMouseDown[btnId] = true;
+	});
+	
+	// 舞台鼠标移动事件
+	pixi.view.addEventListener('mousemove', (e) => {
+		e.preventDefault();
+		
+		for (let btnId in inputs.isMouseDown) {
+			if (inputs.isMouseDown[btnId]) {
+				let canvasPosition = pixi.view.getBoundingClientRect();
+				let x = e.pageX - canvasPosition.x;
+				let y = e.pageY - canvasPosition.y;
+				
+				inputs.mouse[btnId].move(x, y);
+			}
+		}
+	});
+	
+	// 舞台鼠标结束事件
+	pixi.view.addEventListener('mouseup', (e) => {
+		e.preventDefault();
+		
+		let btnId = e.button;
+		
+		delete inputs.mouse[btnId];
+		delete inputs.isMouseDown[btnId];
+	});
+	pixi.view.addEventListener('mouseout', (e) => {
+		e.preventDefault();
+		
+		for (let btnId in inputs.isMouseDown) {
+			if (inputs.isMouseDown[btnId]) {
+				delete inputs.mouse[btnId];
+				delete inputs.isMouseDown[btnId];
+			}
+		}
+	});
 	
 	sprites = CreateChartSprites(_chart.data, pixi); // 创建所有的谱面精灵
 	CreateChartInfoSprites(sprites, pixi, true); // 创建谱面信息文字
@@ -645,7 +694,7 @@ function setCanvasFullscreen(forceInDocumentFull = false) {
 	**/
 	
 	stat.isFullscreen = true;
-	full.toggle(pixi.view, (forceInDocumentFull ? true : (full.enabled ? false : true)));
+	full.toggle(pixi.view, (forceInDocumentFull ? true : (!full.enabled || full.type == 2 ? true : false)));
 }
 
 function gamePause() {
