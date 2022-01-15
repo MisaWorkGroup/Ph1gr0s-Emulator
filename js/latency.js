@@ -2,22 +2,28 @@ var Loader = new PIXI.Loader;
 var Ticker = new PIXI.Ticker;
 var Sound = PIXI.sound.Sound;
 
-const tickerTimeBPM = 80;
+const tickerTimeBPM = 90;
 
 var sounds = {}; // 存放声音素材
 
 var playHitsound = false;
 
-var tickerTimeStarted          = false;
-var tickerTimeIndex            = 0
-var tickerTimeEqualizer        = 0;
-var tickerTimes                = [];
-var tickerTimesInput           = [];
+var tickerTimeStarted         = false;
+var tickerTimeIndex           = 0;
+var tickerTimeEqualizer       = 0;
+var tickerTimes               = [];
+var tickerTimesInput          = [];
 var tickerTimesAverageLatency = 0;
-
+var soundBaseLatency          = 0;
 
 
 // ========此处声明事件监听器========
+// ==Passive 兼容性检测，代码来自 Moz://a==
+var passiveIfSupported = false;
+try {
+	document.body.addEventListener('test', null, Object.defineProperty({}, 'passive', { get: function() { passiveIfSupported = { passive: false }; } }));
+} catch(err) {}
+
 document.getElementById('btn-tap').addEventListener('touchstart', (e) => {
 	if (!tickerTimeStarted) return;
 	
@@ -27,7 +33,7 @@ document.getElementById('btn-tap').addEventListener('touchstart', (e) => {
 	tickerTimesInput.push(Date.now() - tickerTimes[tickerTimeIndex]);
 	if (playHitsound) sounds.drag.play();
 	
-}, { passive: false } );
+}, passiveIfSupported);
 
 document.getElementById('btn-tap').addEventListener('mousedown', (e) => {
 	if (!tickerTimeStarted) return;
@@ -38,11 +44,11 @@ document.getElementById('btn-tap').addEventListener('mousedown', (e) => {
 	tickerTimesInput.push(Date.now() - tickerTimes[tickerTimeIndex]);
 	if (playHitsound) sounds.drag.play();
 	
-}, { passive: false } );
+}, passiveIfSupported);
 
-document.getElementById('btn-tap').addEventListener('keydown', (e) => {
+document.body.addEventListener('keydown', (e) => {
 	if (!tickerTimeStarted) return;
-	if (e.key != 'F') return;
+	if (e.keyCode != 70) return;
 	
 	e.preventDefault();
 	
@@ -50,7 +56,18 @@ document.getElementById('btn-tap').addEventListener('keydown', (e) => {
 	tickerTimesInput.push(Date.now() - tickerTimes[tickerTimeIndex]);
 	if (playHitsound) sounds.drag.play();
 	
-}, { passive: false } );
+}, passiveIfSupported);
+document.getElementById('btn-tap').addEventListener('keydown', (e) => {
+	if (!tickerTimeStarted) return;
+	if (e.keyCode != 70) return;
+	
+	e.preventDefault();
+	
+	// console.log(Date.now() - tickerTimes[tickerTimeIndex]);
+	tickerTimesInput.push(Date.now() - tickerTimes[tickerTimeIndex]);
+	if (playHitsound) sounds.drag.play();
+	
+}, passiveIfSupported);
 
 
 
@@ -90,6 +107,7 @@ function startLatencyTest() {
 	let tickerTimePlayed = false;
 	let lastTickerTimesInputLength = 0;
 	
+	soundBaseLatency = sounds.tap.context.audioContext.baseLatency;
 	tickerTimes = [
 		Date.now() + (60 / tickerTimeBPM) * 1000 * 1,
 		Date.now() + (60 / tickerTimeBPM) * 1000 * 2,
@@ -103,15 +121,14 @@ function startLatencyTest() {
 		// 检测时间，播放声音，并计算程序补偿时间
 		if (tickerCurrentTime >= tickerTimes[tickerTimeIndex] && !tickerTimePlayed) {
 			tickerTimePlayed = true;
-			tickerTimeEqualizer = tickerTimes[tickerTimeIndex] - tickerCurrentTime;
+			tickerTimeEqualizer = tickerTimes[tickerTimeIndex] - tickerCurrentTime - soundBaseLatency * 1000;
 			
 			// console.log(tickerTimeIndex, tickerCurrentTime, tickerTimes[tickerTimeIndex], tickerTimeEqualizer);
 			
 			if (tickerTimeIndex == 0) {
 				sounds.flick.play();
-			} else {
-				sounds.tap.play();
 			}
+			sounds.tap.play();
 		}
 		
 		// 计算下一节拍的时间，并应用程序补偿时间
