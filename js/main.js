@@ -198,8 +198,7 @@ function decodeZip(input) {
 		zip.loadAsync(reader.result)
 			.then((e) => loadZip(e))
 			.catch((e) => {
-				mdui.alert('这不是一个有效的 *.zip 文件！<br>请确认您选择的是正确的文件格式。', '前方高能');
-				console.warn('"' + input.files[0].name + '" 可能不是一个有效的 zip 文件。', e);
+				console.error('"' + input.files[0].name + '" 可能不是一个有效的 zip 文件。', e);
 			}
 		);
 	}
