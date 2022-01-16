@@ -227,7 +227,9 @@ class Judgements extends Array {
 		for (const i of notes) { // 遍历所有 Note
 			let globalPosition = i.getGlobalPosition();
 			let offsetX = globalPosition.x;
-			let offsetY = globalPosition.y;
+			let rawOffsetX = i.parent.getGlobalPosition().x;
+			let offsetY = i.parent.parent.children[0].getGlobalPosition().y;
+			let realOffsetY = globalPosition.y;
 			let angle = i.parent.parent.angle;
 			
 			let timeBetween = i.raw.realTime - realTime;
@@ -258,14 +260,20 @@ class Judgements extends Array {
 							i.raw.score = 4;
 							i.raw.accType = timeBetween < 0 ? -1 : 1;
 							
+							CreateClickAnimation(offsetX, rawOffsetX, offsetY, i.raw.score, angle, settings.performanceMode);
+							
 						} else if (timeBetweenReal <= timeGood) { // 判定 Good
 							i.raw.score = 3;
 							i.raw.accType = timeBetween < 0 ? -1 : 1;
+							
+							CreateClickAnimation(offsetX, rawOffsetX, realOffsetY, i.raw.score, angle, settings.performanceMode);
 							
 						} else if (timeBetweenReal <= timeBad) { // 判定 Bad
 							if (!this[x].catched) {
 								i.raw.score = 2;
 								i.raw.accType = timeBetween < 0 ? -1 : 1; // 判定是 Early 还是 Late
+								
+								CreateClickAnimation(offsetX, rawOffsetX, realOffsetY, i.raw.score, angle, settings.performanceMode);
 							}
 						}
 						
@@ -275,7 +283,6 @@ class Judgements extends Array {
 							i.alpha = 0;
 							
 							if (settings.hitsound && i.raw.score > 2) textures.sound.tap.play({volume: settings.hitsoundVolume});
-							CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 							
 							i.raw.isProcessed = true;
@@ -294,7 +301,7 @@ class Judgements extends Array {
 					i.alpha = 0;
 					
 					if (settings.hitsound) textures.sound.drag.play({volume: settings.hitsoundVolume});
-					CreateClickAnimation(offsetX, offsetY, 4, i.parent.parent.angle, settings.performanceMode);
+					CreateClickAnimation(offsetX, rawOffsetX, offsetY, 4, angle, settings.performanceMode);
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 					
 					i.raw.isProcessed = true;
@@ -303,7 +310,7 @@ class Judgements extends Array {
 					for (let x = 0; x < this.length; x++) {
 						if (
 							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
-							timeBetweenReal <= timeBad
+							timeBetweenReal <= timeGood
 						) { 
 							this[x].catched = true;
 							i.raw.score = 4;
@@ -318,7 +325,7 @@ class Judgements extends Array {
 				if (i.raw.isPressing && i.raw.pressTime) { // Hold 是否被按下
 					// 此处为已被单击的 Hold 持续监听是否一直被按住到 Hold 结束
 					if ((Date.now() - i.raw.pressTime) * i.raw.holdTime >= 1.6e4 * i.raw.realHoldTime && !i.raw.isScored) { // Note 被按下且还未结束 //间隔时间与bpm成反比，待实测
-						CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
+						CreateClickAnimation(offsetX, rawOffsetX, offsetY, i.raw.score, angle, settings.performanceMode);
 						i.raw.pressTime = Date.now();
 					}
 					
@@ -346,10 +353,11 @@ class Judgements extends Array {
 						) {
 							if (timeBetweenReal <= timePerfect) { // 判定 Perfect
 								i.raw.score = 4;
+								CreateClickAnimation(offsetX, rawOffsetX, offsetY, i.raw.score, angle, settings.performanceMode);
 								
 							} else if (timeBetweenReal <= timeGood) { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
 								i.raw.score = 3;
-								
+								CreateClickAnimation(offsetX, rawOffsetX, realOffsetY, i.raw.score, angle, settings.performanceMode);
 							}
 							
 							i.raw.isPressing = true;
@@ -358,7 +366,6 @@ class Judgements extends Array {
 							
 							if (settings.hitsound) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
-							CreateClickAnimation(offsetX, offsetY, i.raw.score, i.parent.parent.angle, settings.performanceMode);
 							
 							this.splice(x, 1);
 							break;
@@ -382,7 +389,7 @@ class Judgements extends Array {
 					score.addCombo(i.raw.score, i.raw.accType);
 					
 					if (settings.hitsound) textures.sound.flick.play({volume: settings.hitsoundVolume});
-					CreateClickAnimation(offsetX, offsetY, 4, i.parent.parent.angle, settings.performanceMode);
+					CreateClickAnimation(offsetX, rawOffsetX, offsetY, 4, angle, settings.performanceMode);
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 					
 					i.raw.isProcessed = true;
