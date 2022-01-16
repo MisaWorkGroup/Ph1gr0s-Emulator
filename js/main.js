@@ -724,6 +724,11 @@ function gameRestart() {
 	_chart.audio.stop();
 	pixi.ticker.remove(CalculateChartActualTime);
 	
+	if (sprites.gameEnd) {
+		sprites.gameEnd.container.destroy();
+		sprites.gameEnd = null;
+	}
+	
 	for (let container of sprites.containers) {
 		container.position.set(pixi.renderer.realWidth / 2, pixi.renderer.realHeight / 2);
 		container.angle = 0;
