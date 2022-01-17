@@ -527,30 +527,31 @@ function CalculateChartData (chart) {
 		
 		note.realTime     = note.time * (1.875 / judgeLine.bpm);
 		note.realHoldTime = note.holdTime * (1.875 / judgeLine.bpm);
-		note.offsetY      = 0;
-		note.holdLength   = 0;
+		note.offsetY      = note.floorPosition;
+		note.holdLength   = note.realHoldTime * note.speed;
 		note.lineId       = judgeLine.id;
 		note.id           = id;
 		note.isAbove      = isAbove;
 		note.score        = 0;
 		
-		// 预计算 Note 在 Container 中的正确位置
-		for (let i of judgeLine.speedEvents) {
-			if (note.realTime < i.startRealTime) continue;
-			if (note.realTime > i.endRealTime) continue;
+		// 兼容 PEC 谱面
+		if (!note.offsetY) {
+			for (let i of judgeLine.speedEvents) {
+				if (note.realTime < i.startRealTime) continue;
+				if (note.realTime > i.endRealTime) continue;
+				
+				noteSpeed = i.value;
+				
+				noteSpeedChangedPosition = i.floorPosition;
+				noteSpeedChangedRealTime = i.startRealTime;
+				
+				break;
+			}
 			
-			noteSpeed = i.value;
-			
-			noteSpeedChangedPosition = i.floorPosition;
-			noteSpeedChangedRealTime = i.startRealTime;
-			
-			break;
+			note.offsetY = (note.realTime - noteSpeedChangedRealTime) * noteSpeed + noteSpeedChangedPosition;
 		}
 		
-		note.offsetY = (note.realTime - noteSpeedChangedRealTime) * noteSpeed + noteSpeedChangedPosition;
-		
-		// 预计算 Hold 长度
-		if (note.type == 3) {
+		if (!note.holdLength) {
 			holdEndRealTime = note.realTime + note.realHoldTime;
 			holdHeadPosition = (note.realTime - noteSpeedChangedRealTime) * noteSpeed + noteSpeedChangedPosition;
 			
@@ -799,9 +800,6 @@ function CreateChartSprites(chart, pixi) {
 		notesAbove.noteDirection = 1;
 		notesBelow.noteDirection = -1;
 		
-		notesAbove.speedNotes = [];
-		notesBelow.speedNotes = [];
-		
 		for (let _note of _judgeLine.notes) {
 			let note;
 			
@@ -810,20 +808,16 @@ function CreateChartSprites(chart, pixi) {
 				let holdHead = new PIXI.Sprite(textures['holdHead' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
 				let holdBody = new PIXI.Sprite(textures['holdBody' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
 				let holdEnd = new PIXI.Sprite(textures.holdEnd);
-				let baseLength = realHeight * 0.6;
-				let holdLength = (_note.holdLength * baseLength) / noteScale;
-				
-				_note.rawNoteScale = noteScale;
 				
 				holdHead.anchor.set(0.5);
 				holdBody.anchor.set(0.5, 1);
 				holdEnd.anchor.set(0.5, 1);
 				
-				holdBody.height = holdLength;
+				holdBody.height = _note.holdLength * pixi.renderer.noteSpeed / noteScale;
 				
 				holdHead.position.set(0, holdHead.height / 2);
 				holdBody.position.set(0, 0);
-				holdEnd.position.set(0, -holdLength);
+				holdEnd.position.set(0, -holdBody.height);
 				
 				hold.addChild(holdHead);
 				hold.addChild(holdBody);
@@ -845,7 +839,7 @@ function CreateChartSprites(chart, pixi) {
 			}
 			
 			if (settings.developMode) {
-				let noteName = new PIXI.Text(_note.lineId + '+' + _note.id, { fill: 'rgb(100,255,100)' });
+				let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
 				noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
 				noteName.anchor.set(0.5);
 				noteName.position.set(0);
@@ -857,17 +851,9 @@ function CreateChartSprites(chart, pixi) {
 			note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
 			
 			note.raw = _note;
-			note.id = _note.id;
-			note.lineId = _note.lineId;
 			
 			if (_note.isAbove) notesAbove.addChild(note);
-			else note.angle = 180,notesBelow.addChild(note);
-			
-			// 单独处理速度不为 1 的非长条 Note
-			if (_note.speed != 1 && _note.type != 3) {
-				if (_note.isAbove) notesAbove.speedNotes.push(note);
-				else notesBelow.speedNotes.push(note);
-			}
+			else note.angle = 180, notesBelow.addChild(note);
 			
 			output.totalNotes.push(note);
 			
@@ -1339,16 +1325,9 @@ function CalculateChartSpritesActualTime(delta) {
 	let noteScale = pixi.renderer.noteScale;
 	let rendererResolution = pixi.renderer.resolution;
 	
-	if (!sprites.containers) return;
+	let currentJudgeLineOffsetY = {}; // 用来存储当前时间下 Note Container 的 y 轴位置
 	
-	// 一些全屏尺寸检测与修改
-	// 注释掉了，感觉会影响性能
-	/**
-	if (full.check(pixi.view) && (pixi.renderer.width != document.body.clientWidth || pixi.renderer.height != document.body.clientHeight)) {
-		pixi.renderer.resize(document.body.clientWidth, document.body.clientHeight);
-		ResizeChartSprites(sprites, pixi.renderer.width, pixi.renderer.height, settings.noteScale);
-	}
-	**/
+	if (!sprites.containers) return;
 	
 	if (sprites.progressBar)
 		sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
@@ -1395,47 +1374,38 @@ function CalculateChartSpritesActualTime(delta) {
 			if (global.currentTime < i.startRealTime) break;
 			if (global.currentTime > i.endRealTime) continue;
 			
+			currentJudgeLineOffsetY[judgeLine.raw.id] = (global.currentTime - i.startRealTime) * i.value + i.floorPosition;
+			
 			for (let x = 1; x < container.children.length; x++) {
 				let noteContainer = container.children[x];
-				
-				noteContainer.position.y = ((global.currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
-				
-				if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
-					for (let note of noteContainer.speedNotes) {
-						// 处理自身速度不为 1 的 Note。怀疑如此处理有性能问题，暂时未知其他解法
-						note.position.y = (
-							noteContainer.position.y + (
-								(note.raw.offsetY * noteSpeed) - 
-								(noteContainer.position.y > 0 ? noteContainer.position.y : noteContainer.position.y * -1)
-							) * note.raw.speed
-						) * noteContainer.noteDirection * -1;
-					}
-				}
+				noteContainer.position.y = currentJudgeLineOffsetY[judgeLine.raw.id] * noteSpeed * noteContainer.noteDirection;
 			}
 		}
 	}
 	
 	for (let i of sprites.totalNotes) {
-		// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
-		if (i.raw.type == 3 && i.raw.realTime <= global.currentTime && global.currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
-			let rawNoteOffsetY = i.raw.offsetY * noteSpeed;
-			let parentOffsetY = i.parent.position.y;
-			parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
+		if (i.raw.score > 0 && i.raw.isProcessed) continue;
+		
+		// 处理 Hold 的高度
+		if (i.raw.type == 3 && i.raw.offsetY <= currentJudgeLineOffsetY[i.raw.lineId]) {
+			let currentHoldLength = (i.raw.holdLength + i.raw.offsetY) - currentJudgeLineOffsetY[i.raw.lineId];
 			
-			let betweenOffsetY = (parentOffsetY - rawNoteOffsetY) * rendererResolution;
-			let rawHoldLength = (i.raw.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
-			
-			let currentHoldLength = rawHoldLength - betweenOffsetY / (noteScale * rendererResolution);
-			
-			i.children[1].height = currentHoldLength;
-			i.children[2].position.y = -currentHoldLength;
-			
-			if (i.raw.isAbove) i.position.y = -(rawNoteOffsetY + betweenOffsetY / rendererResolution);
-			else i.position.y = rawNoteOffsetY + betweenOffsetY / rendererResolution;
+			if (currentHoldLength >= 0) {
+				i.children[1].height = currentHoldLength * noteSpeed / noteScale;
+				i.children[2].position.y = -i.children[1].height;
+				
+				i.position.y = currentJudgeLineOffsetY[i.raw.lineId] * noteSpeed * (i.raw.isAbove ? -1 : 1);
+			}
 		}
 		
-		
-		if (i.raw.score > 0 && i.raw.isProcessed) continue;
+		// 处理变速 Note 的位置
+		if (i.raw.speed != 1 && i.raw.type != 3) {
+			i.position.y = (
+				currentJudgeLineOffsetY[i.raw.lineId] + (
+					i.raw.offsetY - currentJudgeLineOffsetY[i.raw.lineId]
+				) * i.raw.speed
+			) * noteSpeed * (i.raw.isAbove ? -1 : 1);
+		}
 		
 		if (i.raw.realTime - global.currentTime <= 0 && i.raw.type != 3) {
 			let timeBetween = i.raw.realTime - global.currentTime;
@@ -1455,7 +1425,7 @@ function CalculateChartSpritesActualTime(delta) {
 	for (let i in sprites.clickAnimate.bad) {
 		let obj = sprites.clickAnimate.bad[i];
 		
-		obj.alpha -= 2 / 60;
+		obj.alpha -= 2 / pixi.ticker.FPS;
 		
 		if (obj.alpha <= 0) {
 			obj.destroy();
@@ -1598,13 +1568,13 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		// 处理 Hold
 		if (note.raw.type == 3 && note.children.length == 3) {
 			// note.children[1].height = note.raw.holdLength * (height * 0.6) / note.raw.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.raw.rawNoteScale);
-			note.children[1].height = note.raw.holdLength * (height * 0.6) / noteScale;
-			note.children[2].position.y = -(note.raw.holdLength * (height * 0.6) / noteScale);
+			note.children[1].height = note.raw.holdLength * noteSpeed / noteScale;
+			note.children[2].position.y = -note.children[1].height;
 		}
 		
 		note.scale.set(noteScale);
 		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
-		note.position.y = note.raw.offsetY * (height * 0.6) * (note.raw.isAbove ? -1 : 1);
+		note.position.y = note.raw.offsetY * noteSpeed * (note.raw.isAbove ? -1 : 1);
 	}
 	
 	// 处理进度条
