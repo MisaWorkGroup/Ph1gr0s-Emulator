@@ -252,7 +252,7 @@ class Judgements extends Array {
 				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
 					if (
 						this[x].type == 1 &&
-						this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+						this[x].isInArea(offsetX, realOffsetY, angle, i.width) &&
 						timeBetweenReal <= timeBad &&
 						!i.raw.isProcessed
 					) {
@@ -309,7 +309,7 @@ class Judgements extends Array {
 				} else if (!i.raw.isProcessed) { // 检测 Note 是否被打击
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							this[x].isInArea(offsetX, realOffsetY, angle, i.width) &&
 							timeBetweenReal <= timeGood
 						) { 
 							this[x].catched = true;
@@ -348,7 +348,7 @@ class Judgements extends Array {
 					if (!i.raw.pressTime && !i.raw.isPrecessed && !i.raw.isScored) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
 						if (
 							this[x].type == 1 &&
-							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							this[x].isInArea(offsetX, realOffsetY, angle, i.width) &&
 							timeBetweenReal < timeGood
 						) {
 							if (timeBetweenReal <= timePerfect) { // 判定 Perfect
@@ -371,7 +371,7 @@ class Judgements extends Array {
 							break;
 						}
 						
-					} else if (!i.raw.isScored && !i.raw.isProcessed && this[x].isInArea(offsetX, offsetY, angle, i.width)) {
+					} else if (!i.raw.isScored && !i.raw.isProcessed && this[x].isInArea(offsetX, realOffsetY, angle, i.width)) {
 						i.raw.isPressing = true; // 持续判断手指是否在判定区域内
 					}
 				}
@@ -389,7 +389,7 @@ class Judgements extends Array {
 					score.addCombo(i.raw.score, i.raw.accType);
 					
 					if (settings.hitsound) textures.sound.flick.play({volume: settings.hitsoundVolume});
-					CreateClickAnimation(offsetX, rawOffsetX, offsetY, 4, angle, settings.performanceMode);
+					CreateClickAnimation(offsetX, rawOffsetX, realOffsetY, 4, angle, settings.performanceMode);
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.raw.realTime, realTime);
 					
 					i.raw.isProcessed = true;
@@ -397,7 +397,7 @@ class Judgements extends Array {
 				} else if (!i.raw.isProcessed) {
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							this[x].isInArea(offsetX, realOffsetY, angle, i.width) &&
 							timeBetweenReal <= timeGood
 						) {
 							this[x].catched = true;

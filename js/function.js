@@ -1332,8 +1332,7 @@ function CreateGameEndAnimate() {
 /***
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
-function CalculateChartActualTime(delta) {
-	let currentTime = (global.audio ? (_chart.audio.duration * global.audio.progress) : 0) - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay;
+function CalculateChartSpritesActualTime(delta) {
 	let fixedWidth = pixi.renderer.fixedWidth;
 	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
 	let noteSpeed = pixi.renderer.noteSpeed;
@@ -1361,10 +1360,10 @@ function CalculateChartActualTime(delta) {
 		
 		if (!settings.disableJudgeLineAlpha) {
 			for (let i of judgeLine.raw.judgeLineDisappearEvents) {
-				if (currentTime < i.startRealTime) break;
-				if (currentTime > i.endRealTime) continue;
+				if (global.currentTime < i.startRealTime) break;
+				if (global.currentTime > i.endRealTime) continue;
 				
-				let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+				let time2 = (global.currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 				let time1 = 1 - time2;
 				
 				judgeLine.alpha = i.start * time1 + i.end * time2;
@@ -1372,10 +1371,10 @@ function CalculateChartActualTime(delta) {
 		}
 		
 		for (let i of judgeLine.raw.judgeLineMoveEvents) {
-			if (currentTime < i.startRealTime) break;
-			if (currentTime > i.endRealTime) continue;
+			if (global.currentTime < i.startRealTime) break;
+			if (global.currentTime > i.endRealTime) continue;
 			
-			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+			let time2 = (global.currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 			let time1 = 1 - time2;
 			
 			container.position.x = fixedWidth * (i.start * time1 + i.end * time2) + fixedWidthOffset;
@@ -1383,23 +1382,23 @@ function CalculateChartActualTime(delta) {
 		}
 		
 		for (const i of judgeLine.raw.judgeLineRotateEvents) {
-			if (currentTime < i.startRealTime) break;
-			if (currentTime > i.endRealTime) continue;
+			if (global.currentTime < i.startRealTime) break;
+			if (global.currentTime > i.endRealTime) continue;
 			
-			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+			let time2 = (global.currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 			let time1 = 1 - time2;
 			
 			container.rotation = i.startDeg * time1 + i.endDeg * time2;
 		}
 		
 		for (const i of judgeLine.raw.speedEvents) {
-			if (currentTime < i.startRealTime) break;
-			if (currentTime > i.endRealTime) continue;
+			if (global.currentTime < i.startRealTime) break;
+			if (global.currentTime > i.endRealTime) continue;
 			
 			for (let x = 1; x < container.children.length; x++) {
 				let noteContainer = container.children[x];
 				
-				noteContainer.position.y = ((currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
+				noteContainer.position.y = ((global.currentTime - i.startRealTime) * i.value + i.floorPosition) * noteSpeed * noteContainer.noteDirection;
 				
 				if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
 					for (let note of noteContainer.speedNotes) {
@@ -1418,7 +1417,7 @@ function CalculateChartActualTime(delta) {
 	
 	for (let i of sprites.totalNotes) {
 		// 处理 Hold 的高度。我没想到其他的算法，就先用这么个粗陋的方法顶一下吧。
-		if (i.raw.type == 3 && i.raw.realTime <= currentTime && currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
+		if (i.raw.type == 3 && i.raw.realTime <= global.currentTime && global.currentTime <= (i.raw.realTime + i.raw.realHoldTime)) {
 			let rawNoteOffsetY = i.raw.offsetY * noteSpeed;
 			let parentOffsetY = i.parent.position.y;
 			parentOffsetY = parentOffsetY < 0 ? -parentOffsetY : parentOffsetY;
@@ -1438,8 +1437,8 @@ function CalculateChartActualTime(delta) {
 		
 		if (i.raw.score > 0 && i.raw.isProcessed) continue;
 		
-		if (i.raw.realTime - currentTime <= 0 && i.raw.type != 3) {
-			let timeBetween = i.raw.realTime - currentTime;
+		if (i.raw.realTime - global.currentTime <= 0 && i.raw.type != 3) {
+			let timeBetween = i.raw.realTime - global.currentTime;
 			
 			if (timeBetween > -0.2) {
 				i.alpha = (0.2 + timeBetween) / 0.2;
@@ -1447,7 +1446,7 @@ function CalculateChartActualTime(delta) {
 				i.alpha = 0;
 			}
 			
-		} else if ((i.raw.realTime + i.raw.realHoldTime) <= currentTime && i.raw.type == 3) {
+		} else if ((i.raw.realTime + i.raw.realHoldTime) <= global.currentTime && i.raw.type == 3) {
 			i.alpha = 0;
 			i.raw.isProcessed = true;
 		}
@@ -1463,11 +1462,22 @@ function CalculateChartActualTime(delta) {
 			sprites.clickAnimate.bad.splice(i, 1);
 		}
 	}
+}
+
+function CalculateChartJudgeActualTime() {
+	if (stat.isPaused) {
+		return;
+	}
 	
-	judgements.addJudgement(sprites.totalNotes, currentTime);
-	judgements.judgeNote(sprites.tapholeNotes, currentTime);
-	judgements.judgeNote(sprites.dragNotes, currentTime);
-	judgements.judgeNote(sprites.flickNotes, currentTime);
+	if (global.audio)
+		global.currentTime = _chart.audio.duration * global.audio.progress - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay;
+	else
+		global.currentTime = 0;
+	
+	judgements.addJudgement(sprites.totalNotes, global.currentTime);
+	judgements.judgeNote(sprites.tapholeNotes, global.currentTime);
+	judgements.judgeNote(sprites.dragNotes, global.currentTime);
+	judgements.judgeNote(sprites.flickNotes, global.currentTime);
 	inputs.taps.length = 0;
 	
 	for (let i in inputs.touches) {
@@ -1478,7 +1488,8 @@ function CalculateChartActualTime(delta) {
 	}
 	
 	if (global.audio && global.audio.progress == 1) {
-		pixi.ticker.remove(CalculateChartActualTime);
+		pixi.ticker.remove(CalculateChartSpritesActualTime);
+		pixi.ticker.remove(CalculateChartJudgeActualTime);
 		
 		sprites.headInfos.position.y = -sprites.headInfos.height;
 		sprites.footInfos.position.y = sprites.headInfos.height;
@@ -1486,6 +1497,7 @@ function CalculateChartActualTime(delta) {
 		sprites.gameEnd = CreateGameEndAnimate();
 	}
 }
+
 
 /***
  * @function 创建打击动画
