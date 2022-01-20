@@ -22,10 +22,10 @@
 		<script src="./js/pixi/pixi-sound.js?v=4.2.0"></script>
 		<script src="./js/mdui.min.js?v=1.0.1"></script>
 		
-		<script src="./js/console.js?v=0.0.0-beta3"></script>
-		<script src="./js/function.js?v=0.0.0-beta25"></script>
-		<script src="./js/class.js?v=0.0.0-beta17"></script>
-		<script src="./js/convert.js?v=0.0.0-beta3"></script>
+		<script src="./js/console.js?v=0.0.0-beta4"></script>
+		<script src="./js/function.js?v=0.0.0-beta26"></script>
+		<script src="./js/class.js?v=0.0.0-beta18"></script>
+		<script src="./js/convert.js?v=0.0.0-beta4"></script>
 		
 		<script>
 			var vConsole;
@@ -53,7 +53,7 @@
 				backgroundBlur      : true, // 背景图模糊
 				clickAnimate        : true, // 打击动画
 				accIndicator        : false, // 准度指示器
-				showFinger          : false, // 手指触摸点
+				showFinger          : true, // 手指触摸点
 				noteScale           : 8e3, // 按键缩放
 				accIndicatorScale   : 500, // 准度指示器缩放
 				multiNotesHighlight : true, // 多押高亮
@@ -443,7 +443,7 @@
 									<div class="mdui-list-item-text">会在你点的地方绘制一个小圆点</div>
 								</div>
 								<div class="mdui-checkbox">
-									<input oninput="settings.showFinger = this.checked" type="checkbox" id="settings-graphics-show-finger" />
+									<input oninput="settings.showFinger = this.checked" type="checkbox" id="settings-graphics-show-finger" checked/>
 									<i class="mdui-checkbox-icon"></i>
 								</div>
 							</label>
@@ -820,6 +820,6 @@
 			document.getElementById('settings-graphics-resolution').value = settings.resolution;
 		</script>
 		
-		<script src="./js/main.js?v=0.0.0-beta25"></script>
+		<script src="./js/main.js?v=0.0.0-beta26"></script>
 	</body>
 </html>
