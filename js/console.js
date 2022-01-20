@@ -1,3 +1,4 @@
+'use strict';
 /***
  * 本文件将魔改 console.warn() 与 console.error() 方法，使 warn 和 error 可以
  * 以 dom 的形式直接显示在网页上。

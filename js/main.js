@@ -1,3 +1,5 @@
+'use strict';
+
 var panelInst = new mdui.Panel('#panel');
 var drawerInst = new mdui.Drawer('#drawer');
 
@@ -41,6 +43,14 @@ var stat = {
 
 var judgements = new Judgements();
 
+const judgementTimes = {
+	bad              : 200,
+	good             : 160,
+	perfect          : 80,
+	badChallenge     : 100,
+	goodChallenge    : 75,
+	perfectChallenge : 40
+};
 
 
 // ========此处声明监听器=========
@@ -111,6 +121,7 @@ Loader.add([
 					 * 根据 PIXI 对于动画组件的规定，我们需要将动画雪碧图拆分成 30 个同等大小的
 					 * 图片，将它们按照顺序存放入材质数组，这样才可以用他来正常创建动画精灵。
 					 * 至于为什么图片分辨率被我压缩到了 128px，是因为我的设备读不了原尺寸的图片...
+					 * 如果修改了这里的材质图的分辨率，记得在 function.js 中的 CreateClickAnimation() 中修改缩放值！
 					***/
 					let _clickTextures = [];
 					
@@ -125,6 +136,7 @@ Loader.add([
 				}
 			} else { // 把声音资源过滤出来单独分进一个 Object
 				textures.sound[name.replace('sound', '').toLowerCase()] = event.resources[name].sound;
+				textures.sound[name.replace('sound', '').toLowerCase()].play({ volume:0 });
 			}
 		}
 	}
@@ -453,6 +465,13 @@ function gameInit() {
 		return;
 	}
 	
+	// 定义判定时间
+	global.judgeTimes = {
+		perfect : (settings.challengeMode ? judgementTimes.perfectChallenge : judgementTimes.perfect) / 1000,
+		good    : (settings.challengeMode ? judgementTimes.goodChallenge : judgementTimes.good) / 1000,
+		bad     : (settings.challengeMode ? judgementTimes.badChallenge : judgementTimes.bad) / 1000
+	};
+	
 	switchPanel(6);
 	// 初始化 Pixi 舞台
 	pixi = new PIXI.Application({
@@ -522,8 +541,7 @@ function gameInit() {
 			
 			delete inputs.touches[fingerId];
 			if (settings.showFinger && sprites.inputs.touches[fingerId]) {
-				sprites.inputs.touches[fingerId].destroy();
-				delete sprites.inputs.touches[fingerId];
+				sprites.inputs.touches[fingerId].visible = false;
 			}
 		}
 	}, passiveIfSupported);
@@ -535,8 +553,7 @@ function gameInit() {
 			
 			delete inputs.touches[fingerId];
 			if (settings.showFinger && sprites.inputs.touches[fingerId]) {
-				sprites.inputs.touches[fingerId].destroy();
-				delete sprites.inputs.touches[fingerId];
+				sprites.inputs.touches[fingerId].visible = false;
 			}
 		}
 	}, passiveIfSupported);
@@ -575,8 +592,7 @@ function gameInit() {
 		delete inputs.isMouseDown[btnId];
 		
 		if (settings.showFinger && sprites.inputs.mouse[btnId]) {
-			sprites.inputs.mouse[btnId].destroy();
-			delete sprites.inputs.mouse[btnId];
+			sprites.inputs.mouse[btnId].visible = false;
 		}
 	}, passiveIfSupported);
 	pixi.view.addEventListener('mouseout', (e) => {
@@ -588,8 +604,7 @@ function gameInit() {
 				delete inputs.isMouseDown[btnId];
 				
 				if (settings.showFinger && sprites.inputs.mouse[btnId]) {
-					sprites.inputs.mouse[btnId].destroy();
-					delete sprites.inputs.mouse[btnId];
+					sprites.inputs.mouse[btnId].visible = false;
 				}
 			}
 		}
@@ -615,7 +630,9 @@ function gameInit() {
 		sprites.accIndicator = CreateAccurateIndicator(pixi, settings.accIndicatorScale, settings.challengeMode);
 	score.init(sprites.totalNotes.length, settings.challengeMode); // 计算分数
 	
-	pixi.ticker.add(CalculateChartActualTime); // 启动 Ticker 循环
+	pixi.ticker.add(CalculateChartJudgeActualTime);
+	pixi.ticker.add(CalculateChartSpritesActualTime); // 启动 Ticker 循环
+	if (settings.clickAnimate) pixi.ticker.add(CalculateClickAnimateActualTime);
 	
 	// 适配 AudioContext 的 baseLatency
 	_chart.audio.baseLatency = _chart.audio.context.audioContext.baseLatency ? _chart.audio.context.audioContext.baseLatency : 0;
@@ -669,6 +686,10 @@ function gameInit() {
 			stat.isTransitionEnd = false;
 			pixi.ticker.add(startAnimateTicker);
 		}, 1000);
+		
+		for (let name in textures.sound) {
+			textures.sound[name].play({ volume:0 });
+		}
 	}
 	
 	document.getElementById('game-btn-pause').innerHTML = '<i class="mdui-icon material-icons">&#xe034;</i> 暂停';
@@ -722,7 +743,8 @@ function gameRestart() {
 	
 	stat.isPaused = false;
 	_chart.audio.stop();
-	pixi.ticker.remove(CalculateChartActualTime);
+	pixi.ticker.remove(CalculateChartSpritesActualTime);
+	pixi.ticker.remove(CalculateChartJudgeActualTime);
 	
 	if (sprites.gameEnd) {
 		sprites.gameEnd.container.destroy();
@@ -745,7 +767,7 @@ function gameRestart() {
 			if (noteContainer.speedNotes && noteContainer.speedNotes.length > 0) {
 				for (let note of noteContainer.speedNotes) {
 					note.position.y = (
-						((note.raw.offsetY * noteSpeed) - 0) * note.raw.speed
+						((note.offsetY * noteSpeed) - 0) * note.speed
 					) * noteContainer.noteDirection * -1;
 				}
 			}
@@ -754,23 +776,24 @@ function gameRestart() {
 	
 	for (let note of sprites.totalNotes) {
 		note.alpha = 1;
+		note.visible = true;
 		
-		note.raw.score = 0;
-		note.raw.accType = 0;
-		note.raw.isScored = false;
-		note.raw.isProcessed = false;
+		note.score = 0;
+		note.accType = 0;
+		note.isScored = false;
+		note.isProcessed = false;
 		
-		note.raw.isPressing = false;
-		note.raw.pressTime = null;
+		note.isPressing = false;
+		note.pressTime = null;
 		
-		if (note.raw.type == 3) {
-			let rawNoteOffsetY = note.raw.offsetY * noteSpeed;
-			let rawHoldLength = (note.raw.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
+		if (note.type == 3) {
+			let rawNoteOffsetY = note.offsetY * noteSpeed;
+			let rawHoldLength = (note.holdLength * noteSpeed * rendererResolution) / (noteScale * rendererResolution);
 			
 			note.children[1].height = rawHoldLength;
 			note.children[2].position.y = -rawHoldLength;
 			
-			if (note.raw.isAbove) note.position.y = -rawNoteOffsetY;
+			if (note.isAbove) note.position.y = -rawNoteOffsetY;
 			else note.position.y = rawNoteOffsetY;
 		}
 	}
@@ -787,7 +810,8 @@ function gameRestart() {
 	global.audio = null;
 	
 	score.init(sprites.totalNotes.length, settings.challengeMode);
-	pixi.ticker.add(CalculateChartActualTime);
+	pixi.ticker.add(CalculateChartJudgeActualTime);
+	pixi.ticker.add(CalculateChartSpritesActualTime);
 	
 	_chart.audio.baseLatency = _chart.audio.context.audioContext.baseLatency ? _chart.audio.context.audioContext.baseLatency : 0;
 	

@@ -1,3 +1,4 @@
+'use strict';
 // 游戏分数相关
 const score = {
 	init: function(totalNotes, isChallenge = false) {
@@ -533,6 +534,11 @@ function CalculateChartData (chart) {
 		note.id           = id;
 		note.isAbove      = isAbove;
 		note.score        = 0;
+		note.isScored     = false;
+		note.isProcessed  = false;
+		note.isPressing   = false;
+		note.pressTime    = 0;
+		note.accType      = 0;
 		
 		// 兼容 PEC 谱面
 		if (!note.offsetY) {
@@ -775,7 +781,10 @@ function CreateChartSprites(chart, pixi) {
 		let notesAbove = new PIXI.Container();
 		let notesBelow = new PIXI.Container();
 		
-		judgeLine.raw = _judgeLine;
+		// judgeLine.raw = _judgeLine;
+		for (let name in _judgeLine) {
+			judgeLine[name] = _judgeLine[name];
+		}
 		
 		// 设置判定线中心点和宽高
 		judgeLine.anchor.set(0.5);
@@ -850,13 +859,17 @@ function CreateChartSprites(chart, pixi) {
 			note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
 			note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
 			
-			note.raw = _note;
+			// note.raw = _note;
+			for (let name in _note) {
+				note[name] = _note[name];
+			}
 			
 			if (_note.isAbove) notesAbove.addChild(note);
 			else note.angle = 180, notesBelow.addChild(note);
 			
 			output.totalNotes.push(note);
 			
+			/**
 			if (_note.type == 1 || _note.type == 3) {
 				output.tapholeNotes.push(note);
 			} else if (_note.type == 2) {
@@ -864,6 +877,7 @@ function CreateChartSprites(chart, pixi) {
 			} else if (_note.type == 4) {
 				output.flickNotes.push(note);
 			}
+			**/
 		}
 		
 		container.addChild(judgeLine);
@@ -1319,18 +1333,21 @@ function CreateGameEndAnimate() {
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
 function CalculateChartSpritesActualTime(delta) {
-	let fixedWidth = pixi.renderer.fixedWidth;
-	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
-	let noteSpeed = pixi.renderer.noteSpeed;
-	let noteScale = pixi.renderer.noteScale;
-	let rendererResolution = pixi.renderer.resolution;
+	let fixedWidth = pixi.renderer.fixedWidth,
+		realHeight = pixi.renderer.realHeight,
+		fixedWidthHalf = fixedWidth / 2,
+		realHeightHalf = realHeight / 2,
+		fixedWidthOffset = pixi.renderer.fixedWidthOffset,
+		noteSpeed = pixi.renderer.noteSpeed,
+		noteScale = pixi.renderer.noteScale,
+		rendererResolution = pixi.renderer.resolution;
 	
 	let currentJudgeLineOffsetY = {}; // 用来存储当前时间下 Note Container 的 y 轴位置
 	
 	if (!sprites.containers) return;
 	
-	if (sprites.progressBar)
-		sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
+	// 进度条
+	sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
 	
 	for (let container of sprites.containers) {
 		let judgeLine = container.children[0];
@@ -1338,7 +1355,7 @@ function CalculateChartSpritesActualTime(delta) {
 		if (!judgeLine) continue;
 		
 		if (!settings.disableJudgeLineAlpha) {
-			for (let i of judgeLine.raw.judgeLineDisappearEvents) {
+			for (let i of judgeLine.judgeLineDisappearEvents) {
 				if (global.currentTime < i.startRealTime) break;
 				if (global.currentTime > i.endRealTime) continue;
 				
@@ -1349,7 +1366,7 @@ function CalculateChartSpritesActualTime(delta) {
 			}
 		}
 		
-		for (let i of judgeLine.raw.judgeLineMoveEvents) {
+		for (let i of judgeLine.judgeLineMoveEvents) {
 			if (global.currentTime < i.startRealTime) break;
 			if (global.currentTime > i.endRealTime) continue;
 			
@@ -1360,7 +1377,7 @@ function CalculateChartSpritesActualTime(delta) {
 			container.position.y = pixi.renderer.realHeight * (1 - i.start2 * time1 - i.end2 * time2);
 		}
 		
-		for (const i of judgeLine.raw.judgeLineRotateEvents) {
+		for (const i of judgeLine.judgeLineRotateEvents) {
 			if (global.currentTime < i.startRealTime) break;
 			if (global.currentTime > i.endRealTime) continue;
 			
@@ -1370,85 +1387,87 @@ function CalculateChartSpritesActualTime(delta) {
 			container.rotation = i.startDeg * time1 + i.endDeg * time2;
 		}
 		
-		for (const i of judgeLine.raw.speedEvents) {
+		for (const i of judgeLine.speedEvents) {
 			if (global.currentTime < i.startRealTime) break;
 			if (global.currentTime > i.endRealTime) continue;
 			
-			currentJudgeLineOffsetY[judgeLine.raw.id] = (global.currentTime - i.startRealTime) * i.value + i.floorPosition;
+			currentJudgeLineOffsetY[judgeLine.id] = (global.currentTime - i.startRealTime) * i.value + i.floorPosition;
 			
 			for (let x = 1; x < container.children.length; x++) {
 				let noteContainer = container.children[x];
-				noteContainer.position.y = currentJudgeLineOffsetY[judgeLine.raw.id] * noteSpeed * noteContainer.noteDirection;
+				noteContainer.position.y = currentJudgeLineOffsetY[judgeLine.id] * noteSpeed * noteContainer.noteDirection;
 			}
 		}
 	}
 	
 	for (let i of sprites.totalNotes) {
-		if (i.raw.score > 0 && i.raw.isProcessed) continue;
+		if (i.score > 0 && i.isProcessed) continue;
 		
 		// 处理 Hold 的高度
-		if (i.raw.type == 3 && i.raw.offsetY <= currentJudgeLineOffsetY[i.raw.lineId]) {
-			let currentHoldLength = (i.raw.holdLength + i.raw.offsetY) - currentJudgeLineOffsetY[i.raw.lineId];
+		if (i.type == 3 && i.offsetY <= currentJudgeLineOffsetY[i.lineId]) {
+			let currentHoldLength = (i.holdLength + i.offsetY) - currentJudgeLineOffsetY[i.lineId];
 			
 			if (currentHoldLength >= 0) {
 				i.children[1].height = currentHoldLength * noteSpeed / noteScale;
 				i.children[2].position.y = -i.children[1].height;
 				
-				i.position.y = currentJudgeLineOffsetY[i.raw.lineId] * noteSpeed * (i.raw.isAbove ? -1 : 1);
+				i.position.y = currentJudgeLineOffsetY[i.lineId] * noteSpeed * (i.isAbove ? -1 : 1);
 			}
 		}
 		
 		// 处理变速 Note 的位置
-		if (i.raw.speed != 1 && i.raw.type != 3) {
+		if (i.speed != 1 && i.type != 3) {
 			i.position.y = (
-				currentJudgeLineOffsetY[i.raw.lineId] + (
-					i.raw.offsetY - currentJudgeLineOffsetY[i.raw.lineId]
-				) * i.raw.speed
-			) * noteSpeed * (i.raw.isAbove ? -1 : 1);
+				currentJudgeLineOffsetY[i.lineId] + (
+					i.offsetY - currentJudgeLineOffsetY[i.lineId]
+				) * i.speed
+			) * noteSpeed * (i.isAbove ? -1 : 1);
 		}
 		
-		if (i.raw.realTime - global.currentTime <= 0 && i.raw.type != 3) {
-			let timeBetween = i.raw.realTime - global.currentTime;
-			
-			if (timeBetween > -0.2) {
-				i.alpha = (0.2 + timeBetween) / 0.2;
-			} else {
+		// Note 消失
+		/**
+		let globalPosition = i.getGlobalPosition();
+		if (
+			fixedWidthOffset <= globalPosition.x <= fixedWidthOffset + fixedWidth &&
+			0 <= globalPosition.y <= realHeight
+		) {
+			i.visible = true;
+		} else {
+			i.visible = false;
+		}
+		**/
+		
+		let timeBetween = i.realTime - global.currentTime;
+		if (timeBetween <= 0) {
+			if (i.type != 3) {
+				let timeBetween = i.realTime - global.currentTime;
+				
+				if (timeBetween > -global.judgeTimes.bad) {
+					i.alpha = (global.judgeTimes.bad + timeBetween) / global.judgeTimes.bad;
+				} else {
+					i.alpha = 0;
+					i.visible = false;
+				}
+				
+			} else if ((i.realTime + i.realHoldTime) <= global.currentTime) {
 				i.alpha = 0;
+				i.visible = false;
+				i.isProcessed = true;
 			}
-			
-		} else if ((i.raw.realTime + i.raw.realHoldTime) <= global.currentTime && i.raw.type == 3) {
-			i.alpha = 0;
-			i.raw.isProcessed = true;
 		}
 	}
-	
-	for (let i in sprites.clickAnimate.bad) {
-		let obj = sprites.clickAnimate.bad[i];
-		
-		obj.alpha -= 2 / pixi.ticker.FPS;
-		
-		if (obj.alpha <= 0) {
-			obj.destroy();
-			sprites.clickAnimate.bad.splice(i, 1);
-		}
-	}
-}
-
-function CalculateChartJudgeActualTime() {
-	if (stat.isPaused) {
-		return;
-	}
-	
-	if (global.audio)
-		global.currentTime = _chart.audio.duration * global.audio.progress - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay;
-	else
-		global.currentTime = 0;
 	
 	judgements.addJudgement(sprites.totalNotes, global.currentTime);
-	judgements.judgeNote(sprites.tapholeNotes, global.currentTime);
+	judgements.judgeNote(sprites.totalNotes, global.currentTime);
+	
+	/**
 	judgements.judgeNote(sprites.dragNotes, global.currentTime);
 	judgements.judgeNote(sprites.flickNotes, global.currentTime);
+	judgements.judgeNote(sprites.tapholeNotes, global.currentTime);
+	**/
+	
 	inputs.taps.length = 0;
+	
 	
 	for (let i in inputs.touches) {
 		if (inputs.touches[i] instanceof Click) inputs.touches[i].animate();
@@ -1456,6 +1475,7 @@ function CalculateChartJudgeActualTime() {
 	for (let i in inputs.mouse) {
 		if (inputs.mouse[i] instanceof Click) inputs.mouse[i].animate();
 	}
+	
 	
 	if (global.audio && global.audio.progress == 1) {
 		pixi.ticker.remove(CalculateChartSpritesActualTime);
@@ -1468,24 +1488,52 @@ function CalculateChartJudgeActualTime() {
 	}
 }
 
+function CalculateChartJudgeActualTime() {
+	if (stat.isPaused) {
+		return;
+	}
+	
+	if (global.audio)
+		global.currentTime = _chart.audio.duration * global.audio.progress - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay;
+	else
+		global.currentTime = 0;
+}
+
+function CalculateClickAnimateActualTime() {
+	for (let i in sprites.clickAnimate.bad) {
+		let obj = sprites.clickAnimate.bad[i];
+		
+		obj.alpha -= 2 / pixi.ticker.FPS;
+		
+		if (obj.alpha <= 0) {
+			obj.destroy();
+			sprites.clickAnimate.bad.splice(i, 1);
+		}
+	}
+}
 
 /***
  * @function 创建打击动画
 ***/
-function CreateClickAnimation(x, rawX, y, type = 4, angle = 0, performance = false) {
+function CreateClickAnimation(note, performance = false) {
 	let obj = undefined;
 	let fixedWidth = pixi.renderer.fixedWidth;
 	let noteScale = pixi.renderer.noteScale;
 	
+	let score = note.score,
+		offsetX = note.parent.parent.position.x + note.parent.position.x + note.position.x,
+		offsetY = note.parent.parent.position.y + note.parent.position.y + note.position.y,
+		angle = note.parent.parent.angle;
+	
 	if (!pixi || !settings.clickAnimate) return;
 	
-	if (type <= 1) return;
+	if (score <= 1) return;
 	
-	if (type == 4 || type == 3) {
+	if (score == 4 || score == 3) {
 		obj = new PIXI.AnimatedSprite(textures.clickRaw);
 		
 		obj.anchor.set(0.5);
-		obj.scale.set(noteScale * (256 / obj.width) * 4 * 1.4);
+		obj.scale.set(noteScale * 5.6 * 2);
 		
 		if (false) {
 			let realX = (x - rawX) * Math.cos(-angle) + rawX;
@@ -1494,10 +1542,10 @@ function CreateClickAnimation(x, rawX, y, type = 4, angle = 0, performance = fal
 			obj.position.set(realX, realY);
 			
 		} else {
-			obj.position.set(x, y);
+			obj.position.set(offsetX, offsetY);
 		}
 		
-		obj.tint = type == 4 ? 0xFFECA0 : 0xB4E1FF;
+		obj.tint = score == 4 ? 0xFFECA0 : 0xB4E1FF;
 		obj.loop = false;
 		
 		obj.onComplete = function () {
@@ -1509,13 +1557,13 @@ function CreateClickAnimation(x, rawX, y, type = 4, angle = 0, performance = fal
 		
 		obj.anchor.set(0.5);
 		obj.scale.set(noteScale);
-		obj.position.set(x, y);
+		obj.position.set(offsetX, offsetY);
 		obj.angle = angle;
 	}
 	
 	if (obj) {
 		pixi.stage.addChild(obj);
-		if (type == 3 || type == 4)
+		if (score == 3 || score == 4)
 			obj.play();
 		else
 			sprites.clickAnimate.bad.push(obj);
@@ -1566,15 +1614,15 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	// 处理 Note
 	for (let note of sprites.totalNotes) {
 		// 处理 Hold
-		if (note.raw.type == 3 && note.children.length == 3) {
-			// note.children[1].height = note.raw.holdLength * (height * 0.6) / note.raw.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.raw.rawNoteScale);
-			note.children[1].height = note.raw.holdLength * noteSpeed / noteScale;
+		if (note.type == 3 && note.children.length == 3) {
+			// note.children[1].height = note.holdLength * (height * 0.6) / note.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.rawNoteScale);
+			note.children[1].height = note.holdLength * noteSpeed / noteScale;
 			note.children[2].position.y = -note.children[1].height;
 		}
 		
 		note.scale.set(noteScale);
-		note.position.x = (note.raw.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
-		note.position.y = note.raw.offsetY * noteSpeed * (note.raw.isAbove ? -1 : 1);
+		note.position.x = (note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
+		note.position.y = note.offsetY * noteSpeed * (note.isAbove ? -1 : 1);
 	}
 	
 	// 处理进度条
@@ -1830,15 +1878,11 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 		let time = (currentTime - noteTime) * 1000;
 		let rankColor = time > 0 ? time : -time;
 		
-		let timeBad = isChallengeMode ? 100 : 200;
-		let timeGood = isChallengeMode ? 75 : 160;
-		let timePerfect = isChallengeMode ? 40 : 80;
-		
-		if (rankColor < timePerfect)
+		if (rankColor < global.judgeTimes.perfect)
 			rankColor = 0xFFECA0;
-		else if (rankColor < timeGood)
+		else if (rankColor < global.judgeTimes.good)
 			rankColor = 0xB4E1FF;
-		else if (rankColor < timeBad)
+		else if (rankColor < global.judgeTimes.bad)
 			rankColor = 0x8E0000;
 		
 		accGraphic.beginFill(rankColor);
@@ -1881,6 +1925,10 @@ function DrawInputPoint(x, y, inputType, inputId, type = 0) {
 		inputPoints[inputId] = inputPoint;
 		
 		sprites.inputs[inputType] = inputPoints;
+		
+	} else if (!inputPoint.visible) {
+		inputPoint.scale.set(pixi.renderer.lineScale * 0.08);
+		inputPoint.visible = true;
 	}
 	
 	inputPoint.position.set(x, y);
@@ -1895,3 +1943,26 @@ function DrawInputPoint(x, y, inputType, inputId, type = 0) {
 	
 	return inputPoint;
 }
+
+/** 留着万一以后还要做测试用
+function TestGetGlobalPosition() {
+	for (let x = 0; x < 10; x++) {
+		let startTime = Date.now();
+		
+		for (let i = 0; i < 10000; i++) {
+			let note = sprites.totalNotes[0];
+			
+			let globalPosition = note.getGlobalPosition();
+			let x = globalPosition.x;
+			let y = globalPosition.y;
+			
+			
+			let x = note.parent.parent.position.x + note.parent.position.x + note.position.x;
+			let y = note.parent.parent.position.y + note.parent.position.y + note.position.y;
+			
+		}
+		
+		console.log(Date.now() - startTime);
+	}
+}
+**/

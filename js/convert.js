@@ -1,3 +1,4 @@
+'use strict';
 // 这边都是转换器
 const tween = [null, null,
 	pos => Math.sin(pos * Math.PI / 2), //2
