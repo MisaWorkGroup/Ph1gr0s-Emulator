@@ -364,62 +364,100 @@ function switchChart(name) {
 	let chart = {};
 	
 	// 为了避免某些玄学问题才使用这样的写法
-	for (let _chartInfo of chartInfos) {
-		let chartInfo = JSON.parse(JSON.stringify(_chartInfo));
-		
-		let audioItems = document.getElementById('menu-chart-audio').getElementsByTagName('a');
-		let imageItems = document.getElementById('menu-chart-image').getElementsByTagName('a');
-		
-		for (let keyName in chartInfo) {
-			if (keyName.indexOf('Chart') >= 0 && chartInfo[keyName] == name) {
-				chart = {
-					info      : {
-						name        : chartInfo.Name,
-						level       : chartInfo.Level,
-						illustrator : chartInfo.Illustrator,
-						designer    : chartInfo.Designer
-					},
-					data      : chartData.charts[name],
-					audio     : chartData.audios[chartInfo.Music],
-					image     : chartData.images[chartInfo.Image],
-					imageBlur : chartData.imagesBlur[chartInfo.Image],
-					lines     : []
-				};
-				
-				if (chartData.lines instanceof Array) {
-					for (let line of chartData.lines) {
-						if (line.Chart == chartInfo.Chart) {
-							chart.lines.push(line);
+	try {
+		for (let _chartInfo of chartInfos) {
+			let chartInfo = JSON.parse(JSON.stringify(_chartInfo));
+			
+			let audioItems = document.getElementById('menu-chart-audio').getElementsByTagName('a');
+			let imageItems = document.getElementById('menu-chart-image').getElementsByTagName('a');
+			
+			for (let keyName in chartInfo) {
+				if (keyName.indexOf('Chart') >= 0 && chartInfo[keyName] == name) {
+					chart = {
+						info      : {
+							name        : chartInfo.Name,
+							level       : chartInfo.Level,
+							illustrator : chartInfo.Illustrator,
+							designer    : chartInfo.Designer
+						},
+						data      : chartData.charts[name],
+						audio     : chartData.audios[chartInfo.Music],
+						image     : chartData.images[chartInfo.Image],
+						imageBlur : chartData.imagesBlur[chartInfo.Image],
+						lines     : []
+					};
+					
+					if (chartData.lines instanceof Array) {
+						for (let line of chartData.lines) {
+							if (line.Chart == chartInfo.Chart) {
+								chart.lines.push(line);
+							}
 						}
 					}
-				}
-				
-				for (let audioItem of audioItems) {
-					if (audioItem.getAttribute('menu-value') == chartInfo.Music) {
-						selectMenuItem('menu-chart-audio', audioItem, 'list-text-chart-audio');
-						break;
+					
+					for (let audioItem of audioItems) {
+						if (audioItem.getAttribute('menu-value') == chartInfo.Music) {
+							selectMenuItem('menu-chart-audio', audioItem, 'list-text-chart-audio');
+							break;
+						}
 					}
-				}
-				
-				for (let imageItem of imageItems) {
-					if (imageItem.getAttribute('menu-value') == chartInfo.Image) {
-						selectMenuItem('menu-chart-image', imageItem, 'list-text-chart-image');
-						break;
+					
+					for (let imageItem of imageItems) {
+						if (imageItem.getAttribute('menu-value') == chartInfo.Image) {
+							selectMenuItem('menu-chart-image', imageItem, 'list-text-chart-image');
+							break;
+						}
 					}
+					
+					mdui.$('#input-chart-name').val(chartInfo.Name);
+					mdui.$('#input-chart-difficulty').val(chartInfo.Level);
+					mdui.$('#input-chart-author').val(chartInfo.Designer);
+					mdui.$('#input-chart-bg-author').val(chartInfo.Illustrator);
+					
+					mdui.mutation('#panel-select-chart-info');
+					
+					_chart = chart;
+					
+					return;
 				}
-				
-				mdui.$('#input-chart-name').val(chartInfo.Name);
-				mdui.$('#input-chart-difficulty').val(chartInfo.Level);
-				mdui.$('#input-chart-author').val(chartInfo.Designer);
-				mdui.$('#input-chart-bg-author').val(chartInfo.Illustrator);
-				
-				mdui.mutation('#panel-select-chart-info');
-				
-				_chart = chart;
-				
-				return;
 			}
 		}
+		
+	} catch (e) { // 兼容没有 info.csv 文件的谱面包
+		console.warn('该谱面包可能不自带谱面信息，您可能需要手动填写相关信息。', e);
+		
+		let firstImage = document.getElementById('menu-chart-image').getElementsByTagName('a')[0];
+		let firstAudio = document.getElementById('menu-chart-audio').getElementsByTagName('a')[0];
+		let firstImageName = firstImage.getAttribute('menu-value');
+		let firstAudioName = firstAudio.getAttribute('menu-value');
+		
+		chart = {
+			info      : {
+				name        : null,
+				level       : null,
+				illustrator : null,
+				designer    : null
+			},
+			data      : chartData.charts[name],
+			audio     : chartData.audios[firstAudioName],
+			image     : chartData.images[firstImageName],
+			imageBlur : chartData.imagesBlur[firstImageName],
+			lines     : []
+		};
+		
+		if (chartData.lines instanceof Array) {
+			for (let line of chartData.lines) {
+				if (line.Chart == name) {
+					chart.lines.push(line);
+				}
+			}
+		}
+		
+		selectMenuItem('menu-chart-audio', firstAudio, 'list-text-chart-audio');
+		selectMenuItem('menu-chart-image', firstImage, 'list-text-chart-image');
+		
+		_chart = chart;
+		return;
 	}
 }
 
