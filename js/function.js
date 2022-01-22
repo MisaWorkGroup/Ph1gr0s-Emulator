@@ -1211,20 +1211,18 @@ function CreateGameEndAnimate() {
 	
 	output.bgRect = new PIXI.Graphics()
 		.beginFill(0xFFFFFF, 0.25)
-		.drawFilletRect(0, 0, bgWidth + paddingWidth * 2, realHeight * 0.771296, 18)
+		.drawFilletRect(0, 0, bgWidth + paddingWidth * 2, realHeight * 0.771296, lineScale * 0.260417)
 		.endFill();
 	output.container.addChild(output.bgRect);
 	
 	{
-		let bgScaleWidth = bgWidth / 2 / _chart.image.width;
-		let bgScaleHeight = (realHeight * 0.771296) / _chart.image.height;
-		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
+		let bgScale = bgWidth / _chart.image.width;
 		
 		output.bgImage = new PIXI.Sprite(_chart.image);
 		output.bgImageCover = new PIXI.Graphics();
 		
 		output.bgImageCover.beginFill(0xFFFFFF)
-			.drawFilletRect(0, 0, bgWidth, bgHeight, 18)
+			.drawFilletRect(0, 0, bgWidth, bgHeight, lineScale * 0.260417)
 			.endFill();
 		
 		output.bgImage.scale.set(bgScale);
@@ -1333,7 +1331,10 @@ function CreateGameEndAnimate() {
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
 function CalculateChartSpritesActualTime(delta) {
-	let fixedWidth = pixi.renderer.fixedWidth,
+	if (sprites.performanceIndicator) sprites.performanceIndicator.begin();
+	
+	let currentTime = (global.audio ? _chart.audio.duration * global.audio.progress : 0) - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay,
+		fixedWidth = pixi.renderer.fixedWidth,
 		realHeight = pixi.renderer.realHeight,
 		fixedWidthHalf = fixedWidth / 2,
 		realHeightHalf = realHeight / 2,
@@ -1356,10 +1357,10 @@ function CalculateChartSpritesActualTime(delta) {
 		
 		if (!settings.disableJudgeLineAlpha) {
 			for (let i of judgeLine.judgeLineDisappearEvents) {
-				if (global.currentTime < i.startRealTime) break;
-				if (global.currentTime > i.endRealTime) continue;
+				if (currentTime < i.startRealTime) break;
+				if (currentTime > i.endRealTime) continue;
 				
-				let time2 = (global.currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+				let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 				let time1 = 1 - time2;
 				
 				judgeLine.alpha = i.start * time1 + i.end * time2;
@@ -1367,10 +1368,10 @@ function CalculateChartSpritesActualTime(delta) {
 		}
 		
 		for (let i of judgeLine.judgeLineMoveEvents) {
-			if (global.currentTime < i.startRealTime) break;
-			if (global.currentTime > i.endRealTime) continue;
+			if (currentTime < i.startRealTime) break;
+			if (currentTime > i.endRealTime) continue;
 			
-			let time2 = (global.currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 			let time1 = 1 - time2;
 			
 			container.position.x = fixedWidth * (i.start * time1 + i.end * time2) + fixedWidthOffset;
@@ -1378,20 +1379,23 @@ function CalculateChartSpritesActualTime(delta) {
 		}
 		
 		for (const i of judgeLine.judgeLineRotateEvents) {
-			if (global.currentTime < i.startRealTime) break;
-			if (global.currentTime > i.endRealTime) continue;
+			if (currentTime < i.startRealTime) break;
+			if (currentTime > i.endRealTime) continue;
 			
-			let time2 = (global.currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
+			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 			let time1 = 1 - time2;
 			
 			container.rotation = i.startDeg * time1 + i.endDeg * time2;
+			
+			container.cosr = Math.cos(container.rotation);
+			container.sinr = Math.sin(container.rotation);
 		}
 		
 		for (const i of judgeLine.speedEvents) {
-			if (global.currentTime < i.startRealTime) break;
-			if (global.currentTime > i.endRealTime) continue;
+			if (currentTime < i.startRealTime) break;
+			if (currentTime > i.endRealTime) continue;
 			
-			currentJudgeLineOffsetY[judgeLine.id] = (global.currentTime - i.startRealTime) * i.value + i.floorPosition;
+			currentJudgeLineOffsetY[judgeLine.id] = (currentTime - i.startRealTime) * i.value + i.floorPosition;
 			
 			for (let x = 1; x < container.children.length; x++) {
 				let noteContainer = container.children[x];
@@ -1437,10 +1441,10 @@ function CalculateChartSpritesActualTime(delta) {
 		}
 		**/
 		
-		let timeBetween = i.realTime - global.currentTime;
+		let timeBetween = i.realTime - currentTime;
 		if (timeBetween <= 0) {
 			if (i.type != 3) {
-				let timeBetween = i.realTime - global.currentTime;
+				let timeBetween = i.realTime - currentTime;
 				
 				if (timeBetween > -global.judgeTimes.bad) {
 					i.alpha = (global.judgeTimes.bad + timeBetween) / global.judgeTimes.bad;
@@ -1449,7 +1453,7 @@ function CalculateChartSpritesActualTime(delta) {
 					i.visible = false;
 				}
 				
-			} else if ((i.realTime + i.realHoldTime) <= global.currentTime) {
+			} else if ((i.realTime + i.realHoldTime) <= currentTime) {
 				i.alpha = 0;
 				i.visible = false;
 				i.isProcessed = true;
@@ -1457,13 +1461,13 @@ function CalculateChartSpritesActualTime(delta) {
 		}
 	}
 	
-	judgements.addJudgement(sprites.totalNotes, global.currentTime);
-	judgements.judgeNote(sprites.totalNotes, global.currentTime);
+	judgements.addJudgement(sprites.totalNotes, currentTime);
+	judgements.judgeNote(sprites.totalNotes, currentTime, fixedWidth * rendererResolution * 0.117775);
 	
 	/**
-	judgements.judgeNote(sprites.dragNotes, global.currentTime);
-	judgements.judgeNote(sprites.flickNotes, global.currentTime);
-	judgements.judgeNote(sprites.tapholeNotes, global.currentTime);
+	judgements.judgeNote(sprites.dragNotes, currentTime);
+	judgements.judgeNote(sprites.flickNotes, currentTime);
+	judgements.judgeNote(sprites.tapholeNotes, currentTime);
 	**/
 	
 	inputs.taps.length = 0;
@@ -1486,17 +1490,12 @@ function CalculateChartSpritesActualTime(delta) {
 		
 		sprites.gameEnd = CreateGameEndAnimate();
 	}
+	
+	if (sprites.performanceIndicator) sprites.performanceIndicator.end();
 }
 
 function CalculateChartJudgeActualTime() {
-	if (stat.isPaused) {
-		return;
-	}
 	
-	if (global.audio)
-		global.currentTime = _chart.audio.duration * global.audio.progress - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay;
-	else
-		global.currentTime = 0;
 }
 
 function CalculateClickAnimateActualTime() {
@@ -1521,8 +1520,8 @@ function CreateClickAnimation(note, performance = false) {
 	let noteScale = pixi.renderer.noteScale;
 	
 	let score = note.score,
-		offsetX = note.parent.parent.position.x + note.parent.position.x + note.position.x,
-		offsetY = note.parent.parent.position.y + note.parent.position.y + note.position.y,
+		offsetX = note.getGlobalPosition().x,
+		offsetY = note.getGlobalPosition().y,
 		angle = note.parent.parent.angle;
 	
 	if (!pixi || !settings.clickAnimate) return;
@@ -1742,20 +1741,18 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 		let bgWidth = fixedWidth * 0.828646 - paddingWidth * 2;
 		let bgHeight = height * 0.771296 / 2 - paddingWidth * 2;
 		
-		let bgScaleWidth = bgWidth / 2 / _chart.image.width;
-		let bgScaleHeight = (height * 0.771296) / _chart.image.height;
-		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
+		let bgScale = bgWidth / _chart.image.width;
 		
 		// 底图矩形
 		sprites.gameEnd.bgRect.clear();
 		sprites.gameEnd.bgRect.beginFill(0xFFFFFF, 0.25)
-			.drawFilletRect(0, 0, bgWidth + paddingWidth * 2, height * 0.771296, 18)
+			.drawFilletRect(0, 0, bgWidth + paddingWidth * 2, height * 0.771296, lineScale * 0.260417)
 			.endFill();
 		
 		// 背景图片遮罩
 		sprites.gameEnd.bgImageCover.clear();
 		sprites.gameEnd.bgImageCover.beginFill(0xFFFFFF)
-			.drawFilletRect(0, 0, bgWidth, bgHeight, 18)
+			.drawFilletRect(0, 0, bgWidth, bgHeight, lineScale * 0.260417)
 			.endFill();
 		
 		sprites.gameEnd.bgImage.scale.set(bgScale);
