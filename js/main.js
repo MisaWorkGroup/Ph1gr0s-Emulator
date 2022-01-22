@@ -42,7 +42,6 @@ var stat = {
 };
 
 var judgements = new Judgements();
-
 const judgementTimes = {
 	bad              : 200,
 	good             : 160,
@@ -731,6 +730,18 @@ function gameInit() {
 	}
 	
 	document.getElementById('game-btn-pause').innerHTML = '<i class="mdui-icon material-icons">&#xe034;</i> 暂停';
+	
+	if (settings.showPerformanceIndicator) {
+		sprites.performanceIndicator = new Stats();
+		sprites.performanceIndicator.showPanel(1);
+		
+		document.body.appendChild(sprites.performanceIndicator.dom);
+		
+		sprites.performanceIndicator.dom.style.position = 'fixed';
+		sprites.performanceIndicator.dom.style.top = '0px';
+		sprites.performanceIndicator.dom.style.left = 'unset';
+		sprites.performanceIndicator.dom.style.right = '0px';
+	}
 }
 
 function setCanvasFullscreen(forceInDocumentFull = false) {
