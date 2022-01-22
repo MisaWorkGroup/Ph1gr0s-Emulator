@@ -1,1 +1,3 @@
+# [我写不动了！！｡ﾟ(ﾟ´Д｀ﾟ)ﾟ｡](https://github.com/MisaWorkGroup/Ph1gr0s-Emulator/tree/dev)
+
 Still working...
