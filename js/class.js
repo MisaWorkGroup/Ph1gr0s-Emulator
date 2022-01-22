@@ -108,19 +108,17 @@ class Judgement {
 	
 	// 猜测该函数用于判定 Note 是否在某个区域内（应该是 Note 的判定区域）
 	// hw 是 Note 宽度，暂时未知是否也需要旋转
-	isInArea(x, y, angle, hw, keyCode = 0) {
-		if (isNaN(this.offsetX + this.offsetY)) { // 键盘数据一律按在区域内处理，之后改成按按键区分是否在区域内
-			return true;
-			
-		} else {
-			let rotation = angle * Math.PI / 180;
-			let cosr = Math.cos(rotation);
-			let sinr = Math.sin(rotation);
-			
-			return Math.abs((this.offsetX - x) * cosr + (this.offsetY - y) * sinr) <= hw;
-		}
+	isInArea(x, y, cosr, sinr, hw, keyCode = 0) {
+		/*&
+		let y = -_y;
+		let offsetY = -this.offsetY;
+		let realX = x + (this.offsetX - x) * cosr - (offsetY - y) * sinr;
+		let noteHalfWidth = Math.ceil(hw / 2);
 		
-		return false;
+		return x - noteHalfWidth - 10 <= realX && realX <= x + noteHalfWidth + 10;
+		**/
+		
+		return isNaN(this.offsetX + this.offsetY) ? true : Math.abs((this.offsetX - x) * cosr + (this.offsetY - y) * sinr) <= hw;
 	}
 }
 
@@ -186,8 +184,8 @@ class Judgements extends Array {
 			for (const i of notes) {
 				if (i.score > 0 && (i.isProcessed || i.isScored)) continue;
 				
-				let offsetX = i.parent.parent.position.x + i.parent.position.x + i.position.x;
-				let offsetY = i.parent.parent.position.y + i.parent.position.y + i.position.y;
+				let offsetX = i.getGlobalPosition().x;
+				let offsetY = i.getGlobalPosition().y;
 				
 				if (i.type == 1) {
 					if (i.realTime - realTime < 0.0) this.push(new Judgement(offsetX, offsetY, 1));
@@ -208,13 +206,14 @@ class Judgements extends Array {
 	 * 备忘录：
 	 * 这一块的代码由于是直接复制自原版，所以有很多东西要改，有的地方甚至要去修改主代码。
 	***/
-	judgeNote(notes, realTime) {
+	judgeNote(notes, realTime, width) {
 		if (!stat.isTransitionEnd || stat.isPaused) return;
 		
 		for (const i of notes) { // 遍历所有 Note
-			let offsetX = i.parent.parent.position.x + i.parent.position.x + i.position.x,
-				offsetY = i.parent.parent.position.y + i.parent.position.y + i.position.y,
-				angle = i.parent.parent.angle;
+			let offsetX = i.getGlobalPosition().x,
+				offsetY = i.getGlobalPosition().y,
+				cosr = i.parent.parent.cosr,
+				sinr = i.parent.parent.sinr;
 			
 			let timeBetween = i.realTime - realTime,
 				timeBetweenReal = timeBetween > 0 ? timeBetween : -timeBetween;
@@ -236,7 +235,7 @@ class Judgements extends Array {
 				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
 					if (
 						this[x].type == 1 &&
-						this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+						this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 						timeBetweenReal <= global.judgeTimes.bad &&
 						!i.isProcessed
 					) {
@@ -293,7 +292,7 @@ class Judgements extends Array {
 				} else if (!i.isProcessed) { // 检测 Note 是否被打击
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 							timeBetweenReal <= global.judgeTimes.good
 						) { 
 							this[x].catched = true;
@@ -330,7 +329,7 @@ class Judgements extends Array {
 					if (!i.pressTime && !i.isPrecessed && !i.isScored) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
 						if (
 							this[x].type == 1 &&
-							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 							timeBetweenReal < global.judgeTimes.good
 						) {
 							if (timeBetweenReal <= global.judgeTimes.perfect) { // 判定 Perfect
@@ -353,7 +352,7 @@ class Judgements extends Array {
 							break;
 						}
 						
-					} else if (!i.isScored && !i.isProcessed && this[x].isInArea(offsetX, offsetY, angle, i.width)) {
+					} else if (!i.isScored && !i.isProcessed && this[x].isInArea(offsetX, offsetY, cosr, sinr, width)) {
 						i.isPressing = true; // 持续判断手指是否在判定区域内
 					}
 				}
@@ -379,7 +378,7 @@ class Judgements extends Array {
 				} else if (!i.isProcessed) {
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, angle, i.width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 							timeBetweenReal <= global.judgeTimes.good
 						) {
 							this[x].catched = true;
