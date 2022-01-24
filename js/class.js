@@ -108,17 +108,15 @@ class Judgement {
 	
 	// 猜测该函数用于判定 Note 是否在某个区域内（应该是 Note 的判定区域）
 	// hw 是 Note 宽度，暂时未知是否也需要旋转
-	isInArea(x, y, cosr, sinr, hw, keyCode = 0) {
-		/*&
+	isInArea(x, _y, cosr, sinr, hw, keyCode = 0) {
 		let y = -_y;
 		let offsetY = -this.offsetY;
 		let realX = x + (this.offsetX - x) * cosr - (offsetY - y) * sinr;
-		let noteHalfWidth = Math.ceil(hw / 2);
+		let noteHalfWidth = Math.ceil(hw / 2) + 4;
 		
-		return x - noteHalfWidth - 10 <= realX && realX <= x + noteHalfWidth + 10;
-		**/
+		return x - noteHalfWidth <= realX && realX <= x + noteHalfWidth;
 		
-		return isNaN(this.offsetX + this.offsetY) ? true : Math.abs((this.offsetX - x) * cosr + (this.offsetY - y) * sinr) <= hw;
+		// return isNaN(this.offsetX + this.offsetY) ? true : Math.abs((this.offsetX - x) * cosr + (this.offsetY - y) * sinr) <= hw;
 	}
 }
 
@@ -220,7 +218,7 @@ class Judgements extends Array {
 			
 			if (i.score > 0 && i.isProcessed) continue; // 如果该 Note 已被打击，则忽略
 			
-			if (timeBetween < -global.judgeTimes.bad && !(i.isProcessed || i.isPressing)) { // 是否 Miss
+			if (timeBetween < -global.judgeTimes.bad && !(i.isProcessed || i.isPressing) && !i.isScored) { // 是否 Miss
 				score.addCombo(1);
 				i.score = 1;
 				i.isProcessed = true;
@@ -235,7 +233,7 @@ class Judgements extends Array {
 				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
 					if (
 						this[x].type == 1 &&
-						this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
+						this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
 						timeBetweenReal <= global.judgeTimes.bad &&
 						!i.isProcessed
 					) {
@@ -292,7 +290,7 @@ class Judgements extends Array {
 				} else if (!i.isProcessed) { // 检测 Note 是否被打击
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
 							timeBetweenReal <= global.judgeTimes.good
 						) { 
 							this[x].catched = true;
@@ -329,7 +327,7 @@ class Judgements extends Array {
 					if (!i.pressTime && !i.isPrecessed && !i.isScored) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
 						if (
 							this[x].type == 1 &&
-							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
 							timeBetweenReal < global.judgeTimes.good
 						) {
 							if (timeBetweenReal <= global.judgeTimes.perfect) { // 判定 Perfect
@@ -352,7 +350,7 @@ class Judgements extends Array {
 							break;
 						}
 						
-					} else if (!i.isScored && !i.isProcessed && this[x].isInArea(offsetX, offsetY, cosr, sinr, width)) {
+					} else if (!i.isScored && !i.isProcessed && this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width)) {
 						i.isPressing = true; // 持续判断手指是否在判定区域内
 					}
 				}
@@ -378,7 +376,7 @@ class Judgements extends Array {
 				} else if (!i.isProcessed) {
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
 							timeBetweenReal <= global.judgeTimes.good
 						) {
 							this[x].catched = true;

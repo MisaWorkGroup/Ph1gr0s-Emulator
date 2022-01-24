@@ -8,6 +8,7 @@ const score = {
 		this.score = 0;
 		this.combo = 0;
 		this.maxCombo = 0;
+		this.judge = 0;
 		this.apType = 2;
 		
 		this.perfect = 0;
@@ -56,6 +57,46 @@ const score = {
 				this.missAcc[(acc < 0 ? 0 : 1)] += 1;
 		}
 		
+		// 最大连击
+		if (this.combo > this.maxCombo) {
+			this.maxCombo = this.combo;
+		}
+		
+		// 分数计算
+		this.score = this.scorePerNote * this.perfect + this.scorePerNote * this.good * 0.65;
+		if (!this.challenge)
+				this.score += (this.maxCombo / this.totalNotes) * 100000;
+		this.score = this.score.toFixed(0);
+		
+		// 判定等级计算
+		if (this.score < 700000 && this.score > 0) {
+			this.judge = 0;
+		} else if (this.score < 820000 && this.score >= 700000) {
+			this.judge = 1;
+		} else if (this.score < 880000 && this.score >= 820000) {
+			this.judge = 2;
+		} else if (this.score < 920000 && this.score >= 880000) {
+			this.judge = 3;
+		} else if (this.score < 960000 && this.score >= 920000) {
+			this.judge = 4;
+		} else if (this.score < 1000000 && this.score >= 960000) {
+			this.judge = 5;
+		} else if (this.score == 1000000) {
+			this.judge = 6;
+		} else {
+			this.judge = -1;
+		}
+		
+		// Acc 计算
+		this.acc = ((this.perfect + this.good * 0.65) / (this.perfect + this.good + this.bad + this.miss) * 100).toFixed(2);
+		
+		// 分数文本补零
+		this.scoreText = this.score + '';
+		while (7 > this.scoreText.length) {
+			this.scoreText = '0' + this.scoreText;
+		}
+		
+		// 判定当前是否为 AP 或者 FC
 		if ((this.bad > 0 || this.miss > 0) && this.apType > 0) {
 			this.apType = 0;
 			
@@ -75,34 +116,59 @@ const score = {
 			}
 		}
 		
-		if (this.combo > this.maxCombo) {
-			this.maxCombo = this.combo;
+		// 推送分数到游戏 UI
+		sprites.scoreText.text = this.scoreText;
+		
+		// 推送连击到游戏 UI
+		if (this.combo > 2) {
+			sprites.comboText.alpha = 1;
+			sprites.comboText.children[0].text = this.combo;
+			
+		} else {
+			sprites.comboText.alpha = 0;
 		}
 		
-		this.score = this.scorePerNote * this.perfect + this.scorePerNote * this.good * 0.65;
-		if (!this.challenge)
-				this.score += (this.maxCombo / this.totalNotes) * 100000;
-		
-		this.score = this.score.toFixed(0);
-		this.scoreText = this.score + '';
-		
-		this.acc = ((this.perfect + this.good * 0.65) / (this.perfect + this.good + this.bad + this.miss)).toFixed(5);
-		
-		while (7 > this.scoreText.length) {
-			this.scoreText = '0' + this.scoreText;
-		}
-		
-		if (sprites.scoreText)
-			sprites.scoreText.text = this.scoreText;
-		
-		if (sprites.comboText) {
-			if (this.combo > 2) {
-				sprites.comboText.alpha = 1;
-				sprites.comboText.children[0].text = this.combo;
-				
-			} else {
-				sprites.comboText.alpha = 0;
+		// 实时显示当前判定状态
+		if (sprites.judgeRealTime) {
+			switch (this.judge) {
+				case 0: {
+					sprites.judgeRealTime.judge.text = 'Judge: False';
+					break;
+				}
+				case 1: {
+					sprites.judgeRealTime.judge.text = 'Judge: C';
+					break;
+				}
+				case 2: {
+					sprites.judgeRealTime.judge.text = 'Judge: B';
+					break;
+				}
+				case 3: {
+					sprites.judgeRealTime.judge.text = 'Judge: A';
+					break;
+				}
+				case 4: {
+					sprites.judgeRealTime.judge.text = 'Judge: S';
+					break;
+				}
+				case 5: {
+					sprites.judgeRealTime.judge.text = 'Judge: V';
+					break;
+				}
+				case 6: {
+					sprites.judgeRealTime.judge.text = 'Judge: Phi';
+					break;
+				}
+				default: {
+					sprites.judgeRealTime.judge.text = 'Judge: None';
+				}
 			}
+			
+			sprites.judgeRealTime.acc.text = 'Acc: ' + this.acc + '%';
+			sprites.judgeRealTime.perfect.text = 'Perfect: ' + this.perfect;
+			sprites.judgeRealTime.good.text = 'Good: ' + this.good;
+			sprites.judgeRealTime.bad.text = 'Bad: ' + this.bad;
+			sprites.judgeRealTime.miss.text = 'Miss: ' + this.miss;
 		}
 		
 		return this;
@@ -1294,7 +1360,7 @@ function CreateGameEndAnimate() {
 			fill: (score.apType == 2 ? '#EACA72' : (score.apType == 1 ? '#8DE0FF' : 'white')),
 			align: 'right'
 		}),
-		acc: new PIXI.Text(score.acc * 100 + '%', {
+		acc: new PIXI.Text(score.acc + '%', {
 			fontFamily: 'Mina',
 			fontSize: lineScale * 0.694444 + 'px',
 			fill: 'white',
@@ -1462,7 +1528,7 @@ function CalculateChartSpritesActualTime(delta) {
 	}
 	
 	judgements.addJudgement(sprites.totalNotes, currentTime);
-	judgements.judgeNote(sprites.totalNotes, currentTime, fixedWidth * rendererResolution * 0.117775);
+	judgements.judgeNote(sprites.totalNotes, currentTime, fixedWidth * 0.117775);
 	
 	/**
 	judgements.judgeNote(sprites.dragNotes, currentTime);
@@ -1872,7 +1938,7 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 	function pushAccurate(noteTime, currentTime) {
 		let accContainer = new PIXI.Container();
 		let accGraphic = new PIXI.Graphics();
-		let time = (currentTime - noteTime) * 1000;
+		let time = currentTime - noteTime;
 		let rankColor = time > 0 ? time : -time;
 		
 		if (rankColor < global.judgeTimes.perfect)

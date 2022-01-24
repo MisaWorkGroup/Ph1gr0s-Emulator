@@ -667,6 +667,31 @@ function gameInit() {
 		sprites.accIndicator = CreateAccurateIndicator(pixi, settings.accIndicatorScale, settings.challengeMode);
 	score.init(sprites.totalNotes.length, settings.challengeMode); // 计算分数
 	
+	if (settings.showJudgementRealTime) {
+		let judge = {
+			container: new PIXI.Container(),
+			judge: new PIXI.Text('Judge: False', { fill:'white', fontSize: 8 }),
+			acc: new PIXI.Text('Acc: 0%', { fill:'white', fontSize: 8 }),
+			perfect: new PIXI.Text('Perfect: 0', { fill:'white', fontSize: 8 } ),
+			good: new PIXI.Text('Good: 0', { fill:'white', fontSize: 8 } ),
+			bad: new PIXI.Text('Bad: 0', { fill:'white', fontSize: 8 } ),
+			miss: new PIXI.Text('Miss: 0', { fill:'white', fontSize: 8 } )
+		}
+		
+		judge.container.addChild(judge.judge, judge.acc, judge.perfect, judge.good, judge.bad, judge.miss);
+		
+		judge.acc.position.y = judge.judge.height;
+		judge.perfect.position.y = judge.acc.position.y + judge.acc.height;
+		judge.good.position.y = judge.perfect.position.y + judge.perfect.height;
+		judge.bad.position.y = judge.good.position.y + judge.good.height;
+		judge.miss.position.y = judge.bad.position.y + judge.bad.height;
+		
+		judge.container.position.set(8);
+		
+		pixi.stage.addChild(judge.container);
+		sprites.judgeRealTime = judge;
+	}
+	
 	pixi.ticker.add(CalculateChartJudgeActualTime);
 	pixi.ticker.add(CalculateChartSpritesActualTime); // 启动 Ticker 循环
 	if (settings.clickAnimate) pixi.ticker.add(CalculateClickAnimateActualTime);
