@@ -108,10 +108,11 @@ class Judgement {
 	
 	// 猜测该函数用于判定 Note 是否在某个区域内（应该是 Note 的判定区域）
 	// hw 是 Note 宽度，暂时未知是否也需要旋转
-	isInArea(x, _y, cosr, sinr, hw, keyCode = 0) {
-		let y = -_y;
-		let offsetY = -this.offsetY;
-		let realX = x + (this.offsetX - x) * cosr - (offsetY - y) * sinr;
+	isInArea(x, y, cosr, sinr, hw, keyCode = 0) {
+		// let y = -_y;
+		// let offsetY = -this.offsetY;
+		// let realX = x + (this.offsetX - x) * cosr - (offsetY - y) * sinr;
+		let realX = (this.offsetX - x) * cosr - (this.offsetY - y) * sinr + x;
 		let noteHalfWidth = Math.ceil(hw / 2) + 4;
 		
 		return x - noteHalfWidth <= realX && realX <= x + noteHalfWidth;
@@ -182,18 +183,18 @@ class Judgements extends Array {
 			for (const i of notes) {
 				if (i.score > 0 && (i.isProcessed || i.isScored)) continue;
 				
-				let offsetX = i.getGlobalPosition().x;
-				let offsetY = i.getGlobalPosition().y;
+				let offsetX = getNotePosition(i).x,
+					offsetY = getNotePosition(i, false).y;
 				
 				if (i.type == 1) {
-					if (i.realTime - realTime < 0.0) this.push(new Judgement(offsetX, offsetY, 1));
+					if (i.realTime - realTime < 0.00) this.push(new Judgement(offsetX, offsetY, 1));
 				} else if (i.type == 2) {
-					if (i.realTime - realTime < 0.2) this.push(new Judgement(offsetX, offsetY, 2));
+					if (i.realTime - realTime < global.judgeTimes.bad) this.push(new Judgement(offsetX, offsetY, 2));
 				} else if (i.type == 3) {
 					if (i.isPressing) this.push(new Judgement(offsetX, offsetY, 2));
-					else if (i.realTime - realTime < 0.0) this.push(new Judgement(offsetX, offsetY, 1));
+					else if (i.realTime - realTime < 0.00) this.push(new Judgement(offsetX, offsetY, 1));
 				} else if (i.type == 4) {
-					if (i.realTime - realTime < 0.2) this.push(new Judgement(offsetX, offsetY, 3));
+					if (i.realTime - realTime < global.judgeTimes.bad) this.push(new Judgement(offsetX, offsetY, 3));
 				}
 			}
 		}
@@ -208,15 +209,11 @@ class Judgements extends Array {
 		if (!stat.isTransitionEnd || stat.isPaused) return;
 		
 		for (const i of notes) { // 遍历所有 Note
-			let offsetX = i.getGlobalPosition().x,
-				offsetY = i.getGlobalPosition().y,
-				cosr = i.parent.parent.cosr,
-				sinr = i.parent.parent.sinr;
-			
 			let timeBetween = i.realTime - realTime,
 				timeBetweenReal = timeBetween > 0 ? timeBetween : -timeBetween;
 			
 			if (i.score > 0 && i.isProcessed) continue; // 如果该 Note 已被打击，则忽略
+			if (timeBetween > global.judgeTimes.bad) continue;
 			
 			if (timeBetween < -global.judgeTimes.bad && !(i.isProcessed || i.isPressing) && !i.isScored) { // 是否 Miss
 				score.addCombo(1);
@@ -229,7 +226,15 @@ class Judgements extends Array {
 					i.isProcessed = false;
 				}
 				
-			} else if (i.type == 1) { // Note 类型为 Tap。在这个分支中，判定和动画是一起执行的
+				continue;
+			}
+			
+			let offsetX = getNotePosition(i).x,
+				offsetY = getNotePosition(i).y,
+				cosr = i.parent.parent.cosr,
+				sinr = i.parent.parent.sinr;
+			
+			if (i.type == 1) { // Note 类型为 Tap。在这个分支中，判定和动画是一起执行的
 				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
 					if (
 						this[x].type == 1 &&
@@ -239,30 +244,20 @@ class Judgements extends Array {
 					) {
 						if (timeBetweenReal <= global.judgeTimes.perfect) { // 判定 Perfect
 							i.score = 4;
-							i.accType = timeBetween;
-							
-							CreateClickAnimation(i, settings.performanceMode);
 							
 						} else if (timeBetweenReal <= global.judgeTimes.good) { // 判定 Good
 							i.score = 3;
-							i.accType = timeBetween;
 							
-							CreateClickAnimation(i, settings.performanceMode);
-							
-						} else if (timeBetweenReal <= global.judgeTimes.bad) { // 判定 Bad
-							if (!this[x].catched) {
-								i.score = 2;
-								i.accType = timeBetween; // 判定是 Early 还是 Late
-								
-								CreateClickAnimation(i, settings.performanceMode);
-							}
+						} else { // 判定 Bad
+							i.score = 2;
 						}
 						
 						// 如果 Note 被成功判定，则停止继续检测
 						if (i.score > 0 && !i.isProcessed) {
-							score.addCombo(i.score, i.accType);
+							score.addCombo(i.score, timeBetween);
 							i.visible = false;
 							
+							CreateClickAnimation(i, settings.performanceMode);
 							if (settings.hitsound && i.score > 2) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.realTime, realTime);
 							
@@ -281,8 +276,8 @@ class Judgements extends Array {
 					score.addCombo(i.score);
 					i.visible = false;
 					
-					if (settings.hitsound) textures.sound.drag.play({volume: settings.hitsoundVolume});
 					CreateClickAnimation(i, settings.performanceMode);
+					if (settings.hitsound) textures.sound.drag.play({volume: settings.hitsoundVolume});
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.realTime, realTime);
 					
 					i.isProcessed = true;
@@ -332,17 +327,16 @@ class Judgements extends Array {
 						) {
 							if (timeBetweenReal <= global.judgeTimes.perfect) { // 判定 Perfect
 								i.score = 4;
-								CreateClickAnimation(i, settings.performanceMode);
 								
-							} else if (timeBetweenReal <= global.judgeTimes.good) { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
+							} else { // 判定 Good，暂时未知如果判定点在 Bad 时是否判定为 Miss
 								i.score = 3;
-								CreateClickAnimation(i, settings.performanceMode);
 							}
 							
 							i.isPressing = true;
 							i.accType = timeBetween;
 							i.pressTime = Date.now();
 							
+							CreateClickAnimation(i, settings.performanceMode);
 							if (settings.hitsound) textures.sound.tap.play({volume: settings.hitsoundVolume});
 							if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.realTime, realTime);
 							
@@ -357,7 +351,7 @@ class Judgements extends Array {
 				
 				if (!stat.isPaused && i.score > 0 && !i.isPressing && !i.pressTime && !i.isScored) { // 如果在没有暂停的情况下没有任何判定，则视为 Miss
 					i.score = 1;
-					score.addCombo(1, i.accType);
+					score.addCombo(1);
 					i.isScored = true;
 					i.alpha = 0.5;
 				}
@@ -367,8 +361,8 @@ class Judgements extends Array {
 					i.visible = false;
 					score.addCombo(i.score);
 					
-					if (settings.hitsound) textures.sound.flick.play({volume: settings.hitsoundVolume});
 					CreateClickAnimation(i, settings.performanceMode);
+					if (settings.hitsound) textures.sound.flick.play({volume: settings.hitsoundVolume});
 					if (sprites.accIndicator) sprites.accIndicator.pushAccurate(i.realTime, realTime);
 					
 					i.isProcessed = true;

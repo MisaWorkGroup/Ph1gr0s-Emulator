@@ -1396,7 +1396,7 @@ function CreateGameEndAnimate() {
 /***
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
-function CalculateChartSpritesActualTime(delta) {
+function CalculateChartActualTime(delta) {
 	if (sprites.performanceIndicator) sprites.performanceIndicator.begin();
 	
 	let currentTime = (global.audio ? _chart.audio.duration * global.audio.progress : 0) - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay,
@@ -1524,7 +1524,30 @@ function CalculateChartSpritesActualTime(delta) {
 				i.visible = false;
 				i.isProcessed = true;
 			}
+		
+		} else if ( // 下面的这两个判断分支是为了将没到时间但却在判定线另一边的 Note 隐藏（我觉得用 PIXI.Mask 性能应该会更好一点）
+			i.parent.position.y + i.position.y * (i.isAbove ? 1 : -1) > 0 &&
+			i.visible == true
+		) {
+			if (i.type != 3 && timeBetween > global.judgeTimes.bad) {
+				i.visible = false;
+			} else if (timeBetween + i.realHoldTime > global.judgeTimes.bad) {
+				i.visible = false;
+			}
+			
+		} else if (
+			i.parent.position.y + i.position.y * (i.isAbove ? 1 : -1) <= 0 &&
+			i.visible == false
+		) {
+			if (i.type != 3 && timeBetween > global.judgeTimes.bad) {
+				i.visible = true;
+			} else if (timeBetween + i.realHoldTime > global.judgeTimes.bad) {
+				i.visible = true;
+			}
+			
 		}
+		
+		
 	}
 	
 	judgements.addJudgement(sprites.totalNotes, currentTime);
@@ -1548,8 +1571,7 @@ function CalculateChartSpritesActualTime(delta) {
 	
 	
 	if (global.audio && global.audio.progress == 1) {
-		pixi.ticker.remove(CalculateChartSpritesActualTime);
-		pixi.ticker.remove(CalculateChartJudgeActualTime);
+		pixi.ticker.remove(CalculateChartActualTime);
 		
 		sprites.headInfos.position.y = -sprites.headInfos.height;
 		sprites.footInfos.position.y = sprites.headInfos.height;
@@ -1560,10 +1582,9 @@ function CalculateChartSpritesActualTime(delta) {
 	if (sprites.performanceIndicator) sprites.performanceIndicator.end();
 }
 
-function CalculateChartJudgeActualTime() {
-	
-}
-
+/***
+ * @function 实时处理打击动画
+***/
 function CalculateClickAnimateActualTime() {
 	for (let i in sprites.clickAnimate.bad) {
 		let obj = sprites.clickAnimate.bad[i];
@@ -1586,8 +1607,8 @@ function CreateClickAnimation(note, performance = false) {
 	let noteScale = pixi.renderer.noteScale;
 	
 	let score = note.score,
-		offsetX = note.getGlobalPosition().x,
-		offsetY = note.getGlobalPosition().y,
+		offsetX = getNotePosition(note).x,
+		offsetY = getNotePosition(note).y,
 		angle = note.parent.parent.angle;
 	
 	if (!pixi || !settings.clickAnimate) return;
@@ -1599,16 +1620,7 @@ function CreateClickAnimation(note, performance = false) {
 		
 		obj.anchor.set(0.5);
 		obj.scale.set(noteScale * 5.6 * 2);
-		
-		if (false) {
-			let realX = (x - rawX) * Math.cos(-angle) + rawX;
-			let realY = (x - rawX) * Math.sin(-angle) + y;
-			
-			obj.position.set(realX, realY);
-			
-		} else {
-			obj.position.set(offsetX, offsetY);
-		}
+		obj.position.set(offsetX, offsetY);
 		
 		obj.tint = score == 4 ? 0xFFECA0 : 0xB4E1FF;
 		obj.loop = false;
@@ -1618,6 +1630,9 @@ function CreateClickAnimation(note, performance = false) {
 		};
 		
 	} else {
+		offsetX = getNotePosition(note, false).x,
+		offsetY = getNotePosition(note, false).x,
+		
 		obj = new PIXI.Sprite(textures.tap2);
 		
 		obj.anchor.set(0.5);
@@ -2005,6 +2020,19 @@ function DrawInputPoint(x, y, inputType, inputId, type = 0) {
 	}
 	
 	return inputPoint;
+}
+
+function getNotePosition(note, followJudgeLine = true) {
+	let cosr = note.parent.parent.cosr,
+		sinr = note.parent.parent.sinr,
+		parentX = note.parent.parent.position.x,
+		parentY = note.parent.parent.position.y,
+		offsetX = parentX + note.position.x,
+		offsetY = parentY + (!followJudgeLine ? note.parent.position.y + note.position.y : 0),
+		realX = (offsetX - parentX) * cosr - (offsetY - parentY) * sinr + parentX,
+		realY = (offsetY - parentY) * cosr + (offsetX - parentX) * sinr + parentY;
+	
+	return { x: realX, y: realY };
 }
 
 /** 留着万一以后还要做测试用

@@ -692,9 +692,8 @@ function gameInit() {
 		sprites.judgeRealTime = judge;
 	}
 	
-	pixi.ticker.add(CalculateChartJudgeActualTime);
-	pixi.ticker.add(CalculateChartSpritesActualTime); // 启动 Ticker 循环
-	if (settings.clickAnimate) pixi.ticker.add(CalculateClickAnimateActualTime);
+	pixi.ticker.add(CalculateChartActualTime);
+	if (settings.clickAnimate) pixi.ticker.add(CalculateClickAnimateActualTime); // 启动 Ticker 循环
 	
 	// 适配 AudioContext 的 baseLatency
 	_chart.audio.baseLatency = _chart.audio.context.audioContext.baseLatency ? _chart.audio.context.audioContext.baseLatency : 0;
@@ -817,8 +816,7 @@ function gameRestart() {
 	
 	stat.isPaused = false;
 	_chart.audio.stop();
-	pixi.ticker.remove(CalculateChartSpritesActualTime);
-	pixi.ticker.remove(CalculateChartJudgeActualTime);
+	pixi.ticker.remove(CalculateChartActualTime);
 	
 	if (sprites.gameEnd) {
 		sprites.gameEnd.container.destroy();
@@ -884,8 +882,7 @@ function gameRestart() {
 	global.audio = null;
 	
 	score.init(sprites.totalNotes.length, settings.challengeMode);
-	pixi.ticker.add(CalculateChartJudgeActualTime);
-	pixi.ticker.add(CalculateChartSpritesActualTime);
+	pixi.ticker.add(CalculateChartActualTime);
 	
 	_chart.audio.baseLatency = _chart.audio.context.audioContext.baseLatency ? _chart.audio.context.audioContext.baseLatency : 0;
 	
