@@ -107,15 +107,17 @@ class Judgement {
 	}
 	
 	// 猜测该函数用于判定 Note 是否在某个区域内（应该是 Note 的判定区域）
-	// hw 是 Note 宽度，暂时未知是否也需要旋转
+	// hw 是 Note 宽度
 	isInArea(x, y, cosr, sinr, hw, keyCode = 0) {
 		// let y = -_y;
 		// let offsetY = -this.offsetY;
 		// let realX = x + (this.offsetX - x) * cosr - (offsetY - y) * sinr;
-		let realX = (this.offsetX - x) * cosr - (this.offsetY - y) * sinr + x;
-		let noteHalfWidth = Math.ceil(hw / 2) + 4;
+		let realX = (this.offsetX - x) * cosr + (this.offsetY - y) * sinr;
+		// let noteHalfWidth = Math.ceil(hw / 2) + 4;
 		
-		return x - noteHalfWidth <= realX && realX <= x + noteHalfWidth;
+		realX = realX > 0 ? realX : -realX;
+		
+		return realX <= hw;
 		
 		// return isNaN(this.offsetX + this.offsetY) ? true : Math.abs((this.offsetX - x) * cosr + (this.offsetY - y) * sinr) <= hw;
 	}
@@ -253,7 +255,7 @@ class Judgements extends Array {
 						}
 						
 						// 如果 Note 被成功判定，则停止继续检测
-						if (i.score > 0 && !i.isProcessed) {
+						if (i.score > 0) {
 							score.addCombo(i.score, timeBetween);
 							i.visible = false;
 							

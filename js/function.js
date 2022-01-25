@@ -1615,7 +1615,7 @@ function CreateClickAnimation(note, performance = false) {
 	
 	if (score <= 1) return;
 	
-	if (score == 4 || score == 3) {
+	if (score > 2) {
 		obj = new PIXI.AnimatedSprite(textures.clickRaw);
 		
 		obj.anchor.set(0.5);
@@ -1630,8 +1630,8 @@ function CreateClickAnimation(note, performance = false) {
 		};
 		
 	} else {
-		offsetX = getNotePosition(note, false).x,
-		offsetY = getNotePosition(note, false).x,
+		offsetX = getNotePosition(note, false).x;
+		offsetY = getNotePosition(note, false).y;
 		
 		obj = new PIXI.Sprite(textures.tap2);
 		
