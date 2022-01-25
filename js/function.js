@@ -1952,7 +1952,7 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 		accGraphic.drawRect(0, 0, 2, 20);
 		accGraphic.endFill();
 		
-		accGraphic.position.x = time / 2;
+		accGraphic.position.x = time * 1000 / 2;
 		
 		container.addChild(accGraphic);
 		
