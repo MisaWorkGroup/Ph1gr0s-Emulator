@@ -1,4 +1,38 @@
 'use strict';
+// ==声明 global.finctions==
+// 重修改舞台尺寸
+global.functions = {};
+global.functions.resizeCanvas = function () {
+	if (!pixi) return;
+	
+	let canvasBox = document.getElementById('game-canvas-box');
+	
+	if (stat.isFullscreen && fullscreen.check(pixi.view)) {
+		pixi.renderer.resize(document.documentElement.clientWidth, document.documentElement.clientHeight);
+	} else {
+		if (stat.isFullscreen) pixi.renderer.resize(1, 1);
+		pixi.renderer.resize(canvasBox.offsetWidth, canvasBox.offsetWidth * (1 / settings.windowRatio));
+		stat.isFullscreen = false;
+	}
+	
+	pixi.renderer.realWidth = pixi.renderer.width / pixi.renderer.resolution;
+	pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
+	
+	pixi.renderer.fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	pixi.renderer.fixedWidthOffset = (pixi.renderer.realWidth - pixi.renderer.fixedWidth) / 2;
+	
+	pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
+	pixi.renderer.noteScale = pixi.renderer.fixedWidth / settings.noteScale;
+	
+	pixi.renderer.lineScale = pixi.renderer.fixedWidth > pixi.renderer.realHeight * 0.75 ? pixi.renderer.realHeight / 18.75 : pixi.renderer.fixedWidth / 14.0625;
+	
+	ResizeChartSprites(sprites, pixi.renderer.realWidth, pixi.renderer.realHeight, settings.noteScale);
+};
+
+// Note 排序
+global.functions.sortNote = (a, b) => a.realTime - b.realTime || a.lineId - b.lineId || a.id - b.id;
+
+
 // 游戏分数相关
 const score = {
 	init: function(totalNotes, isChallenge = false) {
@@ -498,8 +532,6 @@ function CalculateChartData (chart) {
 		hold  : [],
 		flick : []
 	};
-	// 给 Note 排序时使用该方法
-	let sortNote = (a, b) => a.realTime - b.realTime || a.lineId - b.lineId || a.noteId - b.noteId;
 	
 	for (let i = 0; i < chart.judgeLineList.length; i++) {
 		let judgeLine = chart.judgeLineList[i];
@@ -562,11 +594,11 @@ function CalculateChartData (chart) {
 	}
 	
 	// note 重排序
-	notes.tap.sort(sortNote);
-	notes.drag.sort(sortNote);
-	notes.hold.sort(sortNote);
-	notes.flick.sort(sortNote);
-	notesTotal.sort(sortNote);
+	notes.tap.sort(global.functions.sortNote);
+	notes.drag.sort(global.functions.sortNote);
+	notes.hold.sort(global.functions.sortNote);
+	notes.flick.sort(global.functions.sortNote);
+	notesTotal.sort(global.functions.sortNote);
 	
 	notes.total = notesTotal;
 	
@@ -867,7 +899,7 @@ function CreateChartSprites(chart, pixi) {
 		
 		if (settings.developMode) {
 			let judgeLineName = new PIXI.Text(_judgeLine.id, { fill: 'rgb(255,100,100)' });
-			judgeLineName.anchor.set(0.5);
+			judgeLineName.anchor.set(0.5, 1);
 			judgeLineName.position.set(0);
 			judgeLine.addChild(judgeLineName);
 		}
@@ -916,7 +948,7 @@ function CreateChartSprites(chart, pixi) {
 			if (settings.developMode) {
 				let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
 				noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
-				noteName.anchor.set(0.5);
+				noteName.anchor.set(0.5, 1);
 				noteName.position.set(0);
 				note.addChild(noteName);
 			}
@@ -946,6 +978,13 @@ function CreateChartSprites(chart, pixi) {
 			**/
 		}
 		
+		// 还是 Note 重排序
+		output.totalNotes.sort(global.functions.sortNote);
+		/**
+		output.tapholeNotes.sort(global.functions.sortNote);
+		output.dragNotes.sort(global.functions.sortNote);
+		output.flickNotes.sort(global.functions.sortNote);
+		**/
 		container.addChild(judgeLine);
 		
 		if (notesAbove.children.length > 0) container.addChild(notesAbove);
@@ -1219,7 +1258,6 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 	}
 	
 	// 统一调整位置和透明度
-	sprites.progressBar.alpha = 0.8;
 	sprites.comboText.alpha = 0;
 	sprites.titlesBig.alpha = 0;
 	sprites.headInfos.alpha = 0;
@@ -1554,9 +1592,9 @@ function CalculateChartActualTime(delta) {
 	judgements.judgeNote(sprites.totalNotes, currentTime, fixedWidth * 0.117775);
 	
 	/**
-	judgements.judgeNote(sprites.dragNotes, currentTime);
-	judgements.judgeNote(sprites.flickNotes, currentTime);
-	judgements.judgeNote(sprites.tapholeNotes, currentTime);
+	judgements.judgeNote(sprites.dragNotes, currentTime, fixedWidth * 0.117775);
+	judgements.judgeNote(sprites.flickNotes, currentTime, fixedWidth * 0.117775);
+	judgements.judgeNote(sprites.tapholeNotes, currentTime, fixedWidth * 0.117775);
 	**/
 	
 	inputs.taps.length = 0;

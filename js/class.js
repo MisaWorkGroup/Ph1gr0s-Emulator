@@ -94,7 +94,7 @@ class Click {
  *     offsetX: 判定点的水平位置
  *     offsetY: 判定点的垂直位置
  *     type: 判定点的类型，默认为 0。其中：1: Tap, 2: Hold, 3:Move。推测：
- *         Tap: 在该判定点上存在点击事件。此事件应该用于 Tap 的判定
+ *         Tap: 在该判定点上存在点击事件。此事件应该用于 Tap、Hold 的判定
  *         Hold: 在该判定点上存在按住事件。此事件应该用于 Hold、Drag 的判定。
  *         Move: 在该判定点上存在移动事件。此事件应该用于 Hold、Drag、Flick 的判定。
 ***/
@@ -138,6 +138,8 @@ class Judgements extends Array {
 	 * 开启了自动演示则会自行添加 Judgement 对象。
 	***/
 	addJudgement(notes, realTime) {
+		if (stat.isPaused) return;
+		
 		this.length = 0;
 		
 		if (!settings.autoPlay) { // 判断是否开启了自动演示
@@ -184,17 +186,18 @@ class Judgements extends Array {
 			
 			for (const i of notes) {
 				if (i.score > 0 && (i.isProcessed || i.isScored)) continue;
+				if (i.realTime - realTime > global.judgeTimes.bad) continue;
 				
-				let offsetX = getNotePosition(i).x,
+				let offsetX = getNotePosition(i, false).x,
 					offsetY = getNotePosition(i, false).y;
 				
 				if (i.type == 1) {
-					if (i.realTime - realTime < 0.00) this.push(new Judgement(offsetX, offsetY, 1));
+					if (i.realTime - realTime < 0) this.push(new Judgement(offsetX, offsetY, 1));
 				} else if (i.type == 2) {
 					if (i.realTime - realTime < global.judgeTimes.bad) this.push(new Judgement(offsetX, offsetY, 2));
 				} else if (i.type == 3) {
 					if (i.isPressing) this.push(new Judgement(offsetX, offsetY, 2));
-					else if (i.realTime - realTime < 0.00) this.push(new Judgement(offsetX, offsetY, 1));
+					else if (i.realTime - realTime < 0) this.push(new Judgement(offsetX, offsetY, 1));
 				} else if (i.type == 4) {
 					if (i.realTime - realTime < global.judgeTimes.bad) this.push(new Judgement(offsetX, offsetY, 3));
 				}
@@ -231,8 +234,8 @@ class Judgements extends Array {
 				continue;
 			}
 			
-			let offsetX = getNotePosition(i).x,
-				offsetY = getNotePosition(i).y,
+			let offsetX = getNotePosition(i, false).x,
+				offsetY = getNotePosition(i, false).y,
 				cosr = i.parent.parent.cosr,
 				sinr = i.parent.parent.sinr;
 			
@@ -240,7 +243,7 @@ class Judgements extends Array {
 				for (let x = 0; x < this.length; x++) { // 合理怀疑这个循环是为了遍历当前屏幕上的手指数
 					if (
 						this[x].type == 1 &&
-						this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
+						this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 						timeBetweenReal <= global.judgeTimes.bad &&
 						!i.isProcessed
 					) {
@@ -287,7 +290,7 @@ class Judgements extends Array {
 				} else if (!i.isProcessed) { // 检测 Note 是否被打击
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 							timeBetweenReal <= global.judgeTimes.good
 						) { 
 							this[x].catched = true;
@@ -324,7 +327,7 @@ class Judgements extends Array {
 					if (!i.pressTime && !i.isPrecessed && !i.isScored) { // 应该是同上，但是这一块负责的是刚开始打击时的判定
 						if (
 							this[x].type == 1 &&
-							this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 							timeBetweenReal < global.judgeTimes.good
 						) {
 							if (timeBetweenReal <= global.judgeTimes.perfect) { // 判定 Perfect
@@ -346,7 +349,7 @@ class Judgements extends Array {
 							break;
 						}
 						
-					} else if (!i.isScored && !i.isProcessed && this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width)) {
+					} else if (!i.isScored && !i.isProcessed && this[x].isInArea(offsetX, offsetY, cosr, sinr, width)) {
 						i.isPressing = true; // 持续判断手指是否在判定区域内
 					}
 				}
@@ -372,7 +375,7 @@ class Judgements extends Array {
 				} else if (!i.isProcessed) {
 					for (let x = 0; x < this.length; x++) {
 						if (
-							this[x].isInArea(offsetX, offsetY, cosr, sinr, i.width) &&
+							this[x].isInArea(offsetX, offsetY, cosr, sinr, width) &&
 							timeBetweenReal <= global.judgeTimes.good
 						) {
 							this[x].catched = true;
