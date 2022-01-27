@@ -840,9 +840,7 @@ function CreateChartSprites(chart, pixi) {
 			touches: {},
 			mouse: {}
 		},
-		clickAnimate: {
-			bad: []
-		}
+		clickAnimate: []
 	};
 	
 	// 创建背景图
@@ -1624,14 +1622,16 @@ function CalculateChartActualTime(delta) {
  * @function 实时处理打击动画
 ***/
 function CalculateClickAnimateActualTime() {
-	for (let i in sprites.clickAnimate.bad) {
-		let obj = sprites.clickAnimate.bad[i];
+	for (let i in sprites.clickAnimate) {
+		let obj = sprites.clickAnimate[i];
 		
-		obj.alpha -= 2 / pixi.ticker.FPS;
-		
-		if (obj.alpha <= 0) {
-			obj.destroy();
-			sprites.clickAnimate.bad.splice(i, 1);
+		if (obj.type == 2) {
+			obj.alpha -= 2 / pixi.ticker.FPS;
+			
+			if (obj.alpha <= 0) {
+				obj.destroy();
+				sprites.clickAnimate.splice(i, 1);
+			}
 		}
 	}
 }
@@ -1650,22 +1650,71 @@ function CreateClickAnimation(note, performance = false) {
 		angle = note.parent.parent.angle;
 	
 	if (!pixi || !settings.clickAnimate) return;
-	
 	if (score <= 1) return;
 	
 	if (score > 2) {
-		obj = new PIXI.AnimatedSprite(textures.clickRaw);
+		let animate = new PIXI.AnimatedSprite(textures.clickRaw);
+		let blockWidth = 30 * 0.4988;
+		let blocks = [ null, null, null, null ];
 		
-		obj.anchor.set(0.5);
-		obj.scale.set(noteScale * 5.6 * 2);
-		obj.position.set(offsetX, offsetY);
+		obj = new PIXI.Container();
 		
-		obj.tint = score == 4 ? 0xFFECA0 : 0xB4E1FF;
-		obj.loop = false;
+		// 定义动画精灵
+		animate.tint = score == 4 ? 0xFFECA0 : 0xB4E1FF;
+		animate.anchor.set(0.5);
+		animate.scale.set(256 / animate.texture.baseTexture.width);
+		animate.loop = false;
 		
-		obj.onComplete = function () {
-			this.destroy();
+		// 声明帧更新和播放完毕后执行的函数
+		if (!performance) {
+			animate.onFrameChange = function () {
+				let currentFrameProgress = this.currentFrame / this.totalFrames;
+				
+				for (let i = 1; i < this.parent.children.length; i++) {
+					let block = this.parent.children[i];
+					let blockWidth = 30 * (((0.2078 * currentFrameProgress - 1.6524) * currentFrameProgress + 1.6399) * currentFrameProgress + 0.4988);
+					let blockDistance = block.distance * (9 * currentFrameProgress / (8 * currentFrameProgress + 1)) * 0.6;
+					
+					block.clear();
+					block.beginFill(0xFFFFFF)
+						.drawRect(-blockWidth / 2, -blockWidth / 2, blockWidth, blockWidth)
+						.endFill();
+					
+					block.position.x = blockDistance * block.cosr - blockDistance * block.sinr;
+					block.position.y = blockDistance * block.cosr + blockDistance * block.sinr;
+					
+					block.alpha = 1 - currentFrameProgress;
+				}
+			};
+		}
+		animate.onComplete = function () {
+			sprites.clickAnimate.splice(this.parent.id, 1);
+			this.parent.destroy();
 		};
+		
+		obj.addChild(animate);
+		
+		// 定义爆开的小方块
+		if (!performance) {
+			for (let i = 0; i < blocks.length; i++) {
+				blocks[i] = new PIXI.Graphics()
+					.beginFill(0xFFFFFF)
+					.drawRect(-blockWidth / 2, -blockWidth / 2, blockWidth, blockWidth)
+					.endFill();
+				
+				blocks[i].tint = score == 4 ? 0xFFECA0 : 0xB4E1FF;
+				
+				blocks[i].distance = Math.random() * 81 + 185;
+				blocks[i].direction = Math.floor(Math.random() * 360);
+				blocks[i].sinr = Math.sin(blocks[i].direction);
+				blocks[i].cosr = Math.cos(blocks[i].direction);
+				
+				obj.addChild(blocks[i]);
+			}
+		}
+		
+		obj.scale.set(noteScale * 5.6);
+		obj.position.set(offsetX, offsetY);
 		
 	} else {
 		offsetX = getNotePosition(note, false).x;
@@ -1677,15 +1726,16 @@ function CreateClickAnimation(note, performance = false) {
 		obj.scale.set(noteScale);
 		obj.position.set(offsetX, offsetY);
 		obj.angle = angle;
+		
+		obj.tint = 0x6c4343;
 	}
 	
-	if (obj) {
-		pixi.stage.addChild(obj);
-		if (score == 3 || score == 4)
-			obj.play();
-		else
-			sprites.clickAnimate.bad.push(obj);
-	}
+	obj.type = score;
+	
+	pixi.stage.addChild(obj);
+	if (score == 3 || score == 4) obj.children[0].play();
+	
+	sprites.clickAnimate.push(obj);
 }
 
 /***
