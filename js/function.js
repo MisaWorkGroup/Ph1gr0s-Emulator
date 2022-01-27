@@ -1625,7 +1625,32 @@ function CalculateClickAnimateActualTime() {
 	for (let i in sprites.clickAnimate) {
 		let obj = sprites.clickAnimate[i];
 		
-		if (obj.type == 2) {
+		if (obj.type > 2) {
+			obj = obj.children[0];
+			
+			let currentFrameProgress = obj.currentFrame / obj.totalFrames;
+			
+			for (let i = 1; i < obj.parent.children.length; i++) {
+				let block = obj.parent.children[i];
+				let blockWidth = 30 * (((0.2078 * currentFrameProgress - 1.6524) * currentFrameProgress + 1.6399) * currentFrameProgress + 0.4988);
+				let blockDistance = block.distance * (9 * currentFrameProgress / (8 * currentFrameProgress + 1)) * 0.6;
+				
+				block.clear();
+				block.beginFill(0xFFFFFF)
+					.drawRect(-blockWidth / 2, -blockWidth / 2, blockWidth, blockWidth)
+					.endFill();
+				
+				block.position.x = blockDistance * block.cosr - blockDistance * block.sinr;
+				block.position.y = blockDistance * block.cosr + blockDistance * block.sinr;
+				
+				block.alpha = 1 - currentFrameProgress;
+			}
+			
+			if (!obj.playing) {
+				sprites.clickAnimate.splice(i, 1);
+				obj.parent.destroy();
+			};
+		} else {
 			obj.alpha -= 2 / pixi.ticker.FPS;
 			
 			if (obj.alpha <= 0) {
@@ -1664,33 +1689,6 @@ function CreateClickAnimation(note, performance = false) {
 		animate.anchor.set(0.5);
 		animate.scale.set(256 / animate.texture.baseTexture.width);
 		animate.loop = false;
-		
-		// 声明帧更新和播放完毕后执行的函数
-		if (!performance) {
-			animate.onFrameChange = function () {
-				let currentFrameProgress = this.currentFrame / this.totalFrames;
-				
-				for (let i = 1; i < this.parent.children.length; i++) {
-					let block = this.parent.children[i];
-					let blockWidth = 30 * (((0.2078 * currentFrameProgress - 1.6524) * currentFrameProgress + 1.6399) * currentFrameProgress + 0.4988);
-					let blockDistance = block.distance * (9 * currentFrameProgress / (8 * currentFrameProgress + 1)) * 0.6;
-					
-					block.clear();
-					block.beginFill(0xFFFFFF)
-						.drawRect(-blockWidth / 2, -blockWidth / 2, blockWidth, blockWidth)
-						.endFill();
-					
-					block.position.x = blockDistance * block.cosr - blockDistance * block.sinr;
-					block.position.y = blockDistance * block.cosr + blockDistance * block.sinr;
-					
-					block.alpha = 1 - currentFrameProgress;
-				}
-			};
-		}
-		animate.onComplete = function () {
-			sprites.clickAnimate.splice(this.parent.id, 1);
-			this.parent.destroy();
-		};
 		
 		obj.addChild(animate);
 		
@@ -1732,10 +1730,10 @@ function CreateClickAnimation(note, performance = false) {
 	
 	obj.type = score;
 	
-	pixi.stage.addChild(obj);
-	if (score == 3 || score == 4) obj.children[0].play();
-	
 	sprites.clickAnimate.push(obj);
+	pixi.stage.addChild(obj);
+	
+	if (score == 3 || score == 4) obj.children[0].play();
 }
 
 /***
