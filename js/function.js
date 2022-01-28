@@ -1296,135 +1296,285 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 /***
  * @function 游戏结束时绘制结算画面
 ***/
-function CreateGameEndAnimate() {
+function CreateGameEndAnimate(sprite) {
 	let realWidth = pixi.renderer.realWidth;
 	let realHeight = pixi.renderer.realHeight;
 	let fixedWidth = pixi.renderer.fixedWidth;
 	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
 	let lineScale = pixi.renderer.lineScale;
 	
-	let paddingWidth = lineScale * 0.416667;
-	let bgWidth = fixedWidth * 0.828646 - paddingWidth * 2;
-	let bgHeight = realHeight * 0.771296 / 2 - paddingWidth * 2;
+	let panelWidth = lineScale * 27.621528;
+	let panelHeight = lineScale * 14.461806;
+	let paddingWidth = lineScale * 1.111111;
 	
-	let output = {};
+	let bgWidth = lineScale * 13.680556;
+	let marginWidth = lineScale * 0.399306;
 	
-	output.container = new PIXI.Container();
+	let bgScaleWidth = bgWidth / _chart.image.width;
+	let bgScaleHeight = bgWidth / _chart.image.height;
+	let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 	
-	output.bgRect = new PIXI.Graphics()
-		.beginFill(0xFFFFFF, 0.25)
-		.drawFilletRect(0, 0, bgWidth + paddingWidth * 2, realHeight * 0.771296, lineScale * 0.260417)
-		.endFill();
-	output.container.addChild(output.bgRect);
+	let output = sprite;
 	
-	{
-		let bgScale = bgWidth / _chart.image.width;
+	if (!output) { // 创建组件与组件推送
+		output = {};
 		
-		output.bgImage = new PIXI.Sprite(_chart.image);
-		output.bgImageCover = new PIXI.Graphics();
+		output.container = new PIXI.Container();
 		
-		output.bgImageCover.beginFill(0xFFFFFF)
-			.drawFilletRect(0, 0, bgWidth, bgHeight, lineScale * 0.260417)
+		output.bgRect = new PIXI.Graphics();
+		
+		output.image = {
+			image    : new PIXI.Sprite(),
+			gradient : new PIXI.Graphics(),
+			cover    : new PIXI.Graphics(),
+			songName : new PIXI.Text('', {
+				fontFamily : 'Mina',
+				fill       : 'white'
+			}),
+			songDiff : new PIXI.Text('', {
+				fontFamily : 'Mina',
+				fill       : 'white'
+			}),
+			retryBtn : new PIXI.Graphics()
+		};
+		
+		output.judgeIcon = new PIXI.Sprite();
+		output.newScore  = new PIXI.Text('', {
+			fontFamily : 'Mina',
+			fill       : 'white'
+		});
+		output.score     = new PIXI.Text('', {
+			fontFamily : 'Mina',
+			fill       : 'white'
+		});
+		
+		output.judge = {
+			container : new PIXI.Container(),
+			perfect   : new PIXI.Text('', {
+				fontFamily: 'Mina',
+				fill: 'white'
+			}),
+			good      : new PIXI.Text('', {
+				fontFamily: 'Mina',
+				fill: 'white'
+			}),
+			bad       : new PIXI.Text('', {
+				fontFamily: 'Mina',
+				fill: 'white'
+			}),
+			miss      : new PIXI.Text('', {
+				fontFamily: 'Mina',
+				fill: 'white'
+			})
+		}
+		output.acc   = {
+			container : new PIXI.Container(),
+			percent   : new PIXI.Text('', {
+				fontFamily: 'Mina',
+				fill:'white'
+			}),
+			apType    : new PIXI.Text('', {
+				fontFamily: 'Mina',
+				fill:'white'
+			})
+		}
+		
+		output.container.addChild(output.bgRect);
+		
+		output.image.image.addChild(output.image.gradient);
+		output.container.addChild(output.image.image, output.image.cover, output.image.songName, output.image.songDiff, output.image.retryBtn);
+		
+		output.container.addChild(output.judgeIcon);
+		output.container.addChild(output.newScore);
+		output.container.addChild(output.score);
+		
+		output.judge.container.addChild(output.judge.perfect, output.judge.good, output.judge.bad, output.judge.miss);
+		output.container.addChild(output.judge.container);
+		
+		output.acc.container.addChild(output.acc.percent, output.acc.apType);
+		output.container.addChild(output.acc.container);
+		
+		pixi.stage.addChild(output.container);
+	}
+	
+	// =====设置贴图=====
+	output.image.image.texture = _chart.image;
+	switch(score.judge) {
+		case 0: {
+			output.judgeIcon.texture = textures.judgeIcon.false;
+			break;
+		}
+		case 1: {
+			output.judgeIcon.texture = textures.judgeIcon.c;
+			break;
+		}
+		case 2: {
+			output.judgeIcon.texture = textures.judgeIcon.b;
+			break;
+		}
+		case 3: {
+			output.judgeIcon.texture = textures.judgeIcon.a;
+			break;
+		}
+		case 4: {
+			output.judgeIcon.texture = textures.judgeIcon.s;
+			break;
+		}
+		case 5: {
+			output.judgeIcon.texture = textures.judgeIcon.v;
+			break;
+		}
+		case 6: {
+			output.judgeIcon.texture = textures.judgeIcon.phi;
+			break;
+		}
+	}
+	
+	// =====绘制 Graphics =====
+	// 绘制矩形打底
+	output.bgRect.clear();
+	output.bgRect.beginFill(0xFFFFFF, 0.11)
+			.drawRoundedRect(0, 0, panelWidth, panelHeight, lineScale * 0.78125)
 			.endFill();
+	
+	// 创建背景图渐变遮罩
+	output.image.gradient.clear();
+	output.image.gradient.beginFill(0x000000)
+		.drawRect(-output.image.image.width / 2, -55 / 2, output.image.image.width, 50)
+		.endFill();
+	
+	// 创建背景图遮罩（用于制作背景图圆角）
+	output.image.cover.clear();
+	output.image.cover.beginFill(0xFFFFFF)
+		.drawRoundedRect(0, 0, bgWidth, bgWidth, lineScale * 0.520833)
+		.endFill();
+	
+	// 创建重试按钮
+	output.image.retryBtn.clear();
+	output.image.retryBtn.beginFill(0x000000, 0.6)
+		.drawRoundedRect(0, 0, lineScale * 3.802083, lineScale * 1.336806, lineScale * 0.347222)
+		.endFill();
+	
+	if (!output.image.retryBtn.children[0]) {
+		output.image.retryBtn.addChild(new PIXI.Text('重试', {
+			fontFamily : 'Mina',
+			fill       : 'white'
+		}));
 		
-		output.bgImage.scale.set(bgScale);
-		output.bgImage.mask = output.bgImageCover;
+		// 监听重试按钮按下动作
+		output.image.retryBtn.interactive = true;
+		output.image.retryBtn.buttonMode = true;
 		
-		output.bgImageCover.position.set(paddingWidth);
-		
-		output.bgImage.position.x = paddingWidth;
-		output.bgImage.position.y = (-output.bgImage.height + output.bgImageCover.height) / 2;
-		
-		output.container.addChild(output.bgImage, output.bgImageCover);
+		output.image.retryBtn.on('pointerdown', () => {
+			gameRestart();
+		});
+	}
+	
+	// =====文本内容与大小=====
+	output.image.songName.text = _chart.info.name || 'No name';
+	output.image.songDiff.text = _chart.info.level || 'SP Lv.?';
+	
+	output.newScore.text = 'Max combo: ' + score.maxCombo;
+	output.score.text = score.scoreText;
+	
+	output.judge.perfect.text = 'Perfect ' + score.perfect;
+	output.judge.good.text = 'Good ' + score.good;
+	output.judge.bad.text = 'Bad ' + score.bad;
+	output.judge.miss.text = 'Miss ' + score.miss;
+	
+	output.acc.apType.text = (score.apType == 2 ? 'All Perfect' : (score.apType == 1 ? 'Full Combo' : ''));
+	output.acc.percent.text = score.acc + '%';
+	
+	output.image.songName.style.fontSize = lineScale * 0.868056 + 'px';
+	output.image.songDiff.style.fontSize = lineScale * 0.347222 + 'px';
+	output.image.retryBtn.children[0].style.fontSize = lineScale * 0.520833 + 'px';
+	
+	output.newScore.style.fontSize = lineScale * 0.520833 + 'px';
+	output.score.style.fontSize = lineScale * 1.736111 + 'px';
+	
+	output.judge.perfect.style.fontSize = lineScale * 0.347222 + 'px';
+	output.judge.good.style.fontSize = lineScale * 0.347222 + 'px';
+	output.judge.bad.style.fontSize = lineScale * 0.347222 + 'px';
+	output.judge.miss.style.fontSize = lineScale * 0.347222 + 'px';
+	
+	output.acc.percent.style.fontSize = lineScale * 0.347222 + 'px';
+	output.acc.apType.style.fontSize = lineScale * 0.520833 + 'px';
+	
+	output.acc.apType.visible = (score.apType > 0 ? true : false);
+	
+	// =====定位与缩放=====
+	// 设置背景图缩放和位置
+	output.image.image.anchor.set(0.5);
+	output.image.image.scale.set(bgScale);
+	output.image.image.position.x = (panelWidth - bgWidth) + bgWidth / 2;
+	output.image.image.position.y = panelHeight / 2;
+	
+	// 背景图渐变遮罩设置效果和位置
+	if (!output.image.gradient.filters) {
+		output.image.gradient.filters = [new PIXI.filters.BlurFilter(14, 4, PIXI.settings.FILTER_RESOLUTION, 9)]; // 灵魂！
+	}
+	
+	output.image.gradient.scale.set(1 / bgScale);
+	output.image.gradient.position.y = output.image.image.texture.baseTexture.height / 2;
+	
+	// 背景图圆角遮罩位置
+	output.image.cover.position.set(panelWidth - bgWidth - marginWidth, marginWidth);
+	output.image.image.mask = output.image.cover;
+	
+	// 歌曲名称
+	output.image.songName.position.x = lineScale * 14.21875;
+	output.image.songName.position.y = lineScale * 11.701389;
+	
+	// 歌曲名称压扁
+	if (output.image.songName.width > bgWidth - (lineScale * 14.21875 - (panelWidth - bgWidth - marginWidth)) * 2) {
+		output.image.songName.width = bgWidth - (lineScale * 14.21875 - (panelWidth - bgWidth - marginWidth)) * 2;
 	}
 	
 	// 歌曲难度
-	output.songDiff = new PIXI.Text(_chart.info.level || 'SP Lv.?', {
-		fontFamily: 'Mina',
-		fill: 'white',
-		fontSize: lineScale * 0.520833 + 'px',
-		align: 'left'
-	});
+	output.image.songDiff.position.x = lineScale * 14.21875;
+	output.image.songDiff.position.y = lineScale * 12.829861;
 	
-	output.songDiff.position.x = paddingWidth;
-	output.songDiff.position.y = bgHeight + paddingWidth * 2;
+	// 重试按钮位置
+	output.image.retryBtn.position.x = panelWidth - lineScale * 3.802083 - lineScale * 1.128472;
+	output.image.retryBtn.position.y = panelHeight - lineScale * 1.336806 - lineScale * 0.711806;
 	
-	output.container.addChild(output.songDiff);
+	// 重试按钮字体位置
+	output.image.retryBtn.children[0].anchor.set(0.5);
+	output.image.retryBtn.children[0].position.x = lineScale * 3.802083 / 2;
+	output.image.retryBtn.children[0].position.y = lineScale * 1.336806 / 2;
 	
-	// 歌曲名称
-	output.songName = new PIXI.Text(_chart.info.name || 'No title', {
-		fontFamily: 'Mina',
-		fill: 'white',
-		fontSize: lineScale * 1.736111 + 'px',
-		align: 'left'
-	});
+	// 歌曲判定等级图标
+	output.judgeIcon.scale.set(lineScale * 4.930556 / output.judgeIcon.texture.baseTexture.width);
+	output.judgeIcon.position.x = lineScale * 0.295139;
+	output.judgeIcon.position.y = lineScale * 1.979167;
 	
-	output.songName.position.x = paddingWidth;
-	output.songName.position.y = output.songDiff.position.y + output.songDiff.height;
+	// 新分数
+	output.newScore.position.x = paddingWidth;
+	output.newScore.position.y = lineScale * 8.211806;
 	
-	output.container.addChild(output.songName);
+	// 本局分数
+	output.score.position.x = paddingWidth;
+	output.score.position.y = lineScale * 8.854167;
 	
 	// 判定详情
-	output.judge = {
-		container: new PIXI.Container(),
-		perfect: new PIXI.Text('Perfect ' + score.perfect, {
-			fontFamily: 'Mina',
-			fontSize: lineScale * 0.347222 + 'px',
-			fill: 'white', align: 'left'
-		}),
-		good: new PIXI.Text('Good ' + score.good, {
-			fontFamily: 'Mina',
-			fontSize: lineScale * 0.347222 + 'px',
-			fill: 'white',
-			align: 'left'
-		}),
-		bad: new PIXI.Text('Bad ' + score.bad, {
-			fontFamily: 'Mina',
-			fontSize: lineScale * 0.347222 + 'px',
-			fill: 'white',
-			align: 'left'
-		}),
-		miss: new PIXI.Text('Miss ' + score.miss, {
-			fontFamily: 'Mina',
-			fontSize: lineScale * 0.347222 + 'px',
-			fill: 'white',
-			align: 'left'
-		}),
-		apType: new PIXI.Text(score.apType == 2 ? 'All Percect' : (score.apType == 1 ? 'Full Combo' : ''), {
-			fontFamily: 'Mina',
-			fontSize: lineScale * 2.083333 + 'px',
-			fill: (score.apType == 2 ? '#EACA72' : (score.apType == 1 ? '#8DE0FF' : 'white')),
-			align: 'right'
-		}),
-		acc: new PIXI.Text(score.acc + '%', {
-			fontFamily: 'Mina',
-			fontSize: lineScale * 0.694444 + 'px',
-			fill: 'white',
-			align: 'right'
-		})
-	}
-	
-	output.judge.good.position.x = output.judge.perfect.width + 6;
-	output.judge.bad.position.x = output.judge.good.position.x + output.judge.good.width + 6;
-	output.judge.miss.position.x = output.judge.bad.position.x + output.judge.bad.width + 6;
-	
-	output.judge.apType.anchor.set(1);
-	output.judge.acc.anchor.x = 1;
-	
-	output.judge.apType.position.x = bgWidth;
-	output.judge.acc.position.x = bgWidth;
-	
-	output.judge.container.addChild(output.judge.perfect, output.judge.good, output.judge.bad, output.judge.miss, output.judge.apType, output.judge.acc);
+	output.judge.good.position.x = output.judge.perfect.width + lineScale * 0.78125;
+	output.judge.bad.position.x = output.judge.good.position.x + output.judge.good.width + lineScale * 0.78125;
+	output.judge.miss.position.x = output.judge.bad.position.x + output.judge.bad.width + lineScale * 0.78125;
 	
 	output.judge.container.position.x = paddingWidth;
-	output.judge.container.position.y = output.songName.position.y + output.songName.height;
+	output.judge.container.position.y = lineScale * 11.041667;
 	
-	output.container.addChild(output.judge.container);
+	// 准度和准度等级
+	output.acc.percent.anchor.y = output.acc.apType.visible ? 1 : 0;
+	
+	output.acc.percent.position.x = output.acc.apType.visible ? output.acc.apType.width + lineScale * 0.416667 : 0;
+	output.acc.percent.position.y = output.acc.apType.visible ? output.acc.apType.height : lineScale * 0.138889;
+	
+	output.acc.container.position.x = paddingWidth;
+	output.acc.container.position.y = output.judge.container.position.y + output.judge.container.height + lineScale * 1.163194;
 	
 	output.container.position.x = (realWidth - output.container.width) / 2;
 	output.container.position.y = (realHeight - output.container.height) / 2;
-	
-	pixi.stage.addChild(output.container);
 	
 	return output;
 }
@@ -1612,7 +1762,7 @@ function CalculateChartActualTime(delta) {
 		sprites.headInfos.position.y = -sprites.headInfos.height;
 		sprites.footInfos.position.y = sprites.headInfos.height;
 		
-		sprites.gameEnd = CreateGameEndAnimate();
+		sprites.ui.end = CreateGameEndAnimate(sprites.ui.end);
 	}
 	
 	if (sprites.performanceIndicator) sprites.performanceIndicator.end();
@@ -1903,63 +2053,8 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	}
 	
 	// 处理结算页面
-	if (sprites.gameEnd) {
-		let paddingWidth = lineScale * 0.416667;
-		let bgWidth = fixedWidth * 0.828646 - paddingWidth * 2;
-		let bgHeight = height * 0.771296 / 2 - paddingWidth * 2;
-		
-		let bgScale = bgWidth / _chart.image.width;
-		
-		// 底图矩形
-		sprites.gameEnd.bgRect.clear();
-		sprites.gameEnd.bgRect.beginFill(0xFFFFFF, 0.25)
-			.drawFilletRect(0, 0, bgWidth + paddingWidth * 2, height * 0.771296, lineScale * 0.260417)
-			.endFill();
-		
-		// 背景图片遮罩
-		sprites.gameEnd.bgImageCover.clear();
-		sprites.gameEnd.bgImageCover.beginFill(0xFFFFFF)
-			.drawFilletRect(0, 0, bgWidth, bgHeight, lineScale * 0.260417)
-			.endFill();
-		
-		sprites.gameEnd.bgImage.scale.set(bgScale);
-		sprites.gameEnd.bgImageCover.position.set(paddingWidth);
-		
-		sprites.gameEnd.bgImage.position.x = paddingWidth;
-		sprites.gameEnd.bgImage.position.y = (-sprites.gameEnd.bgImage.height + sprites.gameEnd.bgImageCover.height) / 2;
-		
-		// 歌曲难度
-		sprites.gameEnd.songDiff.style.fontSize = lineScale * 0.520833 + 'px';
-		
-		sprites.gameEnd.songDiff.position.x = paddingWidth;
-		sprites.gameEnd.songDiff.position.y = bgHeight + paddingWidth * 2;
-		
-		// 歌曲名称
-		sprites.gameEnd.songName.style.fontSize = lineScale * 1.736111 + 'px';
-		
-		sprites.gameEnd.songName.position.x = paddingWidth;
-		sprites.gameEnd.songName.position.y = sprites.gameEnd.songDiff.position.y + sprites.gameEnd.songDiff.height;
-		
-		// 判定详情
-		sprites.gameEnd.judge.perfect.style.fontSize = lineScale * 0.347222 + 'px';
-		sprites.gameEnd.judge.good.style.fontSize = lineScale * 0.347222 + 'px';
-		sprites.gameEnd.judge.bad.style.fontSize = lineScale * 0.347222 + 'px';
-		sprites.gameEnd.judge.miss.style.fontSize = lineScale * 0.347222 + 'px';
-		sprites.gameEnd.judge.apType.style.fontSize = lineScale * 2.083333 + 'px';
-		sprites.gameEnd.judge.acc.style.fontSize = lineScale * 0.694444 + 'px';
-		
-		sprites.gameEnd.judge.good.position.x = sprites.gameEnd.judge.perfect.width + 6;
-		sprites.gameEnd.judge.bad.position.x = sprites.gameEnd.judge.good.position.x + sprites.gameEnd.judge.good.width + 6;
-		sprites.gameEnd.judge.miss.position.x = sprites.gameEnd.judge.bad.position.x + sprites.gameEnd.judge.bad.width + 6;
-		
-		sprites.gameEnd.judge.apType.position.x = bgWidth;
-		sprites.gameEnd.judge.acc.position.x = bgWidth;
-		
-		sprites.gameEnd.judge.container.position.x = paddingWidth;
-		sprites.gameEnd.judge.container.position.y = sprites.gameEnd.songName.position.y + sprites.gameEnd.songName.height;
-		
-		sprites.gameEnd.container.position.x = (width - sprites.gameEnd.container.width) / 2;
-		sprites.gameEnd.container.position.y = (height - sprites.gameEnd.container.height) / 2;
+	if (sprites.ui.end) {
+		CreateGameEndAnimate(sprites.ui.end);
 	}
 }
 

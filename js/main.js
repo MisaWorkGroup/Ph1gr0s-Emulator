@@ -9,6 +9,7 @@ var Loader = new PIXI.Loader(); // Pixi.js 自带的资源加载器
 // 精灵和贴图信息
 var sprites = {};
 var textures = {
+	judgeIcon: {},
 	sound: {}
 };
 
@@ -85,32 +86,40 @@ PIXI.CanvasRenderer.registerPlugin('sprite', PIXI.CanvasSpriteRenderer);
 
 // 加载图像和声音资源
 Loader.add([
-		{ name: 'tap',         url: './img/Tap.png' },
-		{ name: 'tap2',        url: './img/Tap2.png' },
-		{ name: 'tapHl',       url: './img/TapHL.png' },
-		{ name: 'drag',        url: './img/Drag.png' },
-		{ name: 'dragHl',      url: './img/DragHL.png' },
-		{ name: 'flick',       url: './img/Flick.png' },
-		{ name: 'flickHl',     url: './img/FlickHL.png' },
-		{ name: 'holdHead',    url: './img/HoldHead.png' },
-		{ name: 'holdHeadHl',  url: './img/HoldHeadHL.png' },
-		{ name: 'holdBody',    url: './img/Hold.png' },
-		{ name: 'holdBodyHl',  url: './img/HoldHL.png' },
-		{ name: 'holdEnd',     url: './img/HoldEnd.png' },
-		{ name: 'judgeLine',   url: './img/JudgeLine.png' },
-		{ name: 'clickRaw',    url: './img/clickRaw128.png' },
+		{ name: 'tap',            url: './img/Tap.png' },
+		{ name: 'tap2',           url: './img/Tap2.png' },
+		{ name: 'tapHl',          url: './img/TapHL.png' },
+		{ name: 'drag',           url: './img/Drag.png' },
+		{ name: 'dragHl',         url: './img/DragHL.png' },
+		{ name: 'flick',          url: './img/Flick.png' },
+		{ name: 'flickHl',        url: './img/FlickHL.png' },
+		{ name: 'holdHead',       url: './img/HoldHead.png' },
+		{ name: 'holdHeadHl',     url: './img/HoldHeadHL.png' },
+		{ name: 'holdBody',       url: './img/Hold.png' },
+		{ name: 'holdBodyHl',     url: './img/HoldHL.png' },
+		{ name: 'holdEnd',        url: './img/HoldEnd.png' },
+		{ name: 'judgeLine',      url: './img/JudgeLine.png' },
+		{ name: 'clickRaw',       url: './img/clickRaw128.png' },
 		
-		{ name: 'songNameBar', url: './img/SongsNameBar.png' },
-		{ name: 'progressBar', url: './img/ProgressBar.png' },
+		{ name: 'songNameBar',    url: './img/SongsNameBar.png' },
+		{ name: 'progressBar',    url: './img/ProgressBar.png' },
 		
-		{ name: 'soundTap',    url: './sound/Hitsound-Tap.ogg' },
-		{ name: 'soundDrag',   url: './sound/Hitsound-Drag.ogg' },
-		{ name: 'soundFlick',  url: './sound/Hitsound-Flick.ogg' }
+		{ name: 'judgeIconFalse', url: './img/judgeIcons/false.png' },
+		{ name: 'judgeIconC',     url: './img/judgeIcons/c.png' },
+		{ name: 'judgeIconB',     url: './img/judgeIcons/b.png' },
+		{ name: 'judgeIconA',     url: './img/judgeIcons/a.png' },
+		{ name: 'judgeIconS',     url: './img/judgeIcons/s.png' },
+		{ name: 'judgeIconV',     url: './img/judgeIcons/v.png' },
+		{ name: 'judgeIconPhi',   url: './img/judgeIcons/phi.png' },
+		
+		{ name: 'soundTap',       url: './sound/Hitsound-Tap.ogg' },
+		{ name: 'soundDrag',      url: './sound/Hitsound-Drag.ogg' },
+		{ name: 'soundFlick',     url: './sound/Hitsound-Flick.ogg' }
 	])
 	.load(function (event) {
 		// 将贴图信息添加到 textures 对象中
 		for (const name in event.resources) {
-			if (name.indexOf('sound') <= -1) {
+			if (name.indexOf('sound') <= -1 && name.indexOf('judgeIcon') <= -1) {
 				textures[name] = event.resources[name].texture;
 				
 				if (name == 'clickRaw') { // 将点击爆裂效果雪碧图转换为贴图数组，以方便创建动画精灵对象。
@@ -131,6 +140,9 @@ Loader.add([
 					
 					textures[name] = _clickTextures;
 				}
+			} else if (name.indexOf('judgeIcon') >= 0) { // 把判定等级图标单独分入一个 Object
+				textures.judgeIcon[name.replace('judgeIcon', '').toLowerCase()] = event.resources[name].texture;
+				
 			} else { // 把声音资源过滤出来单独分进一个 Object
 				textures.sound[name.replace('sound', '').toLowerCase()] = event.resources[name].sound;
 				textures.sound[name.replace('sound', '').toLowerCase()].play({ volume:0 });
@@ -632,6 +644,8 @@ function gameInit() {
 	sprites = CreateChartSprites(_chart.data, pixi); // 创建所有的谱面精灵
 	CreateChartInfoSprites(sprites, pixi, true); // 创建谱面信息文字
 	
+	sprites.ui = {};
+	
 	if (settings.accIndicator) // 根据需求创建准度指示器
 		sprites.accIndicator = CreateAccurateIndicator(pixi, settings.accIndicatorScale, settings.challengeMode);
 	score.init(sprites.totalNotes.length, settings.challengeMode); // 计算分数
@@ -787,9 +801,9 @@ function gameRestart() {
 	_chart.audio.stop();
 	pixi.ticker.remove(CalculateChartActualTime);
 	
-	if (sprites.gameEnd) {
-		sprites.gameEnd.container.destroy();
-		sprites.gameEnd = null;
+	if (sprites.ui.end) {
+		sprites.ui.end.container.destroy();
+		sprites.ui.end = null;
 	}
 	
 	for (let container of sprites.containers) {
