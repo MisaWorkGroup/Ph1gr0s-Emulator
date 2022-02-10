@@ -98,6 +98,7 @@ Loader.add([
 		{ name: 'holdBody',       url: './img/Hold.png' },
 		{ name: 'holdBodyHl',     url: './img/HoldHL.png' },
 		{ name: 'holdEnd',        url: './img/HoldEnd.png' },
+		{ name: 'holdEndHl',      url: './img/HoldEndHL.png' },
 		{ name: 'judgeLine',      url: './img/JudgeLine.png' },
 		{ name: 'clickRaw',       url: './img/clickRaw128.png' },
 		

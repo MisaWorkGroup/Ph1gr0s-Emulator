@@ -912,7 +912,7 @@ function CreateChartSprites(chart, pixi) {
 				let hold = new PIXI.Container();
 				let holdHead = new PIXI.Sprite(textures['holdHead' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
 				let holdBody = new PIXI.Sprite(textures['holdBody' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
-				let holdEnd = new PIXI.Sprite(textures.holdEnd);
+				let holdEnd = new PIXI.Sprite(textures['holdEnd' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
 				
 				holdHead.anchor.set(0.5);
 				holdBody.anchor.set(0.5, 1);
