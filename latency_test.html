@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf8" />
+		<meta name="viewport" content="width=device-width" />
+		
+		<link rel="stylesheet" href="./css/mdui.min.css?v=1.0.1" />
+		
+		<script src="./js/pixi/pixi.min.js?v=6.2.1"></script>
+		<script src="./js/pixi/pixi-sound.js?v=4.2.0"></script>
+		<script src="./js/mdui.min.js?v=1.0.1"></script>
+		
+		<style>
+			html, body {
+				scroll-behavior: smooth;
+			}
+		</style>
+		
+		<title>延迟自测工具 - Ph1gr0s 模拟器</title>
+	</head>
+	<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-brown mdui-theme-accent-blue mdui-theme-layout-auto">
+		<header class="mdui-appbar mdui-appbar-fixed">
+			<div class="mdui-toolbar mdui-color-theme">
+				<button class="mdui-btn mdui-btn-icon mdui-ripple" mdui-drawer="{target: '#drawer', swipe: true}"><i class="mdui-icon material-icons">menu</i></button>
+				<a href="#" onclick="window.scrollTo(0,0);return false" class="mdui-typo-title">Ph1gr0s Emulator Latency Tester</a>
+			</div>
+		</header>
+		
+		<drawer class="mdui-drawer" id="drawer">
+			<div class="mdui-list">
+				<a href="./index.html" class="mdui-list-item mdui-ripple">
+					<i class="mdui-list-item-icon mdui-icon material-icons">home</i>
+					<div class="mdui-list-item-content">首页</div>
+				</a>
+				<a onclick="window.close()" class="mdui-list-item mdui-ripple">
+					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe5cd;</i>
+					<div class="mdui-list-item-content">关闭窗口</div>
+				</a>
+			</div>
+		</drawer>
+		
+		<main class="mdui-container mdui-typo mdui-m-b-2" id="div-latency-start">
+			<h2 class="mdui-text-center">延迟自测工具</h2>
+			
+			<p>该工具将帮助你测试你的设备音频延迟。</p>
+			<p>通常情况下，当你在游玩时出现了以下任意情况时，就意味着你需要重新测试你的设备音频延迟了：</p>
+			
+			<ul>
+				<li>游玩时感觉点击与判定有偏差</li>
+				<li>明明以正确的时间点击了，但判定却不是 Perfect</li>
+				<li>明显地感觉到 Note 时间轴与音乐对不上</li>
+			</ul>
+			
+			<p>当您准备好后，请点击下方<code>开始测试</code>按钮以启动延迟测试程序。</p>
+			
+			<button
+				onclick="startLatencyTest()"
+				class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent mdui-center"
+				id="btn-latency-test-start"
+				disabled
+			>
+				努力加载中...<div class="mdui-spinner mdui-spinner-colorful" style="position:relative;top:4px;width:20px;height:20px;margin-left:8px"></div>
+			</button>
+		</main>
+		
+		<main class="mdui-container mdui-typo mdui-hidden mdui-m-b-2" id="div-latency-test">
+			<h2 class="mdui-text-center">延迟自测工具</h2>
+			
+			<p>请聆听播放的节奏，并尽可能地跟着节奏单击按钮或者按下<code>F</code>键，程序会在每 4 拍后自动计算平均延迟。</p>
+			<p>理论上，测试时间越长，值越准确。</p>
+			<p>本程序不会自动停止。如果您认为平均值已趋于稳定，您可自行关闭本页面。</p>
+			
+			<p class="mdui-text-center">
+				当前平均延迟：<b><span id="text-average-latency">0</span>ms</b>
+			</p>
+			
+			<button class="mdui-btn mdui-color-theme-accent mdui-center" style="width:50%;height:72px" id="btn-tap">Tap / Press F</button>
+			
+			<center class="mdui-m-t-2">
+				<label class="mdui-checkbox">
+					<input oninput="playHitsound = this.checked" type="checkbox"/>
+					<i class="mdui-checkbox-icon"></i>
+					单击时播放打击音
+				</label>
+			</center>
+		</main>
+		
+		<script src="./js/latency.js?v=0.0.0-beta1"></script>
+	</body>
+</html>
