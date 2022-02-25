@@ -3,13 +3,18 @@
 	<head>
 		<meta charset="utf8" />
 		<meta name="viewport" content="width=device-width" />
+		<meta name="application-name" content="Ph1gr0s Emulator" />
+		<meta name="description" content="An emulator for rhythm game 'Ph1gr0s'" />
+		<meta name="author" content="MisaLiu 2022，Origin by lchzh3473" />
+		<meta name="keywords" content="ph1gr0s,emulator,online" />
 		
 		<link rel="stylesheet" href="./css/font-mina.css" />
-		<link rel="stylesheet" href="./css/mdui.min.css?v=1.0.1" />
+		<link rel="stylesheet" href="../css/mdui.min.css?v=1.0.1" />
 		
 		<script src="//cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
 		<script src="./js/stackblur.min.js?v=2.5.0"></script>
+		<script src="./js/stats.min.js?v=r17"></script>
 		<script src="./js/Browser.js"></script>
 		
 		<script src="./js/pixi/pixi.min.js?v=6.2.1"></script>
@@ -20,7 +25,7 @@
 		<script src="./js/pixi/canvas-text.min.js?v=6.2.1"></script>
 		<script src="./js/pixi/canvas-sprite.min.js?v=6.2.1"></script>
 		<script src="./js/pixi/pixi-sound.js?v=4.2.0"></script>
-		<script src="./js/mdui.min.js?v=1.0.1"></script>
+		<script src="../js/mdui.min.js?v=1.0.1"></script>
 		
 		<script>
 			var global = {};
@@ -41,31 +46,33 @@
 			
 			// 用户设置数据
 			var settings = {
-				windowRatio         : 16 / 9, // 屏幕宽高比
-				antiAlias           : true, // 抗锯齿
-				resolution          : window.devicePixelRatio, // 清晰度
-				background          : true, // 启用背景图
-				backgroundDim       : 0.75, // 背景图亮度
-				backgroundBlur      : true, // 背景图模糊
-				clickAnimate        : true, // 打击动画
-				accIndicator        : false, // 准度指示器
-				showFinger          : true, // 手指触摸点
-				noteScale           : 8e3, // 按键缩放
-				accIndicatorScale   : 500, // 准度指示器缩放
-				multiNotesHighlight : true, // 多押高亮
-				showApStatus        : true, // AP/FC 指示器
-				forceCanvas         : (DeviceInfo.supportWebGL ? false : true), // 强制 Canvas 方式绘图
+				windowRatio              : 16 / 9, // 屏幕宽高比
+				antiAlias                : true, // 抗锯齿
+				resolution               : window.devicePixelRatio, // 清晰度
+				background               : true, // 启用背景图
+				backgroundDim            : 0.75, // 背景图亮度
+				backgroundBlur           : true, // 背景图模糊
+				clickAnimate             : true, // 打击动画
+				accIndicator             : false, // 准度指示器
+				showFinger               : true, // 手指触摸点
+				noteScale                : 8e3, // 按键缩放
+				accIndicatorScale        : 500, // 准度指示器缩放
+				multiNotesHighlight      : true, // 多押高亮
+				showApStatus             : true, // AP/FC 指示器
+				forceCanvas              : (DeviceInfo.supportWebGL ? false : true), // 强制 Canvas 方式绘图
+				showPerformanceIndicator : (getSearchQuery('debug') == 'true'), // 实时展示判定信息
+				showJudgementRealTime    : (getSearchQuery('debug') == 'true'), // 添加一个用于显示性能状态的小窗
 				
-				hitsound            : true, // 开启打击音
-				musicVolume         : 1, // 音乐音量
-				hitsoundVolume      : 0.75, // 打击音音量
+				hitsound                 : true, // 开启打击音
+				musicVolume              : 1, // 音乐音量
+				hitsoundVolume           : 0.75, // 打击音音量
 				
-				challengeMode       : false, // 课题模式
-				autoPlay            : false, // 自动播放
-				chartDelay          : 0, // 谱面延迟
+				challengeMode            : false, // 课题模式
+				autoPlay                 : false, // 自动播放
+				chartDelay               : 0, // 谱面延迟
 				
-				developMode         : false,
-				disableJudgeLineAlpha : false
+				developMode              : (getSearchQuery('debug') == 'true'), // 开发者模式（显示 Note 和判定线的相关信息）
+				disableJudgeLineAlpha    : false
 			};
 			
 			
@@ -107,22 +114,35 @@
 			}
 		</style>
 		
-		<title>Ph1gr0s 模拟器</title>
+		<title>Ph1gr0s Emulator</title>
 	</head>
-	<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-brown mdui-theme-accent-blue mdui-theme-layout-auto">
+	<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-blue-grey mdui-theme-accent-blue mdui-theme-layout-auto">
 		<header class="mdui-appbar mdui-appbar-fixed">
 			<div class="mdui-toolbar mdui-color-theme">
 				<button onclick="drawerInst.toggle()" class="mdui-btn mdui-btn-icon mdui-ripple"><i class="mdui-icon material-icons">menu</i></button>
-				<a href="#" onclick="window.scrollTo(0,0);return false" class="mdui-typo-title">Ph1gr0s Emulator</a>
+				<a href="#" onclick="window.scrollTo(0,0);return false" class="mdui-typo-title">Ph1gr0s Emulator v0.1.9 Alpha</a>
 			</div>
 		</header>
 		
 		<drawer class="mdui-drawer" id="drawer">
 			<div class="mdui-list">
-				<a class="mdui-list-item mdui-ripple">
-					<i class="mdui-list-item-icon mdui-icon material-icons">home</i>
+				<a href="../index.html" target="_blank" class="mdui-list-item mdui-ripple">
+					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe88a;</i>
 					<div class="mdui-list-item-content">首页</div>
 				</a>
+				
+				<div class="mdui-divider"></div>
+				
+				<a href="../bbs" target="_blank" class="mdui-list-item mdui-ripple">
+					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe0b9;</i>
+					<div class="mdui-list-item-content">交流社区</div>
+				</a>
+				<a href="../market" target="_blank" class="mdui-list-item mdui-ripple">
+					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe54c;</i>
+					<div class="mdui-list-item-content">谱面市场</div>
+				</a>
+				
+				<div class="mdui-divider"></div>
 				
 				<a
 					onclick="
@@ -145,19 +165,25 @@
 					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3f6;</i>
 					<div class="mdui-list-item-content">延迟自测工具</div>
 				</a>
+				
+				<div class="mdui-divider"></div>
+				
+				<a href="../credits.html" target="_blank" class="mdui-list-item mdui-ripple">
+					<i class="mdui-list-item-icon mdui-icon material-icons">&#xe7ef;</i>
+					<div class="mdui-list-item-content">制作人员名单</div>
+				</a>
 			</div>
 		</drawer>
 		
 		<main class="mdui-container mdui-p-b-2">
-			<div class="mdui-card mdui-color-red mdui-m-t-2 mdui-m-b-2 mdui-shadow-0">
+			<div class="mdui-card mdui-color-amber mdui-m-t-2 mdui-m-b-2 mdui-shadow-0">
 				<div class="mdui-card-primary mdui-p-t-3">
-					<div class="mdui-card-primary-title">⚠️ 这是一个内部预览版本</div>
+					<div class="mdui-card-primary-title">⚠️ 这是一个测试版本</div>
 				</div>
 				<div class="mdui-card-content mdui-typo mdui-p-t-0">
-					<p>如果您看到了这条信息，则代表您正在访问的是一个仍在开发中的版本。这个版本包含正在开发中的各项功能，以及一些 Bug 的修复，也仍可能会存在问题。</p>
-					<p>如果您是通过非开发者/项目贡献者途径（例如，从搜索引擎而来）访问本页面，请立即退出。</p>
-					<p>如果您是普通用户，在未经开发者/项目贡献者的允许下，您无权访问本页面，请立即退出。</p>
-					<p>如果您是开发者/项目贡献者，您可忽略该消息。</p>
+					<p>如果您看到了这条信息，则代表您正在访问的是一个测试中的版本。这个版本包含新增的所有功能，并修复了一些 Bug，也仍可能会存在问题。</p>
+					<p>如果您是普通用户，您可以在不损害本项目利益的情况下随意使用本项目。</p>
+					<p>如果您发现了问题或是想提交建议，可随时至 <a href="https://github.com/MisaWorkGroup/Ph1gr0s-Emulator" target="_blank">本项目仓库</a> 提交 Issue，我们在看到后会尽快处理。</p>
 				</div>
 			</div>
 			
@@ -204,6 +230,13 @@
 								</div>
 							</div>
 						</div>
+						
+						<script>
+							if (getSearchQuery('url') && getSearchQuery('url') != '') {
+								mdui.$('#button-select-chart-zip').attr('disabled', true);
+								mdui.$('#button-select-chart-zip').text('当前文件：在线文件');
+							}
+						</script>
 					</div>
 				</section>
 				
@@ -354,7 +387,7 @@
 								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe3a5;</i>
 								<div class="mdui-list-item-content">
 									<div class="mdui-list-item-title">背景图模糊</div>
-									<div class="mdui-list-item-text">不启用也许会提升性能</div>
+									<div class="mdui-list-item-text">依个人口味，请酌情开启</div>
 								</div>
 								<div class="mdui-checkbox">
 									<input oninput="settings.backgroundBlur = this.checked" type="checkbox" id="settings-graphics-bg-blur" checked/>
@@ -762,6 +795,8 @@
 							</div>
 						</div>
 						
+						<div class="mdui-m-t-1 mdui-m-b-1" id="develop-judgements-count" style="margin:auto"></div>
+						
 						<script>
 							document.getElementById('game-canvas-box').innerHTML = 
 								'<div class="mdui-text-color-theme-disabled" style="font-family:\'Mina\'">' +
@@ -784,6 +819,10 @@
 							<button onclick="gameRestart()" class="mdui-btn mdui-ripple mdui-float-left mdui-text-color-theme-accent">
 								<i class="mdui-icon material-icons">&#xe419;</i>
 								重试
+							</button>
+							<button onclick="gameDestroy()" class="mdui-btn mdui-ripple mdui-float-left mdui-text-color-theme-accent">
+								<i class="mdui-icon material-icons">&#xe92b;</i>
+								销毁
 							</button>
 							
 							<button onclick="setCanvasFullscreen()" class="mdui-btn mdui-ripple mdui-float-right mdui-text-color-theme-accent">
@@ -816,6 +855,6 @@
 			document.getElementById('settings-graphics-resolution').value = settings.resolution;
 		</script>
 		
-		<script src="./js/app.min.js?v=0.0.0-beta11"></script>
+		<script src="./js/app.min.js?v=0.1.9"></script>
 	</body>
 </html>
