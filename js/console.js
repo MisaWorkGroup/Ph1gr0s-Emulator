@@ -24,7 +24,7 @@ console.warn = function(text, raw) {
 	
 	msgBoxContent.innerHTML = '<div class="mdui-card mdui-shadow-0 mdui-m-b-1 mdui-color-orange-100" id="msg-id-' + msgId + '">' +
 		'<div class="mdui-card-content mdui-p-b-0"><p style="margin-top:0;"><i class="mdui-icon material-icons mdui-m-r-1">&#xe002;</i>' + text + '</p>' +
-		(raw ? '<pre style="margin-bottom:0;font-size:14px;overflow;auto;">' + raw.message + '\n' + raw.stack + '</pre>' : '') +
+		(raw ? '<pre style="margin-bottom:0;font-size:14px;overflow:auto">' + raw.message + '\n' + raw.stack + '</pre>' : '') +
 		'</div><div class="mdui-card-actions">' +
 		'<button onclick="console.deleteMsg(' + msgId + ')" class="mdui-btn mdui-ripple mdui-float-right">忽略</button>' +
 		'</div></div>' + msgBoxContent.innerHTML;

@@ -1,5 +1,5 @@
 'use strict';
-// ==声明 global.finctions==
+// ==声明 global.functions==
 // 重修改舞台尺寸
 global.functions = {};
 global.functions.resizeCanvas = function () {
@@ -19,6 +19,7 @@ global.functions.resizeCanvas = function () {
 	pixi.renderer.realHeight = pixi.renderer.height / pixi.renderer.resolution;
 	
 	pixi.renderer.fixedWidth = pixi.renderer.realWidth <= pixi.renderer.realHeight / 9 * 16 ? pixi.renderer.realWidth : pixi.renderer.realHeight / 9 * 16;
+	pixi.renderer.fixedWidthPercent = pixi.renderer.fixedWidth / 18;
 	pixi.renderer.fixedWidthOffset = (pixi.renderer.realWidth - pixi.renderer.fixedWidth) / 2;
 	
 	pixi.renderer.noteSpeed = pixi.renderer.realHeight * 0.6;
@@ -30,7 +31,13 @@ global.functions.resizeCanvas = function () {
 };
 
 // Note 排序
-global.functions.sortNote = (a, b) => a.realTime - b.realTime || a.lineId - b.lineId || a.id - b.id;
+global.functions.sortNote = (a, b) => {
+	try {
+		return a.raw.realTime - b.raw.realTime || a.raw.lineId - b.raw.lineId || a.raw.id - b.raw.id;
+	} catch (e) {
+		return a.realTime - b.realTime || a.lineId - b.lineId || a.id - b.id;
+	}
+};
 
 
 // 游戏分数相关
@@ -51,10 +58,7 @@ const score = {
 		this.miss = 0;
 		
 		this.acc = 0.00000;
-		this.perfectAcc = [0, 0];
-		this.goodAcc = [0, 0];
-		this.badAcc = [0, 0];
-		this.missAcc = [0, 0];
+		this.accArray = [];
 		
 		this.scorePerNote = (isChallenge ? 1000000 : 900000) / totalNotes;
 		
@@ -62,33 +66,30 @@ const score = {
 	},
 	
 	addCombo: function(type, acc = 0) {
-		if (type == 4) {
-			this.perfect += 1;
-			this.combo += 1;
-			
-			if (!!acc)
-				this.perfectAcc[(acc < 0 ? 0 : 1)] += 1;
-			
-		} else if (type == 3) {
-			this.good += 1;
-			this.combo += 1;
-			
-			if (!!acc)
-				this.goodAcc[(acc < 0 ? 0 : 1)] += 1;
-			
-		} else if (type == 2) {
-			this.bad += 1;
-			this.combo = 0;
-			
-			if (!!acc)
-				this.badAcc[(acc < 0 ? 0 : 1)] += 1;
-			
-		} else {
-			this.miss += 1;
-			this.combo = 0;
-			
-			if (!!acc)
-				this.missAcc[(acc < 0 ? 0 : 1)] += 1;
+		switch (type) {
+			case 4: {
+				this.perfect += 1;
+				this.combo += 1;
+				break;
+			}
+			case 3: {
+				this.good += 1;
+				this.combo += 1;
+				break;
+			}
+			case 2: {
+				this.bad += 1;
+				this.combo = 0;
+				break;
+			}
+			default: {
+				this.miss += 1;
+				this.combo = 0;
+			}
+		}
+		
+		if (!!acc) {
+			this.accArray.push(acc);
 		}
 		
 		// 最大连击
@@ -103,23 +104,14 @@ const score = {
 		this.score = this.score.toFixed(0);
 		
 		// 判定等级计算
-		if (this.score < 700000 && this.score > 0) {
-			this.judge = 0;
-		} else if (this.score < 820000 && this.score >= 700000) {
-			this.judge = 1;
-		} else if (this.score < 880000 && this.score >= 820000) {
-			this.judge = 2;
-		} else if (this.score < 920000 && this.score >= 880000) {
-			this.judge = 3;
-		} else if (this.score < 960000 && this.score >= 920000) {
-			this.judge = 4;
-		} else if (this.score < 1000000 && this.score >= 960000) {
-			this.judge = 5;
-		} else if (this.score == 1000000) {
-			this.judge = 6;
-		} else {
-			this.judge = -1;
-		}
+		if (this.score >= 1000000) this.judge = 6;
+		else if (this.score >= 960000) this.judge = 5;
+		else if (this.score >= 920000) this.judge = 4;
+		else if (this.score >= 880000) this.judge = 3;
+		else if (this.score >= 820000) this.judge = 2;
+		else if (this.score >= 700000) this.judge = 1;
+		else if (this.score > 0)  this.judge = 0;
+		else this.judge = -1;
 		
 		// Acc 计算
 		this.acc = ((this.perfect + this.good * 0.65) / (this.perfect + this.good + this.bad + this.miss) * 100).toFixed(2);
@@ -135,31 +127,35 @@ const score = {
 			this.apType = 0;
 			
 			if (settings.showApStatus) {
-				for (let container of sprites.containers) {
-					container.children[0].tint = 0xFFFFFF;
+				for (let judgeLine of sprites.game.judgeLines) {
+					judgeLine.tint = 0xFFFFFF;
 				}
+				
+				if (sprites.ui.start.fakeJudgeline) sprites.ui.start.fakeJudgeline.tint = 0xFFFFFF;
 			}
 			
 		} else if (this.good > 0 && this.apType > 1) {
 			this.apType = 1;
 			
 			if (settings.showApStatus) {
-				for (let container of sprites.containers) {
-					container.children[0].tint = 0xB4E1FF;
+				for (let judgeLine of sprites.game.judgeLines) {
+					judgeLine.tint = 0xB4E1FF;
 				}
+				
+				if (sprites.ui.start.fakeJudgeline) sprites.ui.start.fakeJudgeline.tint = 0xB4E1FF;
 			}
 		}
 		
 		// 推送分数到游戏 UI
-		sprites.scoreText.text = this.scoreText;
+		sprites.ui.game.head.scoreText.text = this.scoreText;
 		
 		// 推送连击到游戏 UI
 		if (this.combo > 2) {
-			sprites.comboText.alpha = 1;
-			sprites.comboText.children[0].text = this.combo;
+			sprites.ui.game.head.comboText.alpha = 1;
+			sprites.ui.game.head.comboText.children[0].text = this.combo;
 			
 		} else {
-			sprites.comboText.alpha = 0;
+			sprites.ui.game.head.comboText.alpha = 0;
 		}
 		
 		// 实时显示当前判定状态
@@ -523,41 +519,37 @@ function BlurImage(_texture, radius = 10) {
  * @return {object} 返回一个已经处理完毕的谱面对象
 ***/
 function CalculateChartData (chart) {
-	let notesTotal = [];
+	// let notesTotal = [];
 	let judgeLines = [];
 	let multiNotes = {};
 	let notes = {
-		tap   : [],
-		drag  : [],
-		hold  : [],
-		flick : []
+		hold    : [],
+		notHold : []
 	};
 	
-	for (let i = 0; i < chart.judgeLineList.length; i++) {
-		let judgeLine = chart.judgeLineList[i];
+	for (let judgeLine of chart.judgeLineList) {
+		let noteId = 0;
 		let _judgeLine = {
-			id: i,
+			id: Number(judgeLines.length),
 			bpm: judgeLine.bpm,
 			speedEvents: [],
 			judgeLineMoveEvents: [],
 			judgeLineRotateEvents: [],
 			judgeLineDisappearEvents: [],
-			notes: [],
-			notesAbove: [],
-			notesBelow: [],
 			numOfNotes: judgeLine.numOfNotes,
 			numOfNotesAbove: judgeLine.numOfNotesAbove,
 			numOfNotesBelow: judgeLine.numOfNotesBelow
 		};
 		
 		// 过滤掉空的判定线
-		if (judgeLine.notesAbove.length <= 0 &&
+		if (
+			judgeLine.notesAbove.length <= 0 &&
 			judgeLine.notesBelow <= 0 &&
 			judgeLine.judgeLineMoveEvents.length <= 1 &&
 			judgeLine.judgeLineRotateEvents.length <= 1 &&
 			judgeLine.judgeLineDisappearEvents.length <= 1 &&
-			judgeLine.speedEvents.length <= 1)
-		{
+			judgeLine.speedEvents.length <= 1
+		) {
 			continue;
 		}
 		
@@ -569,16 +561,12 @@ function CalculateChartData (chart) {
 		
 		// note 添加 id，设置方向参数、设置正确时间、归类并和总
 		for (let x = 0; x < judgeLine.notesAbove.length; x++) {
-			let note = judgeLine.notesAbove[x];
-			note = addNote(note, _judgeLine, x, true);
-			_judgeLine.notes.push(note);
-			_judgeLine.notesAbove.push(note);
+			addNote(judgeLine.notesAbove[x], _judgeLine, (notes.hold.length + notes.notHold.length), x, noteId, true);
+			noteId++;
 		}
 		for (let y = 0; y < judgeLine.notesBelow.length; y++) {
-			let note = judgeLine.notesBelow[y];
-			note = addNote(note, _judgeLine, y, false);
-			_judgeLine.notes.push(note);
-			_judgeLine.notesBelow.push(note);
+			addNote(judgeLine.notesBelow[y], _judgeLine, (notes.hold.length + notes.notHold.length), y, noteId, false);
+			noteId++;
 		}
 		
 		// 推送判定线
@@ -586,21 +574,20 @@ function CalculateChartData (chart) {
 	}
 	
 	// 标识多押 note
-	for (let note of notesTotal) {
-		multiNotes[note.realTime.toFixed(6)] = multiNotes[note.realTime.toFixed(6)] ? 2 : 1;
+	for (let name in notes) {
+		for (let note of notes[name]) {
+			multiNotes[note.realTime.toFixed(6)] = multiNotes[note.realTime.toFixed(6)] ? 2 : 1;
+		}
 	}
-	for (let note of notesTotal) {
-		note.isMulti = (multiNotes[note.realTime.toFixed(6)] == 2);
+	for (let name in notes) {
+		for (let note of notes[name]) {
+			note.isMulti = (multiNotes[note.realTime.toFixed(6)] == 2);
+		}
 	}
 	
 	// note 重排序
-	notes.tap.sort(global.functions.sortNote);
-	notes.drag.sort(global.functions.sortNote);
 	notes.hold.sort(global.functions.sortNote);
-	notes.flick.sort(global.functions.sortNote);
-	notesTotal.sort(global.functions.sortNote);
-	
-	notes.total = notesTotal;
+	notes.notHold.sort(global.functions.sortNote);
 	
 	return {
 		judgeLines: judgeLines,
@@ -616,7 +603,7 @@ function CalculateChartData (chart) {
 	 * @param isAbove {bool} 该 Note 是否存在 notesAbove 中
 	 * @return {object} 已处理完毕的 Note 对象
 	***/
-	function addNote(note, judgeLine, id, isAbove) {
+	function addNote(note, judgeLine, id, idToSide, idToLine, isAbove) {
 		let noteSpeed                = 1;
 		let noteSpeedChangedRealTime = 0;
 		let noteSpeedChangedPosition = 0;
@@ -624,12 +611,15 @@ function CalculateChartData (chart) {
 		let holdHeadPosition         = 0;
 		let holdEndPosition          = 0;
 		
+		note.type         = Number(note.type);
 		note.realTime     = note.time * (1.875 / judgeLine.bpm);
 		note.realHoldTime = note.holdTime * (1.875 / judgeLine.bpm);
 		note.offsetY      = note.floorPosition;
 		note.holdLength   = note.realHoldTime * note.speed;
-		note.lineId       = judgeLine.id;
-		note.id           = id;
+		note.lineId       = Number(judgeLine.id);
+		note.id           = Number(id);
+		note.idToSide     = Number(idToSide); // 相对这个判定线方向的 ID
+		note.idToLine     = Number(idToLine); // 相对这个判定线的 ID
 		note.isAbove      = isAbove;
 		note.score        = 0;
 		note.isScored     = false;
@@ -671,12 +661,9 @@ function CalculateChartData (chart) {
 			note.holdLength = (holdEndPosition - holdHeadPosition);
 		}
 		
-		if (note.type == 1) notes.tap.push(note);
-		else if (note.type == 2) notes.drag.push(note);
-		else if (note.type == 3) notes.hold.push(note);
-		else if (note.type == 4) notes.flick.push(note);
+		if (note.type === 3) notes.hold.push(note);
+		else notes.notHold.push(note);
 		
-		notesTotal.push(note);
 		return note;
 	}
 	
@@ -739,7 +726,7 @@ function CalculateChartData (chart) {
 		}
 		
 		// 合并相同变化率事件
-		newEvents2 = [newEvents.shift()];
+		newEvents2 = [ newEvents.shift() ];
 		for (let newEvent of newEvents) {
 			let lastNewEvent2 = newEvents2[newEvents2.length - 1];
 			let duration1 = lastNewEvent2.endTime - lastNewEvent2.startTime;
@@ -807,17 +794,12 @@ function CalculateChartData (chart) {
  * @function 该方法将为传入的谱面数据创建所有的精灵。传入谱面前请确认使用 CalculateChartData() 处理过。
  * @param chart {object} 已使用 CalculateChartData() 处理过的谱面数据
  * @param pixi {object} 如果传入，则自动向这个 Pixi 对象提交精灵
- * @return {object} 返回一个存放 Containers 精灵数组、Notes 精灵数组和 FPS 精灵的对象
+ * @param stage {object} 将精灵自动添加进这个容器内
+ * @return {object} 返回一个存放背景图、Judgeline 精灵数组、Notes 精灵数组的对象
 ***/
-function CreateChartSprites(chart, pixi) {
+function CreateChartSprites(chart, pixi, stage) {
 	/***
-	 * 渲染思路：
-	 * 将每一个判定线视为一个 Container，该 Container 除了包含该判
-	 * 定线本身外还包含两个 Container 用于分别控制判定线两面的 Note。
-	 * 如此做法的好处是整个判定线的 Note 流速、旋转、位移都更加方便控
-	 * 制，坏处就是由于 Pixi 的 Container 元素没有设定中心点的方法，
-	 * 所以中心点得靠手动移动子元素来实现，且不方便绘制那些有速度变化的
-	 * Note。
+	 * 之前的渲染思路废掉了，因为怀疑有性能问题
 	***/
 	
 	/***
@@ -831,16 +813,8 @@ function CreateChartSprites(chart, pixi) {
 	let noteScale = pixi.renderer.noteScale;
 	
 	let output = {
-		containers: [],
-		totalNotes: [],
-		tapholeNotes: [],
-		dragNotes: [],
-		flickNotes: [],
-		inputs: {
-			touches: {},
-			mouse: {}
-		},
-		clickAnimate: []
+		judgeLines: [],
+		notes: []
 	};
 	
 	// 创建背景图
@@ -858,29 +832,23 @@ function CreateChartSprites(chart, pixi) {
 		
 		backgroundCover.position.x = -background.width / 2;
 		backgroundCover.position.y = -background.height / 2;
-		backgroundCover.alpha = 1 - settings.backgroundDim;
+		backgroundCover.alpha = 0.5;
 		background.addChild(backgroundCover);
 		
 		// background.alpha = settings.backgroundDim;
 		background.anchor.set(0.5);
 		background.scale.set(bgScale);
-		background.position.set(realWidth / 2, realHeight / 2);
+		background.position.set(fixedWidth / 2, realHeight / 2);
 		
 		output.background = background;
-		pixi.stage.addChild(background);
+		stage.addChild(background);
 	}
 	
-	// 绘制判定线与 Note
+	// 绘制判定线
 	for (let _judgeLine of chart.judgeLines) {
-		let container = new PIXI.Container();
 		let judgeLine = new PIXI.Sprite(textures.judgeLine);
-		let notesAbove = new PIXI.Container();
-		let notesBelow = new PIXI.Container();
 		
-		// judgeLine.raw = _judgeLine;
-		for (let name in _judgeLine) {
-			judgeLine[name] = _judgeLine[name];
-		}
+		judgeLine.raw = _judgeLine;
 		
 		// 设置判定线中心点和宽高
 		judgeLine.anchor.set(0.5);
@@ -889,7 +857,7 @@ function CreateChartSprites(chart, pixi) {
 		
 		// 调整判定线位置
 		judgeLine.position.set(0, 0);
-		judgeLine.zIndex = 1;
+		judgeLine.zIndex = output.judgeLines.length + 1;
 		
 		if (settings.showApStatus) {
 			judgeLine.tint = 0xFFECA0;
@@ -902,99 +870,185 @@ function CreateChartSprites(chart, pixi) {
 			judgeLine.addChild(judgeLineName);
 		}
 		
-		notesAbove.noteDirection = 1;
-		notesBelow.noteDirection = -1;
+		judgeLine.position.x = fixedWidth / 2;
+		judgeLine.position.y = realHeight / 2;
 		
-		for (let _note of _judgeLine.notes) {
-			let note;
-			
-			if (_note.type == 3) {
-				let hold = new PIXI.Container();
-				let holdHead = new PIXI.Sprite(textures['holdHead' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
-				let holdBody = new PIXI.Sprite(textures['holdBody' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
-				let holdEnd = new PIXI.Sprite(textures['holdEnd' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
-				
-				holdHead.anchor.set(0.5);
-				holdBody.anchor.set(0.5, 1);
-				holdEnd.anchor.set(0.5, 1);
-				
-				holdBody.height = _note.holdLength * pixi.renderer.noteSpeed / noteScale;
-				
-				holdHead.position.set(0, holdHead.height / 2);
-				holdBody.position.set(0, 0);
-				holdEnd.position.set(0, -holdBody.height);
-				
-				hold.addChild(holdHead);
-				hold.addChild(holdBody);
-				hold.addChild(holdEnd);
-				
-				hold.zIndex = 2;
-				
-				note = hold;
-				
-			} else {
-				note = new PIXI.Sprite(textures.tap);
-				
-				note.anchor.set(0.5);
-				note.zIndex = 3;
-				
-				if (_note.type == 1) note.texture = textures['tap' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
-				else if (_note.type == 2) note.texture = textures['drag' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
-				else if (_note.type == 4) note.texture = textures['flick' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
-			}
-			
-			if (settings.developMode) {
-				let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
-				noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
-				noteName.anchor.set(0.5, 1);
-				noteName.position.set(0);
-				note.addChild(noteName);
-			}
-			
-			note.scale.set(noteScale);
-			note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
-			note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
-			
-			// note.raw = _note;
-			for (let name in _note) {
-				note[name] = _note[name];
-			}
-			
-			if (_note.isAbove) notesAbove.addChild(note);
-			else note.angle = 180, notesBelow.addChild(note);
-			
-			output.totalNotes.push(note);
-			
-			/**
-			if (_note.type == 1 || _note.type == 3) {
-				output.tapholeNotes.push(note);
-			} else if (_note.type == 2) {
-				output.dragNotes.push(note);
-			} else if (_note.type == 4) {
-				output.flickNotes.push(note);
-			}
-			**/
+		output.judgeLines.push(judgeLine);
+		stage.addChild(judgeLine);
+	}
+	
+	for (let _note of chart.notes.hold) { // 先渲染 Hold，这样 Hold 就会在所有 Note 的最下面
+		let note = new PIXI.Container();
+		let holdHead = new PIXI.Sprite(textures['holdHead' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
+		let holdBody = new PIXI.Sprite(textures['holdBody' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
+		let holdEnd = new PIXI.Sprite(textures['holdEnd' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
+		
+		holdHead.anchor.set(0.5);
+		holdBody.anchor.set(0.5, 1);
+		holdEnd.anchor.set(0.5, 1);
+		
+		holdBody.height = _note.holdLength * pixi.renderer.noteSpeed / noteScale;
+		
+		holdHead.position.set(0, holdHead.height / 2);
+		holdBody.position.set(0, 0);
+		holdEnd.position.set(0, -holdBody.height);
+		
+		note.addChild(holdHead);
+		note.addChild(holdBody);
+		note.addChild(holdEnd);
+		
+		note.zIndex = output.judgeLines.length + output.notes.length + 1;
+		
+		if (settings.developMode) {
+			let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
+			noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
+			noteName.anchor.set(0.5, 1);
+			noteName.position.set(0);
+			note.addChild(noteName);
 		}
 		
-		// 还是 Note 重排序
-		output.totalNotes.sort(global.functions.sortNote);
-		/**
-		output.tapholeNotes.sort(global.functions.sortNote);
-		output.dragNotes.sort(global.functions.sortNote);
-		output.flickNotes.sort(global.functions.sortNote);
-		**/
-		container.addChild(judgeLine);
+		note.scale.set(noteScale);
+		note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2) + (fixedWidth / 2);
+		note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
 		
-		if (notesAbove.children.length > 0) container.addChild(notesAbove);
-		if (notesBelow.children.length > 0) container.addChild(notesBelow);
+		note.raw = _note;
 		
-		pixi.stage.addChild(container);
+		if (!_note.isAbove) note.angle = 180;
 		
-		container.position.x = realWidth / 2;
-		container.position.y = realHeight / 2;
-		
-		output.containers.push(container);
+		output.notes.push(note);
+		stage.addChild(note);
 	}
+	
+	for (let _note of chart.notes.notHold) {
+		let note = new PIXI.Sprite(textures.tap);
+			
+		note.anchor.set(0.5);
+		note.zIndex = chart.judgeLines.length * 2 + output.notes.length + 1;
+		
+		if (_note.type == 1) note.texture = textures['tap' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
+		else if (_note.type == 2) note.texture = textures['drag' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
+		else if (_note.type == 4) note.texture = textures['flick' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
+		
+		if (settings.developMode) {
+			let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
+			noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
+			noteName.anchor.set(0.5, 1);
+			noteName.position.set(0);
+			note.addChild(noteName);
+		}
+		
+		note.scale.set(noteScale);
+		note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2) + (fixedWidth / 2);
+		note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
+		
+		note.raw = _note;
+		
+		if (!_note.isAbove) note.angle = 180;
+		
+		output.notes.push(note);
+		stage.addChild(note);
+	}
+	
+	output.notes.sort(global.functions.sortNote);
+	
+	return output;
+}
+
+/***
+ * @function 创建谱面开始动画精灵，这个函数亦可用于重调整相关精灵的大小和位置
+ * @param chartInfo {object} 存放谱面信息的对象
+ * @param sprite {object} 当此对象内的精灵有效时，不再创建新的精灵
+ * @param pixi {object} PixiJs 的舞台对象
+ * @return {object} 返回创建好/重新定位好的精灵对象
+***/
+function CreateGameStartSprites(chartInfo, sprite, pixi, stage) {
+	let realWidth = pixi.renderer.realWidth;
+	let realHeight = pixi.renderer.realHeight;
+	let fixedWidth = pixi.renderer.fixedWidth;
+	let lineScale = pixi.renderer.lineScale;
+	
+	let output = sprite;
+	if (!output) output = {};
+	
+	// =====创建精灵=====
+	// 大标题 Container
+	if (!output.container) {
+		output.container = new PIXI.Container();
+		stage.addChild(output.container);
+	}
+	
+	// 大标题-歌曲名称
+	if (!output.songTitle) {
+		let songTitle = new PIXI.Text(chartInfo.name || 'No Title', {
+			fontFamily : 'Mina',
+			fill : 'white',
+			align : 'center'
+		});
+		
+		songTitle.anchor.x = 0.5;
+		
+		output.container.addChild(songTitle);
+		output.songTitle = songTitle;
+	}
+	
+	// 大标题-背景图作者
+	if (!output.bgAuthor) {
+		let bgAuthor = new PIXI.Text('Illustration designed by ' + (chartInfo.illustrator || 'No name'), {
+			fontFamily : 'Mina',
+			fill : 'white',
+			align : 'center'
+		});
+		
+		bgAuthor.anchor.set(0.5, 1);
+		
+		output.container.addChild(bgAuthor);
+		output.bgAuthor = bgAuthor;
+	}
+	
+	// 大标题-谱面作者
+	if (!output.chartAuthor) {
+		let chartAuthor = new PIXI.Text('Level designed by ' + (_chart.info.designer || 'No name'), {
+			fontFamily : 'Mina',
+			fill : 'white',
+			align : 'center'
+		});
+		
+		chartAuthor.anchor.set(0.5, 1);
+		
+		output.container.addChild(chartAuthor);
+		output.chartAuthor = chartAuthor;
+	}
+	
+	// 动画专用的假判定线
+	if (!output.fakeJudgeline) {
+		output.fakeJudgeline = new PIXI.Sprite(textures.judgeLine);
+		output.fakeJudgeline.anchor.set(0.5);
+		
+		stage.addChild(output.fakeJudgeline);
+	}
+	
+	// =====调整各项目大小=====
+	output.songTitle.style.fontSize   = lineScale * 1.1 + 'px';
+	output.bgAuthor.style.fontSize    = lineScale * 0.55 + 'px';
+	output.chartAuthor.style.fontSize = lineScale * 0.55 + 'px';
+	
+	output.fakeJudgeline.height = pixi.renderer.lineScale * 18.75 * 0.008;
+	output.fakeJudgeline.offsetWidth = pixi.renderer.fixedWidth;
+	
+	// =====调整各项目位置=====
+	output.songTitle.position.x = fixedWidth / 2;
+	output.songTitle.position.y = realHeight / 2 * 0.75;
+	
+	output.bgAuthor.position.x = fixedWidth / 2;
+	output.bgAuthor.position.y = realHeight / 2 * 1.25 + lineScale * 0.15;
+	
+	output.chartAuthor.position.x = fixedWidth / 2;
+	output.chartAuthor.position.y = realHeight / 2 * 1.25 + lineScale;
+	
+	output.fakeJudgeline.position.x = pixi.renderer.fixedWidth / 2;
+	output.fakeJudgeline.position.y = pixi.renderer.realHeight / 2;
+	
+	output.container.alpha = 0;
 	
 	return output;
 }
@@ -1005,57 +1059,58 @@ function CreateChartSprites(chart, pixi) {
  * @param pixi {object} Pixi.js 应用对象
  * @param [requireFPSCounter] {bool} 是否需要创建一个 FPS 指示器，默认为 false
 ***/
-function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
+function CreateChartInfoSprites(chartInfo, sprite, pixi, stage, requireFPSCounter = false, noStartAnimate = false) {
 	let realWidth = pixi.renderer.realWidth;
 	let realHeight = pixi.renderer.realHeight;
 	let fixedWidth = pixi.renderer.fixedWidth;
 	let fixedWidthOffset = pixi.renderer.fixedWidthOffset;
 	let lineScale = pixi.renderer.lineScale;
 	
+	let output = sprite;
+	if (!output) output = {};
+	
 	// 头部信息合集
-	if (!sprites.headInfos) {
-		sprites.headInfos = new PIXI.Container();
+	if (!output.head) {
+		output.head = {
+			container: new PIXI.Container()
+		};
+		
+		output.head.container.zIndex = 99999;
 	}
-	if (!sprites.headInfos.parent)
-		pixi.stage.addChild(sprites.headInfos);
+	if (!output.head.container.parent)
+		stage.addChild(output.head.container);
 	
 	// 进度条
-	if (!sprites.progressBar) {
-		let progressBar = new PIXI.Sprite(textures.progressBar);
+	if (!output.head.progressBar) {
+		output.head.progressBar = new PIXI.Sprite(textures.progressBar);
 		
-		progressBar.anchor.x = 1;
-		progressBar.scale.set(fixedWidth / (1920 / pixi.renderer.resolution));
+		output.head.progressBar.anchor.x = 1;
 		
-		sprites.headInfos.addChild(progressBar);
-		sprites.progressBar = progressBar;
+		output.head.container.addChild(output.head.progressBar);
 	}
 	
 	// 分数指示
-	if (!sprites.scoreText) {
-		let scoreText = new PIXI.Text('0000000', {
+	if (!output.head.scoreText) {
+		output.head.scoreText = new PIXI.Text('0000000', {
 			fontFamily: 'Mina',
-			fontSize: lineScale * 0.95 + 'px',
 			fill: 'white'
 		});
 		
-		scoreText.anchor.x = 1;
-		scoreText.anchor.y = 0.5;
+		output.head.scoreText.anchor.x = 1;
+		output.head.scoreText.anchor.y = 0.5;
 		
-		sprites.headInfos.addChild(scoreText);
-		sprites.scoreText = scoreText;
+		output.head.container.addChild(output.head.scoreText);
 	}
 	
 	// Combo 指示
-	if (!sprites.comboText) {
+	if (!output.head.comboText) {
 		let combo = new PIXI.Container();
 		let number = new PIXI.Text('0', {
 			fontFamily : 'Mina',
-			fontSize : lineScale * 1.32 + 'px',
 			fill : 'white'
 		});
 		let text = new PIXI.Text('combo', {
 			fontFamily : 'Mina',
-			fontSize : lineScale * 0.66 + 'px',
 			fill : 'white'
 		});
 		
@@ -1067,236 +1122,204 @@ function CreateChartInfoSprites(sprites, pixi, requireFPSCounter = false) {
 		combo.addChild(number);
 		combo.addChild(text);
 		
-		sprites.headInfos.addChild(combo);
-		sprites.comboText = combo;
-	}
-	
-	// 大标题 Container
-	if (!sprites.titlesBig) {
-		sprites.titlesBig = new PIXI.Container();
-		pixi.stage.addChild(sprites.titlesBig);
-	}
-	
-	// 大标题-歌曲名称
-	if (!sprites.songTitleBig) {
-		let songTitleBig = new PIXI.Text(_chart.info.name || 'No Title', {
-			fontFamily : 'Mina',
-			fontSize : lineScale * 1.1 + 'px',
-			fill : 'white',
-			align : 'center'
-		});
-		
-		songTitleBig.anchor.x = 0.5;
-		
-		sprites.titlesBig.addChild(songTitleBig);
-		sprites.songTitleBig = songTitleBig;
-	}
-	
-	// 大标题-背景图作者
-	if (!sprites.bgAuthorBig) {
-		let bgAuthorBig = new PIXI.Text('Illustration designed by ' + (_chart.info.illustrator || 'No name'), {
-			fontFamily : 'Mina',
-			fontSize: lineScale * 0.55 + 'px',
-			fill : 'white',
-			align : 'center'
-		});
-		
-		bgAuthorBig.anchor.set(0.5, 1);
-		
-		sprites.titlesBig.addChild(bgAuthorBig);
-		sprites.bgAuthorBig = bgAuthorBig;
-	}
-	
-	// 大标题-谱面作者
-	if (!sprites.chartAuthorBig) {
-		let chartAuthorBig = new PIXI.Text('Level designed by ' + (_chart.info.designer || 'No name'), {
-			fontFamily : 'Mina',
-			fontSize: lineScale * 0.55 + 'px',
-			fill : 'white',
-			align : 'center'
-		});
-		
-		chartAuthorBig.anchor.set(0.5, 1);
-		
-		sprites.titlesBig.addChild(chartAuthorBig);
-		sprites.chartAuthorBig = chartAuthorBig;
+		output.head.container.addChild(combo);
+		output.head.comboText = combo;
 	}
 	
 	// 底部歌曲信息合集
-	if (!sprites.footInfos) {
-		sprites.footInfos = new PIXI.Container();
+	if (!output.foot) {
+		output.foot = {
+			container: new PIXI.Container()
+		};
+		
+		output.foot.container.zIndex = 99999;
 	}
-	if (!sprites.footInfos.parent)
-		pixi.stage.addChild(sprites.footInfos);
+	if (!output.foot.container.parent)
+		stage.addChild(output.foot.container);
 	
 	// 底部信息-歌曲名称侧边横线
-	if (!sprites.songNameBar) {
-		sprites.songNameBar = new PIXI.Sprite(textures.songNameBar);
-		
-		sprites.songNameBar.width = lineScale * 0.119;
-		sprites.songNameBar.height = lineScale * 0.612;
-		
-		sprites.footInfos.addChild(sprites.songNameBar);
+	if (!output.foot.songNameBar) {
+		output.foot.songNameBar = new PIXI.Sprite(textures.songNameBar);
+		output.foot.container.addChild(output.foot.songNameBar);
 	}
 	
 	// 底部信息-歌曲名称
-	if (!sprites.songTitle) {
-		sprites.songTitle = new PIXI.Text(_chart.info.name || 'No title', {
+	if (!output.foot.songTitle) {
+		output.foot.songTitle = new PIXI.Text(_chart.info.name || 'No title', {
 			fontFamily : 'Mina',
-			fontSize : lineScale * 0.63 + 'px',
 			fill : 'white',
 			align : 'center'
 		});
 		
-		sprites.songTitle.anchor.y = 1;
+		output.foot.songTitle.anchor.y = 1;
 		
-		sprites.footInfos.addChild(sprites.songTitle);
+		output.foot.container.addChild(output.foot.songTitle);
 	}
 	
 	// 底部信息-谱面等级
-	if (!sprites.songDiff) {
-		sprites.songDiff = new PIXI.Text(_chart.info.level || 'SP Lv.?', {
+	if (!output.foot.songDiff) {
+		output.foot.songDiff = new PIXI.Text(_chart.info.level || 'SP Lv.?', {
 			fontFamily : 'Mina',
-			fontSize : lineScale * 0.63 + 'px',
 			fill : 'white',
 			align : 'right'
 		});
 		
-		sprites.songDiff.anchor.set(1);
+		output.foot.songDiff.anchor.set(1);
 		
-		sprites.footInfos.addChild(sprites.songDiff);
+		output.foot.container.addChild(output.foot.songDiff);
 	}
 	
 	// 对于超宽屏所创建的背景图盖板
-	if (!sprites.backgroundCover) {
+	if (!output.backgroundCover) {
 		let bgImage = new PIXI.Sprite(settings.backgroundBlur ? _chart.imageBlur : _chart.image);
 		let bgBright = new PIXI.Graphics();
 		let bgCovers = new PIXI.Container();
-		
-		let bgScaleWidth = realWidth / _chart.image.width;
-		let bgScaleHeight = realHeight / _chart.image.height;
-		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
-		
-		bgBright.beginFill(0x000000);
-		bgBright.drawRect(0, 0, bgImage.width, bgImage.height);
-		bgBright.endFill();
 		
 		bgBright.position.set(-bgImage.width / 2, -bgImage.height / 2);
 		bgBright.alpha = 0.5;
 		bgImage.addChild(bgBright);
 		
 		bgImage.anchor.set(0.5);
-		bgImage.scale.set(bgScale);
-		bgImage.position.set(realWidth / 2, realHeight / 2);
-		bgImage.alpha = realWidth != fixedWidth ? 1 : 0;
+		bgImage.zIndex = 999999;
 		
 		pixi.stage.addChild(bgImage);
 		
-		bgCovers.addChild(
-			new PIXI.Graphics()
-				.beginFill(0xFFFFFF)
-				.drawRect(0, 0, fixedWidthOffset, realHeight)
-				.endFill()
-			, new PIXI.Graphics()
-				.beginFill(0xFFFFFF)
-				.drawRect(realWidth - fixedWidthOffset, 0, fixedWidthOffset, realHeight)
-				.endFill()
-		);
+		bgCovers.addChild(new PIXI.Graphics(), new PIXI.Graphics());
 		
 		bgImage.mask = bgCovers;
 		
-		sprites.backgroundCover = {
+		output.backgroundCover = {
 			image: bgImage,
 			cover: bgCovers
 		}
 	}
 	
 	// FPS 计数器
-	if (requireFPSCounter && !sprites.fps) {
+	if (requireFPSCounter && !output.fps) {
 		let fps = new PIXI.Text('00.00', {
 			fontFamily : 'Mina',
-			fontSize: lineScale * 0.8 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
 		
 		fps.anchor.set(1, 0);
+		fps.zIndex = 1000000;
 		
 		pixi.stage.addChild(fps);
-		sprites.fps = fps;
-		sprites.fpsInterval = setInterval(() => {
-			fps.text = fillZero((pixi.ticker.FPS).toFixed(2));
-			
-			function fillZero(num) {
-				let nums = (num + '').split('.');
-				
-				for (let _num of nums) {
-					if (_num < 10) {
-						_num = '0' + _num;
-					}
-				}
-				return nums[0] + (nums[1] ? '.' + nums[1] : '');
-			}
-		}, 200);
+		output.fps = fps;
+		output.fpsInterval = setInterval(() => { fps.text = (pixi.ticker.FPS).toFixed(2) }, 200);
 	}
 	
 	// 创建水印
-	if (!sprites.watermark) {
-		let watermark = new PIXI.Text('Ph1gr0s Emulator v1.0.0 Beta By MisaLiu Origin By lchzh3473', {
+	if (!output.watermark) {
+		let watermark = new PIXI.Text('Ph1gr0s Emulator v0.1.9 Alpha By MisaLiu Origin By lchzh3473', {
 			fontFamily : 'Mina',
-			fontSize: lineScale * 0.6 + 'px',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
 		});
 		
 		watermark.anchor.set(1);
+		watermark.zIndex = 1000000;
 		
 		pixi.stage.addChild(watermark);
-		sprites.watermark = watermark;
+		output.watermark = watermark;
 	}
 	
-	// 统一调整位置和透明度
-	sprites.comboText.alpha = 0;
-	sprites.titlesBig.alpha = 0;
-	sprites.headInfos.alpha = 0;
-	sprites.footInfos.alpha = 0;
+	// =====调整大小=====
+	output.head.progressBar.scale.set(fixedWidth / (textures.progressBar.width / pixi.renderer.resolution));
+	output.head.progressBar.height = 3;
 	
-	sprites.scoreText.position.set(fixedWidth - lineScale * 0.65 + fixedWidthOffset, lineScale * 1.375);
+	output.head.scoreText.style.fontSize = lineScale * 0.95 + 'px';
+	output.head.comboText.children[0].style.fontSize = lineScale * 1.32 + 'px';
+	output.head.comboText.children[1].style.fontSize = lineScale * 0.66 + 'px';
 	
-	sprites.comboText.position.x = realWidth / 2;
-	sprites.comboText.children[0].position.y = lineScale * 1.375;
-	sprites.comboText.children[1].position.y = lineScale * 1.375 + sprites.comboText.children[0].height;
+	output.foot.songNameBar.width  = lineScale * 0.119;
+	output.foot.songNameBar.height = lineScale * 0.612;
+	output.foot.songTitle.style.fontSize = lineScale * 0.63 + 'px';
+	output.foot.songDiff.style.fontSize = lineScale * 0.63 + 'px';
 	
-	sprites.songTitleBig.position.x = realWidth / 2;
-	sprites.songTitleBig.position.y = realHeight / 2 * 0.75;
+	{
+		let bgScaleWidth = realWidth / _chart.image.width;
+		let bgScaleHeight = realHeight / _chart.image.height;
+		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
+		
+		output.backgroundCover.image.scale.set(bgScale);
+	}
 	
-	sprites.bgAuthorBig.position.x = realWidth / 2;
-	sprites.bgAuthorBig.position.y = realHeight / 2 * 1.25 + lineScale * 0.15;
+	if (output.fps) output.fps.style.fontSize = lineScale * 0.8 + 'px';
+	output.watermark.style.fontSize = lineScale * 0.6 + 'px';
 	
-	sprites.chartAuthorBig.position.x = realWidth / 2;
-	sprites.chartAuthorBig.position.y = realHeight / 2 * 1.25 + lineScale;
+	// =====重绘 Graphics=====
+	if (fixedWidth < realWidth) {
+		output.backgroundCover.image.visible = true;
+	} else {
+		output.backgroundCover.image.visible = false;
+	}
 	
-	sprites.songNameBar.position.x = lineScale * 0.53 + fixedWidthOffset;
-	sprites.songNameBar.position.y = realHeight - lineScale * 1.22;
+	output.backgroundCover.image.children[0].clear();
+	output.backgroundCover.image.children[0].beginFill(0x000000)
+		.drawRect(
+			0,
+			0,
+			output.backgroundCover.image.texture.baseTexture.width,
+			output.backgroundCover.image.texture.baseTexture.height
+		)
+		.endFill();
 	
-	sprites.songTitle.position.x = lineScale * 0.85 + fixedWidthOffset;
-	sprites.songTitle.position.y = realHeight - lineScale * 0.52;
+	output.backgroundCover.cover.children[0].clear();
+	output.backgroundCover.cover.children[1].clear();
 	
-	sprites.songDiff.position.x = realWidth - lineScale * 0.75 - fixedWidthOffset;
-	sprites.songDiff.position.y = realHeight - lineScale * 0.52;
+	output.backgroundCover.cover.children[0].beginFill(0xFFFFFF)
+		.drawRect(0, 0, fixedWidthOffset, realHeight)
+		.endFill();
 	
-	sprites.fps.position.set(realWidth - 1, 1);
+	output.backgroundCover.cover.children[1].beginFill(0xFFFFFF)
+		.drawRect(realWidth - fixedWidthOffset, 0, fixedWidthOffset, realHeight)
+		.endFill();
 	
-	sprites.watermark.position.set(realWidth - 2, realHeight - 2);
+	// =====统一调整位置和透明度=====
+	if (!noStartAnimate) {
+		output.head.comboText.alpha = 0;
+		output.head.container.alpha = 0;
+		output.foot.container.alpha = 0;
+	}
 	
-	sprites.headInfos.position.y = -sprites.headInfos.height;
-	sprites.footInfos.position.y = sprites.headInfos.height;
+	output.head.scoreText.position.set(fixedWidth - lineScale * 0.65, lineScale * 1.375);
+	
+	output.head.comboText.position.x = fixedWidth / 2;
+	output.head.comboText.children[0].position.y = lineScale * 1.375;
+	output.head.comboText.children[1].position.y = lineScale * 1.375 + output.head.comboText.children[0].height;
+	
+	output.foot.songNameBar.position.x = lineScale * 0.53;
+	output.foot.songNameBar.position.y = realHeight - lineScale * 1.22;
+	
+	output.foot.songTitle.position.x = lineScale * 0.85;
+	output.foot.songTitle.position.y = realHeight - lineScale * 0.525;
+	
+	output.foot.songDiff.position.x = fixedWidth - lineScale * 0.75;
+	output.foot.songDiff.position.y = realHeight - lineScale * 0.525;
+	
+	output.backgroundCover.image.position.set(realWidth / 2, realHeight / 2);
+	
+	output.fps.position.set(realWidth - 1, 1);
+	
+	output.watermark.position.set(realWidth - 2, realHeight - 2);
+	
+	if (!noStartAnimate) {
+		output.head.container.position.y = -output.head.container.height;
+		output.foot.container.position.y = output.head.container.height;
+	} else {
+		output.head.container.position.y = 0;
+		output.foot.container.position.y = 0;
+	}
+	
+	return output;
 }
 
 /***
  * @function 游戏结束时绘制结算画面
 ***/
-function CreateGameEndAnimate(sprite) {
+function CreateGameEndSprites(sprite, pixi, stage, noAnimate = false) {
 	let realWidth = pixi.renderer.realWidth;
 	let realHeight = pixi.renderer.realHeight;
 	let fixedWidth = pixi.renderer.fixedWidth;
@@ -1394,38 +1417,31 @@ function CreateGameEndAnimate(sprite) {
 		output.acc.container.addChild(output.acc.percent, output.acc.apType);
 		output.container.addChild(output.acc.container);
 		
-		pixi.stage.addChild(output.container);
+		stage.addChild(output.container);
 	}
 	
 	// =====设置贴图=====
 	output.image.image.texture = _chart.image;
-	switch(score.judge) {
-		case 0: {
-			output.judgeIcon.texture = textures.judgeIcon.false;
+	switch (score.judge) {
+		case 0: { output.judgeIcon.texture = textures.judgeIcon.false;
 			break;
 		}
-		case 1: {
-			output.judgeIcon.texture = textures.judgeIcon.c;
+		case 1: { output.judgeIcon.texture = textures.judgeIcon.c;
 			break;
 		}
-		case 2: {
-			output.judgeIcon.texture = textures.judgeIcon.b;
+		case 2: { output.judgeIcon.texture = textures.judgeIcon.b;
 			break;
 		}
-		case 3: {
-			output.judgeIcon.texture = textures.judgeIcon.a;
+		case 3: { output.judgeIcon.texture = textures.judgeIcon.a;
 			break;
 		}
-		case 4: {
-			output.judgeIcon.texture = textures.judgeIcon.s;
+		case 4: { output.judgeIcon.texture = textures.judgeIcon.s;
 			break;
 		}
-		case 5: {
-			output.judgeIcon.texture = textures.judgeIcon.v;
+		case 5: { output.judgeIcon.texture = textures.judgeIcon.v;
 			break;
 		}
-		case 6: {
-			output.judgeIcon.texture = textures.judgeIcon.phi;
+		case 6: { output.judgeIcon.texture = textures.judgeIcon.phi;
 			break;
 		}
 	}
@@ -1511,7 +1527,7 @@ function CreateGameEndAnimate(sprite) {
 	
 	// 背景图渐变遮罩设置效果和位置
 	if (!output.image.gradient.filters) {
-		output.image.gradient.filters = [new PIXI.filters.BlurFilter(14, 4, PIXI.settings.FILTER_RESOLUTION, 9)]; // 灵魂！
+		output.image.gradient.filters = [ new PIXI.filters.BlurFilter(14, 4, PIXI.settings.FILTER_RESOLUTION, 9) ]; // 灵魂！
 	}
 	
 	output.image.gradient.scale.set(1 / bgScale);
@@ -1573,16 +1589,159 @@ function CreateGameEndAnimate(sprite) {
 	output.acc.container.position.x = paddingWidth;
 	output.acc.container.position.y = output.judge.container.position.y + output.judge.container.height + lineScale * 1.163194;
 	
-	output.container.position.x = (realWidth - output.container.width) / 2;
+	output.container.position.x = (fixedWidth - output.container.width) / 2;
 	output.container.position.y = (realHeight - output.container.height) / 2;
+	
+	// 透明度相关
+	if (!noAnimate) {
+		output.container.position.x = fixedWidth;
+		
+		output.judgeIcon.alpha = 0;
+		output.newScore.alpha = 0;
+		output.score.alpha = 0;
+		output.judge.container.alpha = 0;
+		output.acc.container.alpha = 0;
+	}
 	
 	return output;
 }
 
 /***
+ * @function 创建游戏结束动画 Ticker
+***/
+function CreateGameEndAnimation(pixi, sprites) {
+	let audioTexture = null;
+	let endAnimateTimer = new Timer();
+	let endAnimateBezier = new Cubic(.19, .36, .48, 1.01);
+	let endAnimateTicker = function() {
+		let endUi = sprites.ui.end,
+			gameHeadUi = sprites.ui.game.head,
+			gameFootUi = sprites.ui.game.foot;
+		
+		let paddingWidth = pixi.renderer.lineScale * 1.111111;
+		
+		if (endAnimateTimer.time >= 5.4) { // 结束动画
+			endAnimateTimer.stop();
+			pixi.ticker.remove(endAnimateTicker);
+			stat.isTransitionEnd = true;
+			
+		} else if (endAnimateTimer.time >= 4.8) { // 分数等级判定图标入场
+			endUi.judgeIcon.alpha = (endAnimateTimer.time - 4.8) / 0.6;
+			
+		} else if (endAnimateTimer.time >= 3.6) { // 结算界面子元素的入场动画
+			if (endAnimateTimer.time >= 4.6) { // 准度信息入场
+				endUi.acc.container.alpha = ((endAnimateTimer.time - 4.6) / 0.2);
+				endUi.acc.container.position.x = paddingWidth + (paddingWidth * (1 - endAnimateBezier.solve((endAnimateTimer.time - 4.6) / 0.2)));
+				
+			} else if (endAnimateTimer.time >= 4.4) { // 判定详细信息入场
+				endUi.judge.container.alpha = ((endAnimateTimer.time - 4.4) / 0.2);
+				endUi.judge.container.position.x = paddingWidth + (paddingWidth * (1 - endAnimateBezier.solve((endAnimateTimer.time - 4.4) / 0.2)));
+				
+			} else if (endAnimateTimer.time >= 4.2) { // newScore 入场
+				endUi.newScore.alpha = ((endAnimateTimer.time - 4.2) / 0.2);
+				endUi.newScore.position.x = paddingWidth + (paddingWidth * (1 - endAnimateBezier.solve((endAnimateTimer.time - 4.2) / 0.2)));
+			}
+			
+			if (endAnimateTimer.time < 4.2) { // 分数入场动画
+				if (endAnimateTimer.time < 3.8) {
+					endUi.score.alpha = (endAnimateTimer.time - 3.6) / 0.2;
+					endUi.score.position.x = paddingWidth + (paddingWidth * (1 - endAnimateBezier.solve((endAnimateTimer.time - 3.6) / 0.2)));
+				}
+				
+				endUi.score.text = (Number(score.score) * ((endAnimateTimer.time - 3.6) / 0.6)).toFixed(0) + '';
+				while (endUi.score.text.length < 7) {
+					endUi.score.text = '0' + endUi.score.text;
+				}
+			} else {
+				endUi.score.alpha = 1;
+				endUi.score.text = score.scoreText;
+				endUi.score.position.x = paddingWidth;
+			}
+			
+		} else if (endAnimateTimer.time >= 3) { // 播放结算音乐和入场动画
+			if (!global.levelOverAudio) {
+				global.levelOverAudio = audioTexture.play({ volume:settings.musicVolume });
+			}
+			endUi.container.position.x = pixi.renderer.fixedWidth - (pixi.renderer.fixedWidth + endUi.container.width) / 2 * endAnimateBezier.solve((endAnimateTimer.time - 3) / 0.6);
+			
+		} else if (endAnimateTimer.time >= 0.67) { // 随意等待一会
+			if (sprites.ui.start.fakeJudgeline.visible === true) {
+				sprites.ui.start.fakeJudgeline.visible = false;
+			}
+			
+			if (!sprites.ui.end) {
+				sprites.ui.end = CreateGameEndSprites(sprites.ui.end, pixi, sprites.mainContainer);
+			}
+			
+			gameHeadUi.container.position.y = -gameHeadUi.container.height;
+			gameFootUi.container.position.y = gameHeadUi.container.height;
+			
+			gameHeadUi.container.alpha = 0;
+			gameFootUi.container.alpha = 0;
+			
+		} else { // 收起游戏界面的头尾信息区
+			gameHeadUi.container.position.y = -gameHeadUi.container.height * endAnimateBezier.solve(endAnimateTimer.time / 0.67);
+			gameFootUi.container.position.y = gameHeadUi.container.height * endAnimateBezier.solve(endAnimateTimer.time / 0.67);
+			
+			gameHeadUi.container.alpha = 1 - (endAnimateTimer.time / 0.67);
+			gameFootUi.container.alpha = 1 - (endAnimateTimer.time / 0.67);
+			
+			sprites.ui.start.fakeJudgeline.width = sprites.ui.start.fakeJudgeline.offsetWidth * (1 - endAnimateBezier.solve(endAnimateTimer.time / 0.67));
+			sprites.game.background.children[0].alpha = 0.5 + ((1 - settings.backgroundDim) - 0.5) * (1 - (endAnimateTimer.time / 0.67));
+		}
+	}
+	
+	stat.isEnd = true;
+	
+	sprites.ui.start.fakeJudgeline.visible = true;
+	
+	for (let judgeLine of sprites.game.judgeLines) {
+		judgeLine.visible = false;
+	}
+	
+	for (let note of sprites.game.notes) {
+		note.visible = false;
+	}
+	
+	{
+		let pattern = /^([a-zA-Z]+)\sLv\.(\d+|\?)$/;
+		let levelDiffType = pattern.exec(_chart.info.level);
+		
+		if (!levelDiffType || levelDiffType.length < 3 || !levelDiffType[1]) {
+			levelDiffType = 'in';
+		} else {
+			levelDiffType = levelDiffType[1].toLowerCase();
+		}
+		
+		switch (levelDiffType) {
+			case 'ez': { audioTexture = textures.sound.levelOver.ez;
+				break;
+			}
+			case 'hd': { audioTexture = textures.sound.levelOver.hd;
+				break;
+			}
+			case 'in': { audioTexture = textures.sound.levelOver.in;
+				break;
+			}
+			case 'at': { audioTexture = textures.sound.levelOver.at;
+				break;
+			}
+			case 'sp': { audioTexture = textures.sound.levelOver.sp;
+				break;
+			}
+			default: { audioTexture = textures.sound.levelOver.in; }
+		}
+	}
+	
+	stat.isTransitionEnd = false;
+	endAnimateTimer.start();
+	pixi.ticker.add(endAnimateTicker);
+}
+
+/***
  * @function 实时计算当前时间下的精灵数据。该方法应在 PIXI.Ticker 中循环调用
 ***/
-function CalculateChartActualTime(delta) {
+function CalculateChartActualTime() {
 	if (sprites.performanceIndicator) sprites.performanceIndicator.begin();
 	
 	let currentTime = (global.audio ? _chart.audio.duration * global.audio.progress : 0) - _chart.data.offset - _chart.audio.baseLatency - settings.chartDelay,
@@ -1590,25 +1749,23 @@ function CalculateChartActualTime(delta) {
 		realHeight = pixi.renderer.realHeight,
 		fixedWidthHalf = fixedWidth / 2,
 		realHeightHalf = realHeight / 2,
+		fixedWidthPercent = pixi.renderer.fixedWidthPercent,
 		fixedWidthOffset = pixi.renderer.fixedWidthOffset,
 		noteSpeed = pixi.renderer.noteSpeed,
 		noteScale = pixi.renderer.noteScale,
 		rendererResolution = pixi.renderer.resolution;
 	
-	let currentJudgeLineOffsetY = {}; // 用来存储当前时间下 Note Container 的 y 轴位置
-	
-	if (!sprites.containers) return;
+	let gameUi = sprites.ui.game,
+		gameHeadUi = gameUi.head,
+		gameFootUi = gameUi.foot,
+		gameSprites = sprites.game;
 	
 	// 进度条
-	sprites.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0) + fixedWidthOffset;
+	gameHeadUi.progressBar.position.x = fixedWidth * (global.audio ? global.audio.progress : 0);
 	
-	for (let container of sprites.containers) {
-		let judgeLine = container.children[0];
-		
-		if (!judgeLine) continue;
-		
-		if (!settings.disableJudgeLineAlpha) {
-			for (let i of judgeLine.judgeLineDisappearEvents) {
+	for (let judgeLine of gameSprites.judgeLines) { // 处理所有的 Note Container
+		if (!settings.disableJudgeLineAlpha) { // 判定线透明度
+			for (let i of judgeLine.raw.judgeLineDisappearEvents) {
 				if (currentTime < i.startRealTime) break;
 				if (currentTime > i.endRealTime) continue;
 				
@@ -1619,125 +1776,133 @@ function CalculateChartActualTime(delta) {
 			}
 		}
 		
-		for (let i of judgeLine.judgeLineMoveEvents) {
+		for (let i of judgeLine.raw.judgeLineMoveEvents) { // 判定线移动
 			if (currentTime < i.startRealTime) break;
 			if (currentTime > i.endRealTime) continue;
 			
 			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 			let time1 = 1 - time2;
 			
-			container.position.x = fixedWidth * (i.start * time1 + i.end * time2) + fixedWidthOffset;
-			container.position.y = pixi.renderer.realHeight * (1 - i.start2 * time1 - i.end2 * time2);
+			judgeLine.position.x = fixedWidth * (i.start * time1 + i.end * time2);
+			judgeLine.position.y = realHeight * (1 - i.start2 * time1 - i.end2 * time2);
 		}
 		
-		for (const i of judgeLine.judgeLineRotateEvents) {
+		for (const i of judgeLine.raw.judgeLineRotateEvents) { // 判定线旋转
 			if (currentTime < i.startRealTime) break;
 			if (currentTime > i.endRealTime) continue;
 			
 			let time2 = (currentTime - i.startRealTime) / (i.endRealTime - i.startRealTime);
 			let time1 = 1 - time2;
 			
-			container.rotation = i.startDeg * time1 + i.endDeg * time2;
+			judgeLine.rotation = i.startDeg * time1 + i.endDeg * time2;
 			
-			container.cosr = Math.cos(container.rotation);
-			container.sinr = Math.sin(container.rotation);
+			judgeLine.cosr = Math.cos(judgeLine.rotation);
+			judgeLine.sinr = Math.sin(judgeLine.rotation);
 		}
 		
-		for (const i of judgeLine.speedEvents) {
+		for (const i of judgeLine.raw.speedEvents) { // 判定线流速
 			if (currentTime < i.startRealTime) break;
 			if (currentTime > i.endRealTime) continue;
 			
-			currentJudgeLineOffsetY[judgeLine.id] = (currentTime - i.startRealTime) * i.value + i.floorPosition;
-			
-			for (let x = 1; x < container.children.length; x++) {
-				let noteContainer = container.children[x];
-				noteContainer.position.y = currentJudgeLineOffsetY[judgeLine.id] * noteSpeed * noteContainer.noteDirection;
-			}
+			judgeLine.currentOffsetY = (currentTime - i.startRealTime) * i.value + i.floorPosition;
 		}
 	}
 	
-	for (let i of sprites.totalNotes) {
-		if (i.score > 0 && i.isProcessed) continue;
+	judgements.addJudgement(gameSprites.notes, currentTime);
+	
+	for (let note of gameSprites.notes) {
+		judgements.judgeSingleNote(note.raw, getNotePosition(note, false), currentTime, fixedWidth * 0.117775);
 		
-		// 处理 Hold 的高度
-		if (i.type == 3 && i.offsetY <= currentJudgeLineOffsetY[i.lineId]) {
-			let currentHoldLength = (i.holdLength + i.offsetY) - currentJudgeLineOffsetY[i.lineId];
-			
-			if (currentHoldLength >= 0) {
-				i.children[1].height = currentHoldLength * noteSpeed / noteScale;
-				i.children[2].position.y = -i.children[1].height;
-				
-				i.position.y = currentJudgeLineOffsetY[i.lineId] * noteSpeed * (i.isAbove ? -1 : 1);
-			}
+		if (note.isProcessed === true) continue;
+		if (note.raw.isScored === true && note.isProcessed === false && note.raw.type !== 3) {
+			note.visible = false;
+			note.isProcessed = true;
+			continue;
 		}
 		
-		// 处理变速 Note 的位置
-		if (i.speed != 1 && i.type != 3) {
-			i.position.y = (
-				currentJudgeLineOffsetY[i.lineId] + (
-					i.offsetY - currentJudgeLineOffsetY[i.lineId]
-				) * i.speed
-			) * noteSpeed * (i.isAbove ? -1 : 1);
-		}
+		let timeBetween = currentTime - note.raw.realTime;
+		let judgeLine = gameSprites.judgeLines[note.raw.lineId];
+		let noteRaw = note.raw;
+		let judgeLineRaw = judgeLine.raw;
 		
-		// Note 消失
-		/**
-		let globalPosition = i.getGlobalPosition();
-		if (
-			fixedWidthOffset <= globalPosition.x <= fixedWidthOffset + fixedWidth &&
-			0 <= globalPosition.y <= realHeight
-		) {
-			i.visible = true;
+		let noteX = noteRaw.positionX.toFixed(6) * fixedWidthPercent,
+			noteY = 0,
+			realNoteX = 0,
+			realNoteY = 0;
+		
+		if (noteRaw.type != 3 || noteRaw.forceChangeSpeed) {
+			noteY = (noteRaw.offsetY - judgeLine.currentOffsetY) * noteRaw.speed;
+		} else if (noteRaw.realTime < currentTime) {
+			noteY = (noteRaw.realTime - currentTime) * noteRaw.speed;
 		} else {
-			i.visible = false;
+			noteY = noteRaw.offsetY - judgeLine.currentOffsetY;
 		}
-		**/
 		
-		let timeBetween = i.realTime - currentTime;
-		if (timeBetween <= 0) {
-			if (i.type != 3) {
-				let timeBetween = i.realTime - currentTime;
-				
-				if (timeBetween > -global.judgeTimes.bad) {
-					i.alpha = (global.judgeTimes.bad + timeBetween) / global.judgeTimes.bad;
+		if (noteRaw.offsetY < judgeLine.currentOffsetY) {
+			if (noteRaw.type === 3) { // 处理 Hold 的长度
+				let currentHoldLength = (noteRaw.holdLength + noteRaw.offsetY) - judgeLine.currentOffsetY;
+				if (currentHoldLength > 0) {
+					if (note.visible === false) note.visible = true;
+					if (note.children[0].visible === true) note.children[0].visible = false;
+					
+					note.children[1].height = currentHoldLength * noteSpeed / noteScale;
+					note.children[2].position.y = -note.children[1].height;
+					
+					noteY = 0;
+					
 				} else {
-					i.alpha = 0;
-					i.visible = false;
+					if (note.visible === true) {
+						if (noteRaw.isScored === true) note.isProcessed = true;
+						note.visible = false;
+					}
 				}
+			} else if (timeBetween < 0 && note.visible === true) { // 处理已经到了另一边但未到时间的 Note 的可视属性
+				note.visible = false;
+			}
+		} else {
+			if (noteRaw.type === 3 && note.children[0].visible === false) {
+				note.children[0].visible = true;
 				
-			} else if ((i.realTime + i.realHoldTime) <= currentTime) {
-				i.alpha = 0;
-				i.visible = false;
-				i.isProcessed = true;
+				note.children[1].height = (noteRaw.holdLength + noteRaw.offsetY) * noteSpeed / noteScale;
+				note.children[2].position.y = -note.children[1].height;
+				
+			} else if (timeBetween < 0 && note.visible === false) {
+				note.visible = true;
 			}
-		
-		} else if ( // 下面的这两个判断分支是为了将没到时间但却在判定线另一边的 Note 隐藏（我觉得用 PIXI.Mask 性能应该会更好一点）
-			i.parent.position.y + i.position.y * (i.isAbove ? 1 : -1) > 0 &&
-			i.visible == true
-		) {
-			if (i.type != 3 && timeBetween > global.judgeTimes.bad) {
-				i.visible = false;
-			} else if (timeBetween + i.realHoldTime > global.judgeTimes.bad) {
-				i.visible = false;
-			}
-			
-		} else if (
-			i.parent.position.y + i.position.y * (i.isAbove ? 1 : -1) <= 0 &&
-			i.visible == false
-		) {
-			if (i.type != 3 && timeBetween > global.judgeTimes.bad) {
-				i.visible = true;
-			} else if (timeBetween + i.realHoldTime > global.judgeTimes.bad) {
-				i.visible = true;
-			}
-			
 		}
 		
+		noteY = noteY * (noteRaw.isAbove ? -1 : 1) * noteSpeed;
 		
+		realNoteX = noteX * judgeLine.cosr - noteY * judgeLine.sinr;
+		realNoteY = noteY * judgeLine.cosr + noteX * judgeLine.sinr;
+		
+		note.position.x = realNoteX + judgeLine.position.x;
+		note.position.y = realNoteY + judgeLine.position.y;
+		note.angle = judgeLine.angle + (noteRaw.isAbove ? 0 : 180);
+		
+		if (timeBetween > 0) { // 处理超时的 Note
+			if (noteRaw.type != 3) {
+				note.alpha = 1 - (timeBetween / global.judgeTimes.bad);
+				if (timeBetween > global.judgeTimes.bad) {
+					note.visible = false;
+					note.isProcessed = true;
+				}
+			} else {
+				if (noteRaw.score === 1 && note.alpha !== 0.5) {
+					note.alpha = 0.5;
+				}
+				/**
+				if (timeBetween - noteRaw.realHoldTime > 0) {
+					note.visible = false;
+					note.isProcessed = true;
+				}
+				**/
+			}
+		}
 	}
 	
-	judgements.addJudgement(sprites.totalNotes, currentTime);
-	judgements.judgeNote(sprites.totalNotes, currentTime, fixedWidth * 0.117775);
+	// judgements.addJudgement(gameSprites.notes, currentTime);
+	// judgements.judgeNote(gameSprites.notes, currentTime, fixedWidth * 0.117775);
 	
 	/**
 	judgements.judgeNote(sprites.dragNotes, currentTime, fixedWidth * 0.117775);
@@ -1746,7 +1911,6 @@ function CalculateChartActualTime(delta) {
 	**/
 	
 	inputs.taps.length = 0;
-	
 	
 	for (let i in inputs.touches) {
 		if (inputs.touches[i] instanceof Click) inputs.touches[i].animate();
@@ -1758,11 +1922,7 @@ function CalculateChartActualTime(delta) {
 	
 	if (global.audio && global.audio.progress == 1) {
 		pixi.ticker.remove(CalculateChartActualTime);
-		
-		sprites.headInfos.position.y = -sprites.headInfos.height;
-		sprites.footInfos.position.y = sprites.headInfos.height;
-		
-		sprites.ui.end = CreateGameEndAnimate(sprites.ui.end);
+		CreateGameEndAnimation(pixi, sprites);
 	}
 	
 	if (sprites.performanceIndicator) sprites.performanceIndicator.end();
@@ -1772,6 +1932,8 @@ function CalculateChartActualTime(delta) {
  * @function 实时处理打击动画
 ***/
 function CalculateClickAnimateActualTime() {
+	if (stat.isPaused) return;
+	
 	for (let i in sprites.clickAnimate) {
 		let obj = sprites.clickAnimate[i];
 		
@@ -1796,14 +1958,16 @@ function CalculateClickAnimateActualTime() {
 				block.alpha = 1 - currentFrameProgress;
 			}
 			
+			obj.alpha = 1 - currentFrameProgress;
+			
 			if (!obj.playing) {
 				sprites.clickAnimate.splice(i, 1);
 				obj.parent.destroy();
 			};
 		} else {
-			obj.alpha -= 2 / pixi.ticker.FPS;
+			obj.alpha = 1 - ((Date.now() - obj.time) / 2000);
 			
-			if (obj.alpha <= 0) {
+			if (Date.now() >= obj.time + 2000) {
 				obj.destroy();
 				sprites.clickAnimate.splice(i, 1);
 			}
@@ -1814,25 +1978,21 @@ function CalculateClickAnimateActualTime() {
 /***
  * @function 创建打击动画
 ***/
-function CreateClickAnimation(note, performance = false) {
+function CreateClickAnimation(offsetX, offsetY, angle, score, performance = false) {
 	let obj = undefined;
 	let fixedWidth = pixi.renderer.fixedWidth;
 	let noteScale = pixi.renderer.noteScale;
 	
-	let score = note.score,
-		offsetX = getNotePosition(note).x,
-		offsetY = getNotePosition(note).y,
-		angle = note.parent.parent.angle;
-	
 	if (!pixi || !settings.clickAnimate) return;
 	if (score <= 1) return;
 	
-	if (score > 2) {
+	if (score >= 3) {
 		let animate = new PIXI.AnimatedSprite(textures.clickRaw);
 		let blockWidth = 30 * 0.4988;
 		let blocks = [ null, null, null, null ];
 		
 		obj = new PIXI.Container();
+		obj.scale.set(noteScale * 5.6);
 		
 		// 定义动画精灵
 		animate.tint = score == 4 ? 0xFFECA0 : 0xB4E1FF;
@@ -1860,30 +2020,56 @@ function CreateClickAnimation(note, performance = false) {
 				obj.addChild(blocks[i]);
 			}
 		}
-		
-		obj.scale.set(noteScale * 5.6);
-		obj.position.set(offsetX, offsetY);
-		
 	} else {
-		offsetX = getNotePosition(note, false).x;
-		offsetY = getNotePosition(note, false).y;
-		
 		obj = new PIXI.Sprite(textures.tap2);
 		
 		obj.anchor.set(0.5);
 		obj.scale.set(noteScale);
-		obj.position.set(offsetX, offsetY);
-		obj.angle = angle;
+		obj.angle = note.angle;
 		
 		obj.tint = 0x6c4343;
 	}
 	
+	obj.zIndex = 9999;
+	obj.position.set(offsetX, offsetY);
+		
 	obj.type = score;
+	obj.time = Date.now();
 	
 	sprites.clickAnimate.push(obj);
-	pixi.stage.addChild(obj);
+	sprites.mainContainer.addChild(obj);
 	
-	if (score == 3 || score == 4) obj.children[0].play();
+	if (score >= 3) obj.children[0].play();
+}
+
+/***
+ * @function 播放打击音
+***/
+function PlayHitsound(note, volume) {
+	let hitsoundTexture = null;
+	
+	if (note.hitsound) {
+		hitsoundTexture = note.hitsound;
+		
+	} else if (!hitsoundTexture && note.score > 2) {
+		switch(note.type) {
+			case 1: { hitsoundTexture = textures.sound.tap;
+				break;
+			}
+			case 2: { hitsoundTexture = textures.sound.drag;
+				break;
+			}
+			case 3: { hitsoundTexture = textures.sound.tap;
+				break;
+			}
+			case 4: { hitsoundTexture = textures.sound.flick;
+				break;
+			}
+			default: { hitsoundTexture = textures.sound.tap; }
+		}
+	}
+	
+	if (hitsoundTexture) return hitsoundTexture.play({ volume:volume });
 }
 
 /***
@@ -1901,167 +2087,64 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	let noteScale = fixedWidth / _noteScale;
 	let noteSpeed = height * 0.6;
 	
+	// 处理总 Container 的位置
+	sprites.mainContainer.position.x = fixedWidthOffset;
+	
 	// 处理背景图
-	if (sprites.background) {
+	if (sprites.game.background) {
 		let bgScaleWidth = fixedWidth / _chart.image.width;
 		let bgScaleHeight = pixi.renderer.realHeight / _chart.image.height;
 		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
 		
-		sprites.background.scale.set(bgScale);
-		sprites.background.position.set(width / 2, height / 2);
+		sprites.game.background.scale.set(bgScale);
+		sprites.game.background.position.set(fixedWidth / 2, height / 2);
+	}
+	
+	// 处理 UI 缩放
+	sprites.ui.start = CreateGameStartSprites(_chart.info, sprites.ui.start, pixi, sprites.mainContainer);
+	sprites.ui.game = CreateChartInfoSprites(_chart.info, sprites.ui.game, pixi, sprites.mainContainer, true, true);
+	
+	// 处理准度指示器
+	if (sprites.ui.game.head.accIndicator) {
+		sprites.ui.game.head.accIndicator.container.position.x = fixedWidth / 2;
+		sprites.ui.game.head.accIndicator.container.scale.set(fixedWidth / sprites.accIndicator.scale);
 	}
 	
 	// 不处理没有判定线和 Note 的精灵对象
-	if (!sprites.containers || !sprites.totalNotes) {
+	if (!sprites.game.judgeLines || !sprites.game.notes) {
 		return;
 	}
-	if (sprites.containers.length <= 0 || sprites.totalNotes.length <= 0) {
+	if (sprites.game.judgeLines.length <= 0 || sprites.game.notes.length <= 0) {
 		return;
 	}
 	
 	// 处理判定线
-	for (let container of sprites.containers) {
-		let judgeLine = container.children[0];
-		
+	for (let judgeLine of sprites.game.judgeLines) {
 		judgeLine.height = lineScale * 18.75 * 0.008;
 		judgeLine.width = judgeLine.height * judgeLine.texture.width / judgeLine.texture.height * 1.042;
 	}
 	
 	// 处理 Note
-	for (let note of sprites.totalNotes) {
+	for (let note of sprites.game.notes) {
 		// 处理 Hold
-		if (note.type == 3 && note.children.length == 3) {
-			// note.children[1].height = note.holdLength * (height * 0.6) / note.rawNoteScale * ((noteScale * pixi.renderer.resolution) / note.rawNoteScale);
-			note.children[1].height = note.holdLength * noteSpeed / noteScale;
+		if (note.raw.type == 3 && note.children.length === 3) {
+			note.children[1].height = note.raw.holdLength * noteSpeed / noteScale;
 			note.children[2].position.y = -note.children[1].height;
 		}
 		
 		note.scale.set(noteScale);
-		note.position.x = (note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2);
-		note.position.y = note.offsetY * noteSpeed * (note.isAbove ? -1 : 1);
-	}
-	
-	// 处理进度条
-	if (sprites.progressBar) {
-		sprites.progressBar.scale.set(fixedWidth / (1920 / pixi.renderer.resolution));
-	}
-	
-	// 处理 Combo 文字
-	if (sprites.comboText) {
-		sprites.comboText.children[0].style.fontSize = lineScale * 1.32 + 'px';
-		sprites.comboText.children[1].style.fontSize = lineScale * 0.66 + 'px';
-		
-		sprites.comboText.position.x = width / 2;
-		sprites.comboText.children[0].position.y = lineScale * 1.375;
-		sprites.comboText.children[1].position.y = lineScale * 1.375 + sprites.comboText.children[0].height;
-	}
-	
-	// 处理分数指示器
-	if (sprites.scoreText) {
-		sprites.scoreText.style.fontSize = lineScale * 0.95 + 'px';
-		sprites.scoreText.position.set(width - lineScale * 0.65 - fixedWidthOffset, lineScale * 1.375);
-	}
-	
-	// 处理歌曲名称大标题
-	if (sprites.songTitleBig) {
-		sprites.songTitleBig.style.fontSize = lineScale * 1.1 + 'px';
-		
-		sprites.songTitleBig.position.x = width / 2;
-		sprites.songTitleBig.position.y = height / 2 * 0.75;
-	}
-	
-	// 处理歌曲背景作者大标题
-	if (sprites.bgAuthorBig) {
-		sprites.bgAuthorBig.style.fontSize = lineScale * 0.55 + 'px';
-		
-		sprites.bgAuthorBig.position.x = width / 2;
-		sprites.bgAuthorBig.position.y = height / 2 * 1.25 + lineScale * 0.15;
-	}
-	
-	// 处理歌曲谱面作者大标题
-	if (sprites.chartAuthorBig) {
-		sprites.chartAuthorBig.style.fontSize = lineScale * 0.55 + 'px';
-		
-		sprites.chartAuthorBig.position.x = width / 2;
-		sprites.chartAuthorBig.position.y = height / 2 * 1.25 + lineScale;
-	}
-	
-	// 歌曲名称侧边横线
-	if (sprites.songNameBar) {
-		sprites.songNameBar.width = lineScale * 0.119;
-		sprites.songNameBar.height = lineScale * 0.612;
-		
-		sprites.songNameBar.position.x = lineScale * 0.53 + fixedWidthOffset;
-		sprites.songNameBar.position.y = height - lineScale * 1.22;
-	}
-	
-	// 处理歌曲名称
-	if (sprites.songTitle) {
-		sprites.songTitle.style.fontSize = lineScale * 0.63 + 'px';
-		
-		sprites.songTitle.position.x = lineScale * 0.85 + fixedWidthOffset;
-		sprites.songTitle.position.y = height - lineScale * 0.52;
-	}
-	
-	// 处理歌曲难度
-	if (sprites.songDiff) {
-		sprites.songDiff.style.fontSize = lineScale * 0.63 + 'px';
-		
-		sprites.songDiff.position.x = width - lineScale * 0.75 - fixedWidthOffset;
-		sprites.songDiff.position.y = height - lineScale * 0.52;
-	}
-	
-	// 处理对于超宽屏所创建的背景图盖板
-	if (sprites.backgroundCover) {
-		let bgScaleWidth = width / _chart.image.width;
-		let bgScaleHeight = height / _chart.image.height;
-		let bgScale = bgScaleWidth > bgScaleHeight ? bgScaleWidth : bgScaleHeight;
-		
-		sprites.backgroundCover.image.scale.set(bgScale);
-		sprites.backgroundCover.image.position.set(width / 2, height / 2);
-		sprites.backgroundCover.image.alpha = width != fixedWidth ? 1 : 0;
-		
-		if (!sprites.gameEnd) {
-			sprites.backgroundCover.cover.children[0].clear();
-			sprites.backgroundCover.cover.children[0].beginFill(0xFFFFFF)
-					.drawRect(0, 0, fixedWidthOffset, height)
-					.endFill();
-			
-			sprites.backgroundCover.cover.children[1].clear();
-			sprites.backgroundCover.cover.children[1].beginFill(0xFFFFFF)
-					.drawRect(width - fixedWidthOffset, 0, fixedWidthOffset, height)
-					.endFill();
-		}
-	}
-	
-	// 处理 FPS 指示器
-	if (sprites.fps) {
-		sprites.fps.style.fontSize = lineScale * 0.8 + 'px';
-		sprites.fps.position.set(width - 1, 1);
-	}
-	
-	// 处理水印
-	if (sprites.watermark) {
-		sprites.watermark.style.fontSize = lineScale * 0.6 + 'px';
-		sprites.watermark.position.set(width - 2, height - 2);
-	}
-	
-	// 处理准度指示器
-	if (sprites.accIndicator) {
-		sprites.accIndicator.container.position.x = width / 2;
-		sprites.accIndicator.container.scale.set(width / sprites.accIndicator.scale);
 	}
 	
 	// 处理结算页面
 	if (sprites.ui.end) {
-		CreateGameEndAnimate(sprites.ui.end);
+		sprites.ui.end = CreateGameEndSprites(sprites.ui.end, pixi, sprites.mainContainer, stat.isTransitionEnd);
 	}
 }
 
 /***
  * @function 创建一个 osu! 风格的准度指示器
 ***/
-function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
+function CreateAccurateIndicator(pixi, stage, scale = 500, challengeMode = false) {
 	let container = new PIXI.Container();
 	let graphic   = new PIXI.Graphics();
 	let accurates = [];
@@ -2105,7 +2188,7 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 	container.scale.set(pixi.renderer.realWidth / scale);
 	container.position.x = pixi.renderer.realWidth / 2;
 	
-	pixi.stage.addChild(container);
+	stage.addChild(container);
 	
 	// 指示器刻度淡出
 	pixi.ticker.add(() => {
@@ -2114,8 +2197,8 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 				let accurate = container.children[i];
 				if (!accurate) continue;
 				
-				accurate.alpha -= 0.5 / 60;
-				if (accurate.alpha <= 0) {
+				accurate.alpha = 1 - ((Date.now() - accurate.time) / 500);
+				if (Date.now() >= accurate.time + 500) {
 					accurate.destroy();
 				}
 			}
@@ -2149,6 +2232,7 @@ function CreateAccurateIndicator(pixi, scale = 500, challengeMode = false) {
 		accGraphic.endFill();
 		
 		accGraphic.position.x = time * 1000 / 2;
+		accGraphic.time = Date.now();
 		
 		container.addChild(accGraphic);
 		
@@ -2204,16 +2288,19 @@ function DrawInputPoint(x, y, inputType, inputId, type = 0) {
 }
 
 function getNotePosition(note, followJudgeLine = true) {
-	let cosr = note.parent.parent.cosr,
-		sinr = note.parent.parent.sinr,
-		parentX = note.parent.parent.position.x,
-		parentY = note.parent.parent.position.y,
-		offsetX = parentX + note.position.x,
-		offsetY = parentY + (!followJudgeLine ? note.parent.position.y + note.position.y : 0),
-		realX = (offsetX - parentX) * cosr - (offsetY - parentY) * sinr + parentX,
-		realY = (offsetY - parentY) * cosr + (offsetX - parentX) * sinr + parentY;
+	let noteRaw = note.raw,
+		judgeLine = sprites.game.judgeLines[noteRaw.lineId];
 	
-	return { x: realX, y: realY };
+	if (!noteRaw || !judgeLine) return { x: NaN, y: NaN, angle: NaN, sinr: NaN, cosr: NaN };
+	
+	let cosr = judgeLine.cosr,
+		sinr = judgeLine.sinr,
+		parentX = judgeLine.position.x,
+		parentY = judgeLine.position.y,
+		realX = (noteRaw.positionX.toFixed(6) * pixi.renderer.fixedWidthPercent) * cosr + parentX + pixi.renderer.fixedWidthOffset,
+		realY = (noteRaw.positionX.toFixed(6) * pixi.renderer.fixedWidthPercent) * sinr + parentY;
+	
+	return { x: realX, y: realY, angle: judgeLine.angle, sinr: sinr, cosr: cosr };
 }
 
 /** 留着万一以后还要做测试用
@@ -2222,7 +2309,7 @@ function TestGetGlobalPosition() {
 		let startTime = Date.now();
 		
 		for (let i = 0; i < 10000; i++) {
-			let note = sprites.totalNotes[0];
+			let note = sprites.game.notes[0];
 			
 			let globalPosition = note.getGlobalPosition();
 			let x = globalPosition.x;
