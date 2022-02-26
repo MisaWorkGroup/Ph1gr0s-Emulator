@@ -844,6 +844,13 @@ function CreateChartSprites(chart, pixi, stage) {
 		stage.addChild(background);
 	}
 	
+	if (settings.spectrumSettings.enabled) {
+		output.spectrumGraphics = new PIXI.Graphics();
+		output.spectrumGraphics.position.y = realHeight;
+		
+		stage.addChild(output.spectrumGraphics);
+	}
+	
 	// 绘制判定线
 	for (let _judgeLine of chart.judgeLines) {
 		let judgeLine = new PIXI.Sprite(textures.judgeLine);
@@ -1901,6 +1908,29 @@ function CalculateChartActualTime() {
 		}
 	}
 	
+	if (settings.spectrumSettings.enabled && global.audioAnalyser) {
+		gameSprites.spectrumGraphics.clear();
+		
+		global.audioAnalyser.getByteFrequencyData(global.audioAnalyser.dataArray);
+		
+		let barBetween = fixedWidth * .002;
+		let barWidth = fixedWidth / global.audioAnalyser.bufferLength - barBetween;
+		let currentX = barBetween / 2;
+		let dataArray = global.audioAnalyser.dataArray;
+		
+		for (let i = 0; i < global.audioAnalyser.bufferLength; i++) {
+			const barHeight = dataArray[i] / 255;
+			
+			gameSprites.spectrumGraphics.beginFill(_chart.image.baseColor, (barHeight * (3 / 4) + (1 / 4)) * settings.spectrumSettings.alphaPercent)
+				.drawRect(currentX, 0, barWidth, -barHeight * realHeight * settings.spectrumSettings.heightPercent)
+				.endFill();
+			
+			currentX += barWidth + barBetween;
+		}
+	} else if (settings.spectrumSettings.enabled) {
+		gameSprites.spectrumGraphics.clear();
+	}
+	
 	// judgements.addJudgement(gameSprites.notes, currentTime);
 	// judgements.judgeNote(gameSprites.notes, currentTime, fixedWidth * 0.117775);
 	
@@ -2108,6 +2138,10 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	if (sprites.ui.game.head.accIndicator) {
 		sprites.ui.game.head.accIndicator.container.position.x = fixedWidth / 2;
 		sprites.ui.game.head.accIndicator.container.scale.set(fixedWidth / sprites.accIndicator.scale);
+	}
+	
+	if (sprites.game.spectrumGraphics) {
+		sprites.game.spectrumGraphics.position.y = height;
 	}
 	
 	// 不处理没有判定线和 Note 的精灵对象

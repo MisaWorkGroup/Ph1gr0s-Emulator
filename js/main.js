@@ -312,8 +312,21 @@ function decodeZip(file) {
 				
 			} else if (imageFormat.indexOf(format.toLowerCase()) !== -1) { // 处理图片
 				try {
+					let colorThief = new ColorThief();
 					let texture = await PIXI.Texture.fromURL('data:image/' + format + ';base64,' + (await file.async('base64')));
 					let blur = PIXI.Texture.from(BlurImage(texture.baseTexture, 20));
+					
+					for (let color of colorThief.getPalette(texture.baseTexture.resource.source, 10)) {
+						if (color[0] * 0.299 + color[1] * 0.587 + color[2] * 0.114 < 192) {
+							textures.baseColor = blur.baseColor = Number('0x' + color[0].toString(16) + color[1].toString(16) + color[2].toString(16));
+							break;
+						}
+					}
+					
+					if (!texture.baseColor) {
+						texture.baseColor = colorThief.getColor(texture.baseTexture.resource.source);
+						texture.baseColor = blur.baseColor = Number('0x' + texture.baseColor[0].toString(16) + texture.baseColor[1].toString(16) + texture.baseColor[2].toString(16));
+					}
 					
 					chartData.images[file.name] = texture;
 					chartData.imagesBlur[file.name] = blur;
@@ -784,7 +797,7 @@ function gameInit() {
 function gameStart(waitTime = 1000) {
 	let startAnimateTimer = new Timer();
 	let startAnimateBezier = new Cubic(.19, .36, .48, 1.01);
-	let startAnimateTicker = function() {
+	let startAnimateTicker = async function() {
 		let startUi = sprites.ui.start,
 			gameHeadUi = sprites.ui.game.head,
 			gameFootUi = sprites.ui.game.foot;
@@ -834,7 +847,12 @@ function gameStart(waitTime = 1000) {
 			stat.isRetrying = false;
 			startAnimateTimer.stop();
 			
-			global.audio = _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
+			global.audio = await _chart.audio.play({start: 0, volume: settings.musicVolume}); // 播放音乐并正式启动模拟器
+			global.audioAnalyser = _chart.audio.media.nodes.analyser;
+			global.audioAnalyser.fftSize = 256;
+			global.audioAnalyser.bufferLength = global.audioAnalyser.frequencyBinCount;
+			global.audioAnalyser.dataArray = new Uint8Array(global.audioAnalyser.bufferLength);
+			
 			if (stat.isPaused)
 				_chart.audio.pause();
 			
@@ -1015,8 +1033,15 @@ function gameDestroy() {
 	if (!stat.isTransitionEnd) return;
 	
 	mdui.confirm('你真的要这么做吗？', '前方高能！', () => {
-		// 停止所有时钟
-		pixi.ticker.destroy();
+		/**
+		try { // 我觉得这里应该是 Pixi 的问题，先做个报错静默
+			// 停止所有时钟
+			pixi.ticker.stop();
+			pixi.ticker.destroy();
+		} catch (e) {
+			console.oldError(e);
+		}
+		**/
 		clearInterval(sprites.ui.game.fpsInterval);
 		
 		// 清除所有的判定点
