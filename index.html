@@ -102,7 +102,7 @@
 		<script src="./js/console.js?v=0.1.0"></script>
 		<script src="./js/class.js?v=0.1.2"></script>
 		<script src="./js/convert.js?v=0.1.0"></script>
-		<script src="./js/function.js?v=0.1.10"></script>
+		<script src="./js/function.js?v=0.1.11"></script>
 		
 		<style>
 			* {
@@ -489,11 +489,25 @@
 								<div class="mdui-dialog-title">音乐频谱效果设置</div>
 								<div class="mdui-dialog-content" style="overflow:visible">
 									<div class="mdui-list">
-										<label class="mdui-list-item">
+										<label class="mdui-list-item mdui-ripple">
 											<div class="mdui-list-item-content">开启效果</div>
 											<div class="mdui-switch">
 												<input type="checkbox" oninput="settings.spectrumSettings.enabled = this.checked" />
-												<i class="mdui-switch-icon"></i>
+												<i class="mdui-switch-icon" style="position:relative;top:50%;transform:translateY(-50%)"></i>
+											</div>
+										</label>
+										
+										<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+											<div class="mdui-list-item-content">最大亮度</div>
+											<div class="mdui-slider mdui-slider-discrete" style="width:100%">
+												<input oninput="settings.spectrumSettings.alphaPercent = this.value / 100" type="range" step="1" min="0" max="100" value="50" id="settings-graphics-spectrum-height-percent" />
+											</div>
+										</label>
+										
+										<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+											<div class="mdui-list-item-content">最大高度</div>
+											<div class="mdui-slider mdui-slider-discrete" style="width:100%">
+												<input oninput="settings.spectrumSettings.heightPercent = this.value / 100" type="range" step="1" min="0" max="100" value="80" id="settings-graphics-spectrum-alpha-percent" />
 											</div>
 										</label>
 									</div>
@@ -893,6 +907,6 @@
 			document.getElementById('settings-graphics-resolution').value = settings.resolution;
 		</script>
 		
-		<script src="./js/main.js?v=0.1.3"></script>
+		<script src="./js/main.js?v=0.1.4"></script>
 	</body>
 </html>
