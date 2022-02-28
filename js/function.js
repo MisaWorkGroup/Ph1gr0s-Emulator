@@ -844,6 +844,13 @@ function CreateChartSprites(chart, pixi, stage) {
 		stage.addChild(background);
 	}
 	
+	if (settings.spectrumSettings.enabled) {
+		output.spectrumGraphics = new PIXI.Graphics();
+		output.spectrumGraphics.position.y = realHeight;
+		
+		stage.addChild(output.spectrumGraphics);
+	}
+	
 	// 绘制判定线
 	for (let _judgeLine of chart.judgeLines) {
 		let judgeLine = new PIXI.Sprite(textures.judgeLine);
@@ -1901,6 +1908,29 @@ function CalculateChartActualTime() {
 		}
 	}
 	
+	if (settings.spectrumSettings.enabled && global.audioAnalyser) {
+		gameSprites.spectrumGraphics.clear();
+		
+		global.audioAnalyser.getByteFrequencyData(global.audioAnalyser.dataArray);
+		
+		let barBetween = fixedWidth * .002;
+		let barWidth = fixedWidth / global.audioAnalyser.bufferLength - barBetween;
+		let currentX = barBetween / 2;
+		let dataArray = global.audioAnalyser.dataArray;
+		
+		for (let i = 0; i < global.audioAnalyser.bufferLength; i++) {
+			const barHeight = dataArray[i] / 255;
+			
+			gameSprites.spectrumGraphics.beginFill(_chart.image.baseColor, (barHeight * (3 / 4) + (1 / 4)) * settings.spectrumSettings.alphaPercent)
+				.drawRect(currentX, 0, barWidth, -barHeight * realHeight * settings.spectrumSettings.heightPercent)
+				.endFill();
+			
+			currentX += barWidth + barBetween;
+		}
+	} else if (settings.spectrumSettings.enabled) {
+		gameSprites.spectrumGraphics.clear();
+	}
+	
 	// judgements.addJudgement(gameSprites.notes, currentTime);
 	// judgements.judgeNote(gameSprites.notes, currentTime, fixedWidth * 0.117775);
 	
@@ -1965,9 +1995,9 @@ function CalculateClickAnimateActualTime() {
 				obj.parent.destroy();
 			};
 		} else {
-			obj.alpha = 1 - ((Date.now() - obj.time) / 2000);
+			obj.alpha = 1 - ((Date.now() - obj.time) / 500);
 			
-			if (Date.now() >= obj.time + 2000) {
+			if (Date.now() >= obj.time + 500) {
 				obj.destroy();
 				sprites.clickAnimate.splice(i, 1);
 			}
@@ -2025,7 +2055,7 @@ function CreateClickAnimation(offsetX, offsetY, angle, score, performance = fals
 		
 		obj.anchor.set(0.5);
 		obj.scale.set(noteScale);
-		obj.angle = note.angle;
+		obj.angle = angle;
 		
 		obj.tint = 0x6c4343;
 	}
@@ -2107,7 +2137,11 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	// 处理准度指示器
 	if (sprites.ui.game.head.accIndicator) {
 		sprites.ui.game.head.accIndicator.container.position.x = fixedWidth / 2;
-		sprites.ui.game.head.accIndicator.container.scale.set(fixedWidth / sprites.accIndicator.scale);
+		sprites.ui.game.head.accIndicator.container.scale.set(fixedWidth / sprites.ui.game.head.accIndicator.scale);
+	}
+	
+	if (sprites.game.spectrumGraphics) {
+		sprites.game.spectrumGraphics.position.y = height;
 	}
 	
 	// 不处理没有判定线和 Note 的精灵对象
@@ -2197,8 +2231,8 @@ function CreateAccurateIndicator(pixi, stage, scale = 500, challengeMode = false
 				let accurate = container.children[i];
 				if (!accurate) continue;
 				
-				accurate.alpha = 1 - ((Date.now() - accurate.time) / 500);
-				if (Date.now() >= accurate.time + 500) {
+				accurate.alpha = 1 - ((Date.now() - accurate.time) / 2000);
+				if (Date.now() >= accurate.time + 2000) {
 					accurate.destroy();
 				}
 			}

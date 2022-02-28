@@ -2,7 +2,7 @@
 An emulator for the rhythm game 'Phigros', based on [Pixi.js](https://github.com/pixijs/pixijs), forked from [lchzh3473/lchzh3473.github.io](https://github.com/lchzh3473/lchzh3473.github.io).
 
 ## Warning!
-This project is still testing.
+This is a test & develop branch. See [Current develop plan](https://github.com/MisaWorkGroup/Ph1gr0s-Emulator/projects/1).
 
 ## Introduction
 This project can let you play or preview you chart for Phigros.
@@ -24,6 +24,7 @@ This project can let you play or preview you chart for Phigros.
 * [flozz/StackBlur](https://github.com/flozz/StackBlur)
 * [mumuy/browser](https://github.com/mumuy/browser)
 * [mrdoob/stats.js](https://github.com/mrdoob/stats.js)
+* [lokesh/color-thief](https://github.com/lokesh/color-thief)
 * [@lchzh3473](https://github.com/lchzh3473)
 
 ## Copyright of the materials

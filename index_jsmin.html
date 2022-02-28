@@ -16,6 +16,7 @@
 		<script src="./js/stackblur.min.js?v=2.5.0"></script>
 		<script src="./js/stats.min.js?v=r17"></script>
 		<script src="./js/Browser.js"></script>
+		<script src="./js/color-thief.js?v=2.3.2"></script>
 		
 		<script src="./js/pixi/pixi.min.js?v=6.2.1"></script>
 		<script src="./js/pixi/graphics-extras.min.js?v=6.2.1"></script>
@@ -59,6 +60,11 @@
 				accIndicatorScale        : 500, // 准度指示器缩放
 				multiNotesHighlight      : true, // 多押高亮
 				showApStatus             : true, // AP/FC 指示器
+				spectrumSettings         : {
+					enabled: false,
+					heightPercent: 0.5,
+					alphaPercent: 0.8
+				},
 				forceCanvas              : (DeviceInfo.supportWebGL ? false : true), // 强制 Canvas 方式绘图
 				showPerformanceIndicator : (getSearchQuery('debug') == 'true'), // 实时展示判定信息
 				showJudgementRealTime    : (getSearchQuery('debug') == 'true'), // 添加一个用于显示性能状态的小窗
@@ -465,6 +471,47 @@
 								</div>
 							</label>
 							
+							<label class="mdui-list-item mdui-ripple" mdui-dialog="{target:'#dialog-graphics-spectrum-settings'}">
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe85b;</i>
+								<div class="mdui-list-item-content">
+									<div class="mdui-list-item-title">音乐频谱效果设置</div>
+									<div class="mdui-list-item-text">打造最新，最热，最炫</div>
+								</div>
+								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe315;</i>
+							</label>
+							
+							<div class="mdui-dialog" id="dialog-graphics-spectrum-settings">
+								<div class="mdui-dialog-title">音乐频谱效果设置</div>
+								<div class="mdui-dialog-content" style="overflow:visible">
+									<div class="mdui-list">
+										<label class="mdui-list-item mdui-ripple">
+											<div class="mdui-list-item-content">开启效果</div>
+											<div class="mdui-switch">
+												<input type="checkbox" oninput="settings.spectrumSettings.enabled = this.checked" />
+												<i class="mdui-switch-icon" style="position:relative;top:50%;transform:translateY(-50%)"></i>
+											</div>
+										</label>
+										
+										<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+											<div class="mdui-list-item-content">最大亮度</div>
+											<div class="mdui-slider mdui-slider-discrete" style="width:100%">
+												<input oninput="settings.spectrumSettings.alphaPercent = this.value / 100" type="range" step="1" min="0" max="100" value="80" id="settings-graphics-spectrum-alpha-percent" />
+											</div>
+										</label>
+										
+										<label class="mdui-list-item mdui-list-item-full-width mdui-ripple">
+											<div class="mdui-list-item-content">最大高度</div>
+											<div class="mdui-slider mdui-slider-discrete" style="width:100%">
+												<input oninput="settings.spectrumSettings.heightPercent = this.value / 100" type="range" step="1" min="0" max="100" value="50" id="settings-graphics-spectrum-height-percent" />
+											</div>
+										</label>
+									</div>
+								</div>
+								<div class="mdui-dialog-actions">
+									<button class="mdui-btn mdui-ripple" mdui-dialog-close>OK</button>
+								</div>
+							</div>
+							
 							<label class="mdui-list-item mdui-ripple">
 								<i class="mdui-list-item-icon mdui-icon material-icons">&#xe837;</i>
 								<div class="mdui-list-item-content">
@@ -855,6 +902,6 @@
 			document.getElementById('settings-graphics-resolution').value = settings.resolution;
 		</script>
 		
-		<script src="./js/app.min.js?v=0.1.9"></script>
+		<script src="./js/app.min.js?v=0.1.10"></script>
 	</body>
 </html>
