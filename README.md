@@ -24,6 +24,7 @@ This project can let you play or preview you chart for Phigros.
 * [flozz/StackBlur](https://github.com/flozz/StackBlur)
 * [mumuy/browser](https://github.com/mumuy/browser)
 * [mrdoob/stats.js](https://github.com/mrdoob/stats.js)
+* [lokesh/color-thief](https://github.com/lokesh/color-thief)
 * [@lchzh3473](https://github.com/lchzh3473)
 
 ## Copyright of the materials
