@@ -1995,9 +1995,9 @@ function CalculateClickAnimateActualTime() {
 				obj.parent.destroy();
 			};
 		} else {
-			obj.alpha = 1 - ((Date.now() - obj.time) / 2000);
+			obj.alpha = 1 - ((Date.now() - obj.time) / 500);
 			
-			if (Date.now() >= obj.time + 2000) {
+			if (Date.now() >= obj.time + 500) {
 				obj.destroy();
 				sprites.clickAnimate.splice(i, 1);
 			}
@@ -2055,7 +2055,7 @@ function CreateClickAnimation(offsetX, offsetY, angle, score, performance = fals
 		
 		obj.anchor.set(0.5);
 		obj.scale.set(noteScale);
-		obj.angle = note.angle;
+		obj.angle = angle;
 		
 		obj.tint = 0x6c4343;
 	}
@@ -2137,7 +2137,7 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	// 处理准度指示器
 	if (sprites.ui.game.head.accIndicator) {
 		sprites.ui.game.head.accIndicator.container.position.x = fixedWidth / 2;
-		sprites.ui.game.head.accIndicator.container.scale.set(fixedWidth / sprites.accIndicator.scale);
+		sprites.ui.game.head.accIndicator.container.scale.set(fixedWidth / sprites.ui.game.head.accIndicator.scale);
 	}
 	
 	if (sprites.game.spectrumGraphics) {
@@ -2231,8 +2231,8 @@ function CreateAccurateIndicator(pixi, stage, scale = 500, challengeMode = false
 				let accurate = container.children[i];
 				if (!accurate) continue;
 				
-				accurate.alpha = 1 - ((Date.now() - accurate.time) / 500);
-				if (Date.now() >= accurate.time + 500) {
+				accurate.alpha = 1 - ((Date.now() - accurate.time) / 2000);
+				if (Date.now() >= accurate.time + 2000) {
 					accurate.destroy();
 				}
 			}
