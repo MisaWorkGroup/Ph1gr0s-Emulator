@@ -61,21 +61,28 @@ function ConvertPEC2Json(pec, filename) {
 		bpm             = 120;
 		constructor(bpm) {
 			this.bpm = bpm;
-			("speedEvents,notesAbove,notesBelow,judgeLineDisappearEvents,judgeLineMoveEvents,judgeLineRotateEvents,judgeLineDisappearEventsPec,judgeLineMoveEventsPec,judgeLineRotateEventsPec").split(",").map(i => this[i] = []);
+			("speedEvents,notesAbove,notesBelow,notesFakeAbove,notesFakeBelow,judgeLineDisappearEvents,judgeLineMoveEvents,judgeLineRotateEvents,judgeLineDisappearEventsPec,judgeLineMoveEventsPec,judgeLineRotateEventsPec").split(",").map(i => this[i] = []);
 		}
 		
 		pushNote(note, pos, isFake) {
+			note.isFake = !!isFake;
+
 			switch (pos) {
 				case undefined:
-				case 1:
-					this.notesAbove.push(note);
+				case 1: {
+					if (isFake) this.notesFakeAbove.push(note);
+					else this.notesAbove.push(note);
 					break;
-				case 2:
-					this.notesBelow.push(note);
+				}
+				case 2: {
+					if (isFake) this.notesFakeBelow.push(note);
+					else this.notesBelow.push(note);
 					break;
+				}
 				default:
 					throw 'Note 参数错误：错误的 Note 位置：' + pos;
 			}
+
 			if (!isFake) {
 				this.numOfNotes++;
 				this.numOfNotesAbove++;
@@ -442,7 +449,9 @@ function ConvertPEC2Json(pec, filename) {
 		// Note 排序
 		i.notesAbove.sort((a, b) => a.time - b.time);
 		i.notesBelow.sort((a, b) => a.time - b.time);
-		
+		i.notesFakeAbove.sort((a, b) => a.time - b.time);
+		i.notesFakeBelow.sort((a, b) => a.time - b.time);
+
 		// 判定线事件排序
 		speedEvents.sort(sortTime);
 		lineMoveEvents.sort(sortTime);
@@ -476,7 +485,7 @@ function ConvertPEC2Json(pec, filename) {
 				noteSpeedChangedTime = x.time % 1e9 - y.startTime;
 			}
 			
-			x.floorPosition += noteSpeedChangedPosition + noteSpeed * noteSpeedChangedTime / i.bpm * 1.875;
+			x.floorPosition = noteSpeedChangedPosition + noteSpeed * noteSpeedChangedTime / i.bpm * 1.875;
 			if (x.type == 3) x.speed *= noteSpeed;
 		}
 		// 处理下方 Note
@@ -494,7 +503,42 @@ function ConvertPEC2Json(pec, filename) {
 				noteSpeedChangedTime = x.time % 1e9 - y.startTime;
 			}
 			
-			x.floorPosition += noteSpeedChangedPosition + noteSpeed * noteSpeedChangedTime / i.bpm * 1.875;
+			x.floorPosition = noteSpeedChangedPosition + noteSpeed * noteSpeedChangedTime / i.bpm * 1.875;
+			if (x.type == 3) x.speed *= noteSpeed;
+		}
+		// 处理 FakeNotes
+		for (let x of i.notesFakeAbove) {
+			let noteSpeed = 0,
+				noteSpeedChangedPosition = 0,
+				noteSpeedChangedTime = 0;
+			
+			for (let y of i.speedEvents) {
+				if (x.time % 1e9 > y.endTime) continue;
+				if (x.time % 1e9 < y.startTime) break;
+				
+				noteSpeed = y.value;
+				noteSpeedChangedPosition = y.floorPosition;
+				noteSpeedChangedTime = x.time % 1e9 - y.startTime;
+			}
+			
+			x.floorPosition = noteSpeedChangedPosition + noteSpeed * noteSpeedChangedTime / i.bpm * 1.875;
+			if (x.type == 3) x.speed *= noteSpeed;
+		}
+		for (let x of i.notesFakeBelow) {
+			let noteSpeed = 0,
+				noteSpeedChangedPosition = 0,
+				noteSpeedChangedTime = 0;
+			
+			for (let y of i.speedEvents) {
+				if (x.time % 1e9 > y.endTime) continue;
+				if (x.time % 1e9 < y.startTime) break;
+				
+				noteSpeed = y.value;
+				noteSpeedChangedPosition = y.floorPosition;
+				noteSpeedChangedTime = x.time % 1e9 - y.startTime;
+			}
+			
+			x.floorPosition = noteSpeedChangedPosition + noteSpeed * noteSpeedChangedTime / i.bpm * 1.875;
 			if (x.type == 3) x.speed *= noteSpeed;
 		}
 		

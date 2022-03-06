@@ -524,7 +524,8 @@ function CalculateChartData (chart) {
 	let multiNotes = {};
 	let notes = {
 		hold    : [],
-		notHold : []
+		notHold : [],
+		fakeNotes: []
 	};
 	
 	for (let judgeLine of chart.judgeLineList) {
@@ -544,7 +545,9 @@ function CalculateChartData (chart) {
 		// 过滤掉空的判定线
 		if (
 			judgeLine.notesAbove.length <= 0 &&
-			judgeLine.notesBelow <= 0 &&
+			judgeLine.notesBelow.length <= 0 &&
+			(!judgeLine.notesFakeAbove || judgeLine.notesFakeAbove.length <= 0) &&
+			(!judgeLine.notesFakeBelow || judgeLine.notesFakeBelow.length <= 0) &&
 			judgeLine.judgeLineMoveEvents.length <= 1 &&
 			judgeLine.judgeLineRotateEvents.length <= 1 &&
 			judgeLine.judgeLineDisappearEvents.length <= 1 &&
@@ -568,6 +571,19 @@ function CalculateChartData (chart) {
 			addNote(judgeLine.notesBelow[y], _judgeLine, (notes.hold.length + notes.notHold.length), y, noteId, false);
 			noteId++;
 		}
+		// 同样的姿势处理一下 FakeNote
+		if (judgeLine.notesFakeAbove) {
+			for (let x = 0; x < judgeLine.notesFakeAbove.length; x++) {
+				addNote(judgeLine.notesFakeAbove[x], _judgeLine, notes.fakeNotes.length, x, noteId, true);
+				noteId++;
+			}
+		}
+		if (judgeLine.notesFakeBelow) {
+			for (let y = 0; y < judgeLine.notesFakeBelow.length; y++) {
+				addNote(judgeLine.notesFakeBelow[y], _judgeLine, notes.fakeNotes.length, y, noteId, false);
+				noteId++;
+			}
+		}
 		
 		// 推送判定线
 		judgeLines.push(_judgeLine);
@@ -588,6 +604,7 @@ function CalculateChartData (chart) {
 	// note 重排序
 	notes.hold.sort(global.functions.sortNote);
 	notes.notHold.sort(global.functions.sortNote);
+	notes.fakeNotes.sort(global.functions.sortNote);
 	
 	return {
 		judgeLines: judgeLines,
@@ -621,6 +638,7 @@ function CalculateChartData (chart) {
 		note.idToSide     = Number(idToSide); // 相对这个判定线方向的 ID
 		note.idToLine     = Number(idToLine); // 相对这个判定线的 ID
 		note.isAbove      = isAbove;
+		note.isFake       = note.isFake;
 		note.score        = 0;
 		note.isScored     = false;
 		note.isProcessed  = false;
@@ -629,20 +647,23 @@ function CalculateChartData (chart) {
 		note.accType      = 0;
 		
 		// 兼容 PEC 谱面
-		if (!note.offsetY) {
-			for (let i of judgeLine.speedEvents) {
-				if (note.realTime < i.startRealTime) continue;
-				if (note.realTime > i.endRealTime) continue;
+		/**
+		if (!note.isFake) {
+			if (!note.offsetY) {
+				for (let i of judgeLine.speedEvents) {
+					if (note.realTime < i.startRealTime) continue;
+					if (note.realTime > i.endRealTime) continue;
+					
+					noteSpeed = i.value;
+					
+					noteSpeedChangedPosition = i.floorPosition;
+					noteSpeedChangedRealTime = i.startRealTime;
+					
+					break;
+				}
 				
-				noteSpeed = i.value;
-				
-				noteSpeedChangedPosition = i.floorPosition;
-				noteSpeedChangedRealTime = i.startRealTime;
-				
-				break;
+				note.offsetY = (note.realTime - noteSpeedChangedRealTime) * noteSpeed + noteSpeedChangedPosition;
 			}
-			
-			note.offsetY = (note.realTime - noteSpeedChangedRealTime) * noteSpeed + noteSpeedChangedPosition;
 		}
 		
 		if (!note.holdLength) {
@@ -660,10 +681,15 @@ function CalculateChartData (chart) {
 			note.holdEndPosition = holdEndPosition;
 			note.holdLength = (holdEndPosition - holdHeadPosition);
 		}
-		
-		if (note.type === 3) notes.hold.push(note);
-		else notes.notHold.push(note);
-		
+		**/
+
+		if (note.isFake) {
+			notes.fakeNotes.push(note);
+		} else {
+			if (note.type === 3) notes.hold.push(note);
+			else notes.notHold.push(note);
+		}
+
 		return note;
 	}
 	
@@ -814,7 +840,8 @@ function CreateChartSprites(chart, pixi, stage) {
 	
 	let output = {
 		judgeLines: [],
-		notes: []
+		notes: [],
+		fakeNotes: []
 	};
 	
 	// 创建背景图
@@ -884,81 +911,75 @@ function CreateChartSprites(chart, pixi, stage) {
 		stage.addChild(judgeLine);
 	}
 	
-	for (let _note of chart.notes.hold) { // 先渲染 Hold，这样 Hold 就会在所有 Note 的最下面
-		let note = new PIXI.Container();
-		let holdHead = new PIXI.Sprite(textures['holdHead' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
-		let holdBody = new PIXI.Sprite(textures['holdBody' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
-		let holdEnd = new PIXI.Sprite(textures['holdEnd' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
-		
-		holdHead.anchor.set(0.5);
-		holdBody.anchor.set(0.5, 1);
-		holdEnd.anchor.set(0.5, 1);
-		
-		holdBody.height = _note.holdLength * pixi.renderer.noteSpeed / noteScale;
-		
-		holdHead.position.set(0, holdHead.height / 2);
-		holdBody.position.set(0, 0);
-		holdEnd.position.set(0, -holdBody.height);
-		
-		note.addChild(holdHead);
-		note.addChild(holdBody);
-		note.addChild(holdEnd);
-		
-		note.zIndex = output.judgeLines.length + output.notes.length + 1;
-		
-		if (settings.developMode) {
-			let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
-			noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
-			noteName.anchor.set(0.5, 1);
-			noteName.position.set(0);
-			note.addChild(noteName);
-		}
-		
-		note.scale.set(noteScale);
-		note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2) + (fixedWidth / 2);
-		note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
-		
-		note.raw = _note;
-		
-		if (!_note.isAbove) note.angle = 180;
-		
-		output.notes.push(note);
-		stage.addChild(note);
+	for (let _note of chart.notes.fakeNotes) { // fakeNotes 应该在所有 note 的最下面
+		output.fakeNotes.push(CreateNoteSprite(_note, stage, 100 + output.notes.length + 1));
 	}
-	
+	for (let _note of chart.notes.hold) { // 先渲染 Hold，这样 Hold 就会在其他 Note 的下面
+		output.notes.push(CreateNoteSprite(_note, stage, 100 + output.notes.length + 1));
+	}
 	for (let _note of chart.notes.notHold) {
-		let note = new PIXI.Sprite(textures.tap);
-			
-		note.anchor.set(0.5);
-		note.zIndex = chart.judgeLines.length * 2 + output.notes.length + 1;
-		
-		if (_note.type == 1) note.texture = textures['tap' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
-		else if (_note.type == 2) note.texture = textures['drag' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
-		else if (_note.type == 4) note.texture = textures['flick' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
-		
-		if (settings.developMode) {
-			let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
-			noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
-			noteName.anchor.set(0.5, 1);
-			noteName.position.set(0);
-			note.addChild(noteName);
-		}
-		
-		note.scale.set(noteScale);
-		note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2) + (fixedWidth / 2);
-		note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
-		
-		note.raw = _note;
-		
-		if (!_note.isAbove) note.angle = 180;
-		
-		output.notes.push(note);
-		stage.addChild(note);
+		output.notes.push(CreateNoteSprite(_note, stage, 100 + output.notes.length + 1));
 	}
 	
 	output.notes.sort(global.functions.sortNote);
+	output.fakeNotes.sort(global.functions.sortNote);
 	
 	return output;
+
+	function CreateNoteSprite(_note, stage = null, zIndex = null) {
+		let note = null;
+
+		if (_note.type === 3) {
+			note = new PIXI.Container();
+
+			let holdHead = new PIXI.Sprite(textures['holdHead' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
+			let holdBody = new PIXI.Sprite(textures['holdBody' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
+			let holdEnd = new PIXI.Sprite(textures['holdEnd' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')]);
+			
+			holdHead.anchor.set(0.5);
+			holdBody.anchor.set(0.5, 1);
+			holdEnd.anchor.set(0.5, 1);
+			
+			holdBody.height = _note.holdLength * pixi.renderer.noteSpeed / noteScale;
+			
+			holdHead.position.set(0, holdHead.height / 2);
+			holdBody.position.set(0, 0);
+			holdEnd.position.set(0, -holdBody.height);
+			
+			note.addChild(holdHead);
+			note.addChild(holdBody);
+			note.addChild(holdEnd);
+
+		} else {
+			note = new PIXI.Sprite(textures.tap);
+			
+			note.anchor.set(0.5);
+			
+			if (_note.type == 1) note.texture = textures['tap' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
+			else if (_note.type == 2) note.texture = textures['drag' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
+			else if (_note.type == 4) note.texture = textures['flick' + ((_note.isMulti && settings.multiNotesHighlight) ? 'Hl' : '')];
+		}
+
+		if (settings.developMode) {
+			let noteName = new PIXI.Text(_note.lineId + (_note.isAbove ? '+' : '-') + _note.id, { fill: 'rgb(100,255,100)' });
+			noteName.scale.set(1 / (pixi.renderer.width / settings.noteScale));
+			noteName.anchor.set(0.5, 1);
+			noteName.position.set(0);
+			note.addChild(noteName);
+		}
+		
+		note.raw = _note;
+		
+		note.scale.set(noteScale);
+		note.position.x = (_note.positionX.toFixed(6) * 0.109) * (fixedWidth / 2) + (fixedWidth / 2);
+		note.position.y = _note.offsetY * (realHeight * 0.6) * (_note.isAbove ? -1 : 1);
+
+		if (!isNaN(Number(zIndex))) note.zIndex = zIndex;
+		if (!_note.isAbove) note.angle = 180;
+		if (stage) stage.addChild(note);
+
+		return note;
+	}
 }
 
 /***
@@ -1219,7 +1240,7 @@ function CreateChartInfoSprites(chartInfo, sprite, pixi, stage, requireFPSCounte
 	
 	// 创建水印
 	if (!output.watermark) {
-		let watermark = new PIXI.Text('Ph1gr0s Emulator v0.1.9 Alpha By MisaLiu Origin By lchzh3473', {
+		let watermark = new PIXI.Text('Ph1gr0s Emulator v0.1.11 Alpha By MisaLiu Origin By lchzh3473', {
 			fontFamily : 'Mina',
 			fill: 'rgba(255, 255, 255, 0.5)',
 			align: 'right'
@@ -1705,8 +1726,10 @@ function CreateGameEndAnimation(pixi, sprites) {
 	for (let judgeLine of sprites.game.judgeLines) {
 		judgeLine.visible = false;
 	}
-	
 	for (let note of sprites.game.notes) {
+		note.visible = false;
+	}
+	for (let note of sprites.game.fakeNotes) {
 		note.visible = false;
 	}
 	
@@ -1870,7 +1893,7 @@ function CalculateChartActualTime() {
 			if (noteRaw.type === 3 && note.children[0].visible === false) {
 				note.children[0].visible = true;
 				
-				note.children[1].height = (noteRaw.holdLength + noteRaw.offsetY) * noteSpeed / noteScale;
+				note.children[1].height = noteRaw.holdLength * noteSpeed / noteScale;
 				note.children[2].position.y = -note.children[1].height;
 				
 			} else if (timeBetween < 0 && note.visible === false) {
@@ -1904,6 +1927,80 @@ function CalculateChartActualTime() {
 					note.isProcessed = true;
 				}
 				**/
+			}
+		}
+	}
+
+	for (let note of gameSprites.fakeNotes) { // 处理 FakeNote
+		if (note.isProcessed === true) continue;
+		
+		let timeBetween = currentTime - note.raw.realTime;
+		let judgeLine = gameSprites.judgeLines[note.raw.lineId];
+		let noteRaw = note.raw;
+		let judgeLineRaw = judgeLine.raw;
+		
+		let noteX = noteRaw.positionX.toFixed(6) * fixedWidthPercent,
+			noteY = 0,
+			realNoteX = 0,
+			realNoteY = 0;
+		
+		if (noteRaw.type != 3 || noteRaw.forceChangeSpeed) {
+			noteY = (noteRaw.offsetY - judgeLine.currentOffsetY) * noteRaw.speed;
+		} else if (noteRaw.realTime < currentTime) {
+			noteY = (noteRaw.realTime - currentTime) * noteRaw.speed;
+		} else {
+			noteY = noteRaw.offsetY - judgeLine.currentOffsetY;
+		}
+		
+		if (noteRaw.offsetY < judgeLine.currentOffsetY) {
+			if (noteRaw.type === 3) { // 处理 Hold 的长度
+				let currentHoldLength = (noteRaw.holdLength + noteRaw.offsetY) - judgeLine.currentOffsetY;
+				if (currentHoldLength > 0) {
+					if (note.visible === false) note.visible = true;
+					if (note.children[0].visible === true) note.children[0].visible = false;
+					
+					note.children[1].height = currentHoldLength * noteSpeed / noteScale;
+					note.children[2].position.y = -note.children[1].height;
+					
+					noteY = 0;
+					
+				} else {
+					if (note.visible === true) note.visible = false;
+				}
+			} else if (timeBetween < 0 && note.visible === true) { // 处理已经到了另一边但未到时间的 Note 的可视属性
+				note.visible = false;
+			}
+		} else {
+			if (noteRaw.type === 3 && note.children[0].visible === false) {
+				note.children[0].visible = true;
+				
+				note.children[1].height = (noteRaw.holdLength + noteRaw.offsetY) * noteSpeed / noteScale;
+				note.children[2].position.y = -note.children[1].height;
+				
+			} else if (timeBetween < 0 && note.visible === false) {
+				note.visible = true;
+			}
+		}
+		
+		noteY = noteY * (noteRaw.isAbove ? -1 : 1) * noteSpeed;
+		
+		realNoteX = noteX * judgeLine.cosr - noteY * judgeLine.sinr;
+		realNoteY = noteY * judgeLine.cosr + noteX * judgeLine.sinr;
+		
+		note.position.x = realNoteX + judgeLine.position.x;
+		note.position.y = realNoteY + judgeLine.position.y;
+		note.angle = judgeLine.angle + (noteRaw.isAbove ? 0 : 180);
+		
+		if (timeBetween > 0) { // 处理超时的 Note
+			if (noteRaw.type != 3) {
+				note.alpha = 1 - (timeBetween / global.judgeTimes.bad);
+				if (timeBetween > global.judgeTimes.bad) {
+					note.visible = false;
+				}
+			} else {
+				if (noteRaw.score === 1 && note.alpha !== 0.5) {
+					note.alpha = 0.5;
+				}
 			}
 		}
 	}
@@ -2112,7 +2209,6 @@ function PlayHitsound(note, volume) {
 function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	let fixedWidth = width <= height / 9 * 16 ? width : height / 9 * 16;
 	let fixedWidthOffset = (width - fixedWidth) / 2;
-	let windowRatio = width / height;
 	let lineScale = fixedWidth > height * 0.75 ? height / 18.75 : fixedWidth / 14.0625;
 	let noteScale = fixedWidth / _noteScale;
 	let noteSpeed = height * 0.6;
@@ -2160,6 +2256,17 @@ function ResizeChartSprites(sprites, width, height, _noteScale = 8e3) {
 	
 	// 处理 Note
 	for (let note of sprites.game.notes) {
+		// 处理 Hold
+		if (note.raw.type == 3 && note.children.length === 3) {
+			note.children[1].height = note.raw.holdLength * noteSpeed / noteScale;
+			note.children[2].position.y = -note.children[1].height;
+		}
+		
+		note.scale.set(noteScale);
+	}
+
+	// 处理 FakeNote
+	for (let note of sprites.game.fakeNotes) {
 		// 处理 Hold
 		if (note.raw.type == 3 && note.children.length === 3) {
 			note.children[1].height = note.raw.holdLength * noteSpeed / noteScale;
