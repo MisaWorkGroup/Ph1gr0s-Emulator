@@ -820,8 +820,10 @@ function gameStart(waitTime = 1000) {
 				for (let judgeLine of sprites.game.judgeLines) {
 					judgeLine.visible = true;
 				}
-				
 				for (let note of sprites.game.notes) {
+					note.visible = true;
+				}
+				for (let note of sprites.game.fakeNotes) {
 					note.visible = true;
 				}
 				
@@ -872,10 +874,12 @@ function gameStart(waitTime = 1000) {
 	for (let judgeLine of sprites.game.judgeLines) {
 		judgeLine.visible = false;
 	}
-	
 	for (let note of sprites.game.notes) {
 		note.visible = false;
 		note.isProcessed = false;
+	}
+	for (let note of sprites.game.fakeNotes) {
+		note.visible = false;
 	}
 	
 	sprites.ui.start.container.visible = true;
@@ -999,8 +1003,18 @@ function gameRestart() { // 游戏重试
 		note.alpha = 1;
 
 		if (note.raw.type == 3) {
-			let rawHoldLength = note.raw.holdLength * noteSpeed / noteScale;
+			note.children[0].visible = true;
 			
+			note.children[1].position.y = 0;
+			note.children[1].height = note.raw.holdLength * noteSpeed / noteScale;
+			
+			note.children[2].position.y = -note.children[1].height;
+		}
+	}
+	for (let note of sprites.game.fakeNotes) {
+		note.alpha = 1;
+
+		if (note.raw.type == 3) {
 			note.children[0].visible = true;
 			
 			note.children[1].position.y = 0;

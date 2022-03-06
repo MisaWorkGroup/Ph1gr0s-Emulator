@@ -2,7 +2,7 @@
 An emulator for the rhythm game 'Phigros', based on [Pixi.js](https://github.com/pixijs/pixijs), forked from [lchzh3473/lchzh3473.github.io](https://github.com/lchzh3473/lchzh3473.github.io).
 
 ## Warning!
-This is a test & develop branch. See [Current develop plan](https://github.com/MisaWorkGroup/Ph1gr0s-Emulator/projects/1).
+This project is still testing.
 
 ## Introduction
 This project can let you play or preview you chart for Phigros.
