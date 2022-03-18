@@ -886,6 +886,40 @@
 			</div>
 		</main>
 		
+		<footer class="mdui-text-color-theme-secondary mdui-m-t-2 mdui-m-b-2">
+			<div class="mdui-divider"></div>
+			
+			<center class="mdui-typo mdui-p-t-1 mdui-p-l-1 mdui-p-r-1">
+				Made by <a href="https://misaliu.top" target="_blank">MisaLiu</a>, 2022-至今&nbsp;<span>|</span>
+				<a href="https://github.com/MisaWorkGroup/Ph1gr0s-Emulator" target="_blank">GitHub</a><br>
+				本项目为个人项目，与 厦门鸽游网络有限公司 没有任何关联<br>
+				本项目所使用的所有素材均为自主制作，详情可见 <a href="https://phi.misaliu.top/credits.html" target="_blank">制作人员名单</a><br>
+				<span id="tip">当你看到这条消息的时候，就说明 Tip 还在拉取中...</span>
+				<script>
+					mdui.$.ajax({
+						url: 'https://phi.misaliu.top/tips.php',
+						data: {
+							format: 'json'
+						},
+						dataType: 'json',
+						xhrFields: {
+							withCredentials: true
+						},
+						success: (data) => {
+							if (data.code == 200) {
+								mdui.$('#tip').text('Tips: ' + data.data.content);
+							} else {
+								throw new Error(data.msg);
+							}
+						},
+						error: () => {
+							mdui.$('#tip').text('拉取 Tip 时出错了...');
+						}
+					});
+				</script>
+			</center>
+		</footer>
+		
 		<div class="mdui-dialog" style="transition-property: top,left,width,height,transform,opacity,visibility,-webkit-transform;" id="msg-box">
 			<div class="mdui-dialog-title">信息</div>
 			<div class="mdui-dialog-content">还没有任何消息</div>
