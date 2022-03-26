@@ -9,19 +9,19 @@
 		<meta name="keywords" content="ph1gr0s,emulator,online" />
 		
 		<link rel="stylesheet" href="./css/font-mina.css" />
-		<link rel="stylesheet" href="./css/mdui.min.css?v=1.0.1" />
+		<link rel="stylesheet" href="./css/main.css?v=0.0.1" />
 		
 		<script src="//cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
 		<script src="./js/stackblur.min.js?v=2.5.0"></script>
 		
-		<script src="./js/pixi-legacy.min.js=5.3.10"></script>
+		<script src="./js/pixi-legacy.min.js?=5.3.10"></script>
 		<script src="./js/pixi-sound.js?v=4.2.0"></script>
 		
 		<script>
 			var global = {};
 			var vConsole;
-			const BrowserInfo = new Browser();
+			/** const BrowserInfo = new Browser(); **/
 			const DeviceInfo = {
 				/**
 				system         : BrowserInfo.os,
@@ -98,6 +98,8 @@
 		<title>Ph1gr0s Emulator</title>
 	</head>
 	<body>
-		
+		<canvas id="stage"></canvas>
+
+		<script src="./js/main.js?v=0.0.1"></script>
 	</body>
 </html>
