@@ -1,0 +1,184 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#input-select-file {
+    display: none;
+}
+
+#select-file-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #FFF;
+    font-size: 40px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#select-file-btn[disabled] {
+    cursor: default;
+}
+
+#select-chart-window {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    padding: 12px 16px;
+    transform: translate(-50%, -50%);
+    color: #FFF;
+    background: #000;
+}
+
+#select-chart-window label {
+    margin-bottom: 8px;
+    line-height: 30px;
+}
+
+#select-chart-window button {
+    margin-top: 4px;
+    float: right;
+    cursor: pointer;
+}
+
+#game {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100%;
+    overflow: hidden;
+}
+
+#game .note {
+    position: absolute;
+    transform: translate(-50%, -50%) scale(var(--note-scale)) rotate(var(--angle, 0deg));
+}
+
+#game .note.tap {
+    background-image: url('./img/Tap.png');
+    width: 989px;
+    height: 100px;
+}
+
+#game .note.flick {
+    background-image: url('./img/Flick.png');
+    width: 989px;
+    height: 200px;
+}
+
+#game .note.hold::before {
+    content: '';
+    display: block;
+    position: absolute;
+    background-image: url('./img/HoldHead.png');
+    left: -46px;
+    bottom: 0;
+    width: 1080px;
+    height: 50px;
+    transform: translateY(100%);
+}
+#game .note.hold {
+    background-image: url('./img/Hold.png');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    width: 989px;
+    height: calc(var(--hold-length, 1) * var(--note-speed) / var(--note-scale) * var(--note-progress, 1) * 1px);
+    transform: translate(-50%, calc(-50% - var(--note-scale) * 50%)) scale(var(--note-scale)) rotate(var(--angle, 0deg));
+}
+#game .note.hold::after {
+    content: '';
+    display: block;
+    position: absolute;
+    background-image: url('./img/HoldEnd.png');
+    top: 0;
+    left: -46px;
+    width: 1080px;
+    height: 53px;
+    transform: translateY(-100%);
+}
+
+#game .note.drag {
+    background-image: url('./img/Drag.png');
+    width: 1080px;
+    height: 100px;
+}
+
+#game .note.tap.hl {
+    background-image: url('./img/TapHL.png');
+    width: 1050px;
+    height: 170px;
+}
+
+#game .note.flick.hl {
+    background-image: url('./img/FlickHL.png');
+    width: 1050px;
+    height: 200px;
+}
+
+#game .note.hold.hl::before {
+    background-image: url('./img/HoldHeadHL.png');
+    left: 18px;
+    width: 1045px;
+    height: 85px;
+}
+#game .note.hold.hl {
+    background-image: url('./img/HoldHL.png');
+    width: 1080px;
+}
+#game .note.hold.hl::after {
+    background-image: url('./img/HoldEndHL.png');
+    left: 18px;
+    width: 1047px;
+    height: 88px;
+}
+
+#game .note.drag.hl {
+    background-image: url('./img/DragHL.png');
+    width: 1050px;
+    height: 170px;
+}
+
+#game .judgeline {
+    position: absolute;
+    background-image: url('./img/JudgeLine.png');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    width: var(--judgeline-width);
+    height: calc(var(--line-scale) * 18.75 * 0.008px);
+    transform: translate(-50%, -50%) rotate(var(--angle, 0deg));
+}
+
+#audio {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    opacity: 0.2;
+}
+
+#audio:hover {
+    opacity: 1;
+}
+
+div#status-window {
+    position: absolute;
+    top: unset !important;
+    left: unset !important;
+    right: 0;
+    bottom: 0;
+    width: 80px;
+    height: 48px;
+}
+
+div#status-window canvas {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+}
