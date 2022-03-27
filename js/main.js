@@ -15,7 +15,8 @@ var zipFiles = {
 const doms = {
     touchToStart: document.querySelector('.game-screen.touch-to-start'),
     touchToStartInfo: document.querySelector('.game-screen.touch-to-start .touch-to-start-prompt'),
-    fileInput: document.querySelector('.game-screen.touch-to-start .touch-to-start-input')
+    fileInput: document.querySelector('.game-screen.touch-to-start .touch-to-start-input'),
+    selectFile: document.querySelector('.game-screen.select-files')
 };
 const resources = [ // 需要使用的素材文件的位置和名称
     // 图像资源-游戏画面
@@ -61,7 +62,10 @@ const resources = [ // 需要使用的素材文件的位置和名称
 window.addEventListener('resize', ResizeWindow);
 
 // 监听 Touch To Start 被按下
-doms.touchToStart.addEventListener('click', () => { doms.fileInput.click() });
+doms.touchToStart.addEventListener('click', () => {
+    if (doms.touchToStart.getAttribute('disabled') == 'true') return;
+    doms.fileInput.click();
+});
 
 // 监听选择外部文件事件
 doms.fileInput.addEventListener('input', () => {
@@ -159,7 +163,7 @@ function LoadZip(file) {
     let zip = new JSZip(); // https://github.com/Stuk/jszip
 
     reader.addEventListener('loadend', () => {
-        doms.touchToStartInfo.innerHTML = '正在解析压缩文件...';
+        doms.touchToStartInfo.innerHTML = '正在解析压缩文件 0%...';
 
         zip.loadAsync(reader.result)
             .then(async (e) => {
@@ -167,6 +171,7 @@ function LoadZip(file) {
                 const audioFormat = ('aac,flac,mp3,ogg,wav,webm').split(',');
                 let _files = e.files;
                 let files = [];
+                let fileLoadedCount = 0;
 
                 for (let name in _files) {
                     // 第一轮处理，将文件的格式、真实名称和是否是隐藏文件表示出来
@@ -194,6 +199,8 @@ function LoadZip(file) {
 
                 for (let file of files) {
                     try {
+                        fileLoadedCount++;
+
                         if (file.name === 'info.csv') {
                             // 解析谱面包信息文件
                             let info = await file.async('text');
@@ -238,10 +245,23 @@ function LoadZip(file) {
                             
                         }
 
+                        // 推送文件读取进度到 UI
+                        doms.touchToStartInfo.innerHTML = '正在读取压缩文件 ' + (fileLoadedCount / files.length * 100).toFixed(0) + '%...';
+
                     } catch (e) {
                         console.error(e);
                     }
                 }
+
+
+                // 全部文件解析完毕后，隐藏 Touch To Start ...
+                doms.touchToStart.classList.remove('fade-in');
+                doms.touchToStart.classList.add('fade-out');
+                setTimeout(() => { doms.touchToStart.style.display = 'none' }, 1000);
+
+                // ...然后显示文件显示窗口
+                doms.selectFile.style.display = 'block';
+                doms.selectFile.classList.add('fade-in');
             })
             .catch((e) => {
 
@@ -254,7 +274,7 @@ function LoadZip(file) {
         return;
     }
 
+    doms.touchToStart.setAttribute('disabled', true);
     doms.touchToStartInfo.innerHTML = '正在读取压缩文件...';
     reader.readAsArrayBuffer(file);
-    console.log(file);
 }

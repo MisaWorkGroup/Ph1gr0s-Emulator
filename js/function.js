@@ -11,6 +11,8 @@ function ResizeWindow() {
     window.noteSclae = fixedWidth / settings.noteSclae;
     window.lineScale = fixedWidth > realHeight * 0.75 ? realHeight / 18.75 : fixedWidth / 14.0625;
 
+    document.body.style.setProperty('--fixed-width', fixedWidth + 'px');
+    document.body.style.setProperty('--fixed-width-offset', fixedWidthOffset + 'px');
     document.body.style.setProperty('--line-scale', window.lineScale);
     
     if (pixi) {

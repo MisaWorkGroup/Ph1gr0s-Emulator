@@ -2,6 +2,10 @@
     --line-scale: 76.8;
 }
 
+/* ================================= 原生组件定义区 ================================= */
+/**
+ * 此处定义原生组件的样式，如 body, button 等组件的样式
+**/
 html, body {
     margin: 0;
     padding: 0;
@@ -11,6 +15,48 @@ html, body {
     background-color: #000;
 }
 
+button {
+    padding: calc(var(--line-scale) * 0.3125px) calc(var(--line-scale) * 0.694444px);
+    color: #FFF;
+    background: none;
+    font-size: calc(var(--line-scale) * 0.347222px);
+    border: calc(var(--line-scale) * 0.034722px) solid #FFF;
+    outline: none;
+    border-radius: calc(var(--line-scale) * 0.555556px);
+    transition-property: background, color, border;
+    transition-duration: 0.2s;
+    transition-timing-function: linear;
+    -webkit-transition-property: background, color, border;
+    -webkit-transition-duration: 0.2s;
+    -webkit-transition-timing-function: linear;
+    cursor: pointer;
+}
+button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+button:active {
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+button.highlight {
+    background: #FFF;
+    color: #000;
+    border: calc(var(--line-scale) * 0.034722px) solid rgba(255, 255, 255, 0);
+}
+button.highlight:hover {
+    background: rgba(255, 255, 255, 0.8);
+    border: calc(var(--line-scale) * 0.034722px) solid #FFF;
+}
+button.highlight:active {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+/* ================================= 自定义样式定义区 ================================= */
+/**
+ * 此处定义通用样式，如定义一次之后就可以在其他组件中使用的样式
+**/
 .game-screen {
     position: absolute;
     top: 0;
@@ -20,6 +66,40 @@ html, body {
     background-color: #000;
 }
 
+.container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--fixed-width) * 0.828645);
+    height: 77.129630%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: calc(var(--line-scale) * 0.78125px);
+}
+
+.container .content {
+    padding: calc(var(--line-scale) * 1.180556px);
+    padding-bottom: calc(var(--line-scale) * 1.180556px * 2);
+}
+
+.container .content .title {
+    font-size: calc(var(--line-scale) * 1.041667px);
+}
+.container .content .subtitle {
+    font-size: calc(var(--line-scale) * 0.347222px);
+}
+
+.container .actions {
+    position: absolute;
+    bottom: 0;
+    padding: calc(var(--line-scale) * 1.180556px);
+    padding-top: 0;
+}
+
+
+/**
+ * 此处定义非通用样式
+**/
 .loading {
     background-image: url('/img/bg-loading.png');
     background-size: cover;
@@ -33,13 +113,13 @@ html, body {
     left: calc(var(--line-scale) * 3.402778px);
     font-size: calc(var(--line-scale) * 0.520833px);
 }
-
 .loading .loading-detail {
     position: absolute;
     right: calc(var(--line-scale) * 1.666667px);
     bottom: calc(var(--line-scale) * 0.607639px);
     font-size: calc(var(--line-scale) * 0.607639px);
 }
+
 .loading .loading-detail::before {
     content: '少女祈祷中';
     display: inline-block;
@@ -82,4 +162,3 @@ html, body {
 .touch-to-start .touch-to-start-input {
     display: none;
 }
-
