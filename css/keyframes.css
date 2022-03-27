@@ -1,3 +1,4 @@
+/* ============================ 定义常用动画类 ============================ */
 .fade-in {
     animation: var(--animate-time, 1s) linear 0s 1 normal forwards fade-in;
     -webkit-animation: var(--animate-time, 1s) linear 0s 1 normal forwards fade-in;
@@ -13,7 +14,7 @@
 
 
 
-
+/* ============================ 定义动画帧 ============================ */
 @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
