@@ -62,13 +62,13 @@ html, body {
 }
 
 #game .note.tap {
-    background-image: url('./img/Tap.png');
+    background-image: url('../img/Tap.png');
     width: 989px;
     height: 100px;
 }
 
 #game .note.flick {
-    background-image: url('./img/Flick.png');
+    background-image: url('../img/Flick.png');
     width: 989px;
     height: 200px;
 }
@@ -77,7 +77,7 @@ html, body {
     content: '';
     display: block;
     position: absolute;
-    background-image: url('./img/HoldHead.png');
+    background-image: url('../img/HoldHead.png');
     left: -46px;
     bottom: 0;
     width: 1080px;
@@ -85,7 +85,7 @@ html, body {
     transform: translateY(100%);
 }
 #game .note.hold {
-    background-image: url('./img/Hold.png');
+    background-image: url('../img/Hold.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     width: 989px;
@@ -96,7 +96,7 @@ html, body {
     content: '';
     display: block;
     position: absolute;
-    background-image: url('./img/HoldEnd.png');
+    background-image: url('../img/HoldEnd.png');
     top: 0;
     left: -46px;
     width: 1080px;
@@ -105,49 +105,49 @@ html, body {
 }
 
 #game .note.drag {
-    background-image: url('./img/Drag.png');
+    background-image: url('../img/Drag.png');
     width: 1080px;
     height: 100px;
 }
 
 #game .note.tap.hl {
-    background-image: url('./img/TapHL.png');
+    background-image: url('../img/TapHL.png');
     width: 1050px;
     height: 170px;
 }
 
 #game .note.flick.hl {
-    background-image: url('./img/FlickHL.png');
+    background-image: url('../img/FlickHL.png');
     width: 1050px;
     height: 200px;
 }
 
 #game .note.hold.hl::before {
-    background-image: url('./img/HoldHeadHL.png');
+    background-image: url('../img/HoldHeadHL.png');
     left: 18px;
     width: 1045px;
     height: 85px;
 }
 #game .note.hold.hl {
-    background-image: url('./img/HoldHL.png');
+    background-image: url('../img/HoldHL.png');
     width: 1080px;
 }
 #game .note.hold.hl::after {
-    background-image: url('./img/HoldEndHL.png');
+    background-image: url('../img/HoldEndHL.png');
     left: 18px;
     width: 1047px;
     height: 88px;
 }
 
 #game .note.drag.hl {
-    background-image: url('./img/DragHL.png');
+    background-image: url('../img/DragHL.png');
     width: 1050px;
     height: 170px;
 }
 
 #game .judgeline {
     position: absolute;
-    background-image: url('./img/JudgeLine.png');
+    background-image: url('../img/JudgeLine.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     width: var(--judgeline-width);
