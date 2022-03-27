@@ -1,3 +1,11 @@
+* {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    -o-user-select: none !important;
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -181,4 +189,17 @@ div#status-window canvas {
     position: absolute;
     right: 0;
     bottom: 0;
+}
+
+.watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    color: #FFF;
+    font-size: 5em;
+    text-align: center;
+    opacity: 0.1;
+    pointer-events: none;
 }
