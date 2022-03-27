@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width" />
+    </head>
+    <body>
+        <label>Width: <input id="screen-width" type="number" value="1920" /></label><br>
+        <label>Height: <input id="screen-height" type="number" value="1080" /></label><br>
+        <label>Value: <input id="input-value" type="number" /></label><br>
+        <label>LineScale: <span id="result">0</span></label>
+
+        <style>
+            #result {
+                user-select: all;
+            }
+        </style>
+
+        <script>
+            var screenWidthInput = document.getElementById('screen-width');
+            var screenHeightInput = document.getElementById('screen-height');
+            var valueInput = document.getElementById('input-value');
+            var resultDom = document.getElementById('result');
+
+            screenWidthInput.addEventListener('input', CalcLineScale);
+            screenHeightInput.addEventListener('input', CalcLineScale);
+            valueInput.addEventListener('input', CalcLineScale);
+
+            function CalcLineScale() {
+                let width = screenWidthInput.value,
+                    height = screenHeightInput.value,
+                    lineScale = width > height * 0.75 ? height / 18.75 : width / 14.0625;
+                
+                resultDom.innerHTML = (valueInput.value / lineScale).toFixed(6);
+            }
+        </script>
+    </body>
+</html>

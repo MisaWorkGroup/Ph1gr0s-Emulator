@@ -1,0 +1,33 @@
+.fade-in {
+    animation: var(--animate-time, 1s) linear 0s 1 normal forwards fade-in;
+    -webkit-animation: var(--animate-time, 1s) linear 0s 1 normal forwards fade-in;
+}
+.fade-out {
+    animation: var(--animate-time, 1s) linear 0s 1 normal forwards fade-out;
+    -webkit-animation: var(--animate-time, 1s) linear 0s 1 normal forwards fade-out;
+}
+.blank {
+    animation: var(--animate-time, 1s) linear 0s infinite alternate fade-out;
+    -webkit-animation: var(--animate-time, 1s) linear 0s infinite alternate fade-out;
+}
+
+
+
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@-webkit-keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+@-webkit-keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}

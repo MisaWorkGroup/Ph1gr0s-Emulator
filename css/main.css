@@ -1,6 +1,85 @@
+:root {
+    --line-scale: 76.8;
+}
+
 html, body {
     margin: 0;
     padding: 0;
+    width: 100%;
+    height: 100%;
+    color: #FFF;
     background-color: #000;
+}
+
+.game-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+}
+
+.loading {
+    background-image: url('/img/bg-loading.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.loading .loading-title {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--line-scale) * 3.402778px);
+    font-size: calc(var(--line-scale) * 0.520833px);
+}
+
+.loading .loading-detail {
+    position: absolute;
+    right: calc(var(--line-scale) * 1.666667px);
+    bottom: calc(var(--line-scale) * 0.607639px);
+    font-size: calc(var(--line-scale) * 0.607639px);
+}
+.loading .loading-detail::before {
+    content: '少女祈祷中';
+    display: inline-block;
+    margin-right: 8px;
+}
+.loading .loading-detail::after {
+    content: '...';
+    display: inline-block;
+}
+
+
+.touch-to-start {
+    background-image: url('/img/bg-touchtostart.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.touch-to-start .touch-to-start-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--line-scale) * 19.895833px);
+    height: calc(var(--line-scale) * 11.232639px);
+    transform: translate(-50%, -50%);
+    background-image: url('/img/bg-logo.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.touch-to-start .touch-to-start-prompt {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--line-scale) * 0.954861px);
+    transform: translateX(-50%);
+    font-size: calc(var(--line-scale) * 0.607639px);
+}
+
+.touch-to-start .touch-to-start-input {
+    display: none;
 }
 

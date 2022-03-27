@@ -10,6 +10,7 @@
 		
 		<link rel="stylesheet" href="./css/font-mina.css" />
 		<link rel="stylesheet" href="./css/main.css?v=0.0.1" />
+		<link rel="stylesheet" href="./css/keyframes.css?v=0.0.1" />
 		
 		<script src="//cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
@@ -99,7 +100,16 @@
 	</head>
 	<body>
 		<canvas id="stage"></canvas>
+		<div class="game-screen loading fade-in">
+			<div class="loading-title">可能需要一点时间</div>
+			<div class="loading-detail blank"></div>
+		</div>
 
+		<div class="game-screen touch-to-start" style="display: none;">
+			<input class="touch-to-start-input" type="file" />
+			<div class="touch-to-start-logo"></div>
+			<div class="touch-to-start-prompt blank">轻触屏幕来开始</div>
+		</div>
 		<script src="./js/main.js?v=0.0.1"></script>
 	</body>
 </html>
