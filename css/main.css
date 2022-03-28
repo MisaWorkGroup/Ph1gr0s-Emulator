@@ -101,6 +101,50 @@ button.highlight:active {
     font-size: calc(var(--line-scale) * 0.347222px);
 }
 
+.switch {
+    display: inline-block;
+    cursor: pointer;
+}
+.switch input[type="checkbox"] {
+    display: none;
+}
+.switch .switch-background {
+    display: inline-block;
+    position: relative;
+    width: calc(var(--line-scale) * 1.267361px);
+    height: calc(var(--line-scale) * 0.520833px);
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: calc(var( --line-scale) * 0.243056px);
+    transition-property: background;
+    transition-timing-function: ease-out;
+    transition-duration: 0.2s;
+}
+.switch .switch-handle {
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(var(--line-scale) * 0.590278px);
+    height: calc(var(--line-scale) * 0.520833px);
+    margin: calc(var(--line-scale) * 0.086806px);
+    transform: translate(0%);
+    -webkit-transform: translate(0%);
+    background: #FFF;
+    border-radius: calc(var(--line-scale) * 0.15625px);
+    transition-property: left,transform,-webkit-transform;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-out;
+}
+/* 定义开关打开后的样式 */
+.switch input[type="checkbox"]:checked+.switch-background {
+    background: rgba(100, 255, 100, 0.3);
+}
+.switch input[type="checkbox"]:checked+.switch-background .switch-handle {
+    left: 100%;
+    transform: translateX(calc(-100% - var(--line-scale) * 0.086806px * 2));
+    -webkit-transform: translateX(calc(-100% - var(--line-scale) * 0.086806px * 2));
+}
+
 /*
 .container .image {
     先留空了
