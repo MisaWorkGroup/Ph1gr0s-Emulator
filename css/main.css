@@ -67,6 +67,7 @@ button.highlight:active {
 }
 
 .container {
+    display: flex;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -75,25 +76,58 @@ button.highlight:active {
     transform: translate(-50%, -50%);
     background: rgba(255, 255, 255, 0.2);
     border-radius: calc(var(--line-scale) * 0.78125px);
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-content: stretch;
+}
+.container > * {
+    position: relative;
+    padding: calc(var(--line-scale) * 0.381944px);
+    align-self: stretch;
+    flex-basis: 100%;
 }
 
 .container .content {
-    padding: calc(var(--line-scale) * 1.180556px);
     padding-bottom: calc(var(--line-scale) * 1.180556px * 2);
 }
 
 .container .content .title {
-    font-size: calc(var(--line-scale) * 1.041667px);
+    margin: calc(var(--line-scale) * 0.798611px) calc(var(--line-scale) * 1.006944px) 0;
+    font-size: calc(var(--line-scale) * 1.006944px);
 }
 .container .content .subtitle {
+    margin: 0 calc(var(--line-scale) * 1.180556px) 0;
     font-size: calc(var(--line-scale) * 0.347222px);
+}
+
+/*
+.container .image {
+    先留空了
+}
+*/
+
+.container .image .image-media {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100% - var(--line-scale) * 0.381944px * 2);
+    height: calc(100% - var(--line-scale) * 0.381944px * 2);
+    margin: calc(var(--line-scale) * 0.381944px);
+    background: #000;
+    border-radius: calc(var(--line-scale) * 0.503472px);
 }
 
 .container .actions {
     position: absolute;
+    width: calc(100% - var(--line-scale) * 1.180556px * 2);
+    left: 0;
     bottom: 0;
     padding: calc(var(--line-scale) * 1.180556px);
     padding-top: 0;
+}
+.container .actions button + button {
+    margin-left: calc(var(--line-scale) * 0.138889px);
 }
 
 
