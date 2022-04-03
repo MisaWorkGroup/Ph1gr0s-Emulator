@@ -63,8 +63,10 @@ window.addEventListener('resize', ResizeWindow);
 
 // 监听 Touch To Start 被按下
 doms.touchToStart.addEventListener('click', () => {
+    /**
     if (doms.touchToStart.getAttribute('disabled') == 'true') return;
     doms.fileInput.click();
+    **/
 });
 
 // 监听选择外部文件事件
@@ -75,7 +77,7 @@ doms.fileInput.addEventListener('input', () => {
 
 /*** ==================== 全局初始化 ==================== ***/
 (async () => {
-    let loadingDetailDom = document.querySelector('.game-screen.loading .loading-detail');
+    let loadingDetailDom = document.querySelector('.loading .loading-progress');
 
     pixi = new PIXI.Application({ // 创建舞台和 Renderer
         width       : document.documentElement.clientWidth,
@@ -136,7 +138,7 @@ doms.fileInput.addEventListener('input', () => {
                         textures[name] = resource.texture;
                     }
                 }
-
+                
                 // 显示 Touch To Start
                 doms.touchToStart.style.display = 'block';
                 doms.touchToStart.classList.add('fade-in');
@@ -149,7 +151,8 @@ doms.fileInput.addEventListener('input', () => {
                 }, 1000);
             })
             .onProgress.add((e) => { // 推送加载进度到加载画面
-                loadingDetailDom.innerHTML = e.progress.toFixed(0) + '%';
+                loadingDetailDom.style.setProperty('--progress', e.progress.toFixed(0) + '%');
+                loadingDetailDom.style.setProperty('--content', '\'游戏资源加载中 ' + e.progress.toFixed(0) + '%\'');
             }
         );
     }, 1000);

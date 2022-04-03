@@ -13,6 +13,7 @@ function ResizeWindow() {
 
     document.body.style.setProperty('--fixed-width', fixedWidth + 'px');
     document.body.style.setProperty('--fixed-width-offset', fixedWidthOffset + 'px');
+    document.body.style.setProperty('--height-percent', document.documentElement.clientHeight / 1080);
     document.body.style.setProperty('--line-scale', window.lineScale);
     
     if (pixi) {

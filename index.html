@@ -100,9 +100,10 @@
 	</head>
 	<body>
 		<canvas id="stage"></canvas>
+		
 		<div class="game-screen loading fade-in">
-			<div class="loading-title">可能需要一点时间</div>
-			<div class="loading-detail blank"></div>
+			<div class="loading-logo"></div>
+			<div class="loading-progress progress" style="--content:'游戏资源加载中'"></div>
 		</div>
 
 		<div class="game-screen touch-to-start" style="display:none">
@@ -111,6 +112,27 @@
 			<div class="touch-to-start-prompt blank">轻触屏幕来开始</div>
 		</div>
 
+		<div class="game-screen select-song">
+			<div class="song-list">
+				<div class="header">
+					<div class="title">选择乐曲</div>
+					<div class="subtitle">准备好的话，就开始吧</div>
+
+					<div class="actions">
+						<button>返回</button>
+					</div>
+				</div>
+
+				<div class="content">
+					
+				</div>
+			</div>
+			<div class="selected-song">
+						
+			</div>
+		</div>
+
+		
 		<div class="game-screen select-files" style="display:none">
 			<div class="container">
 				<div class="content">
