@@ -103,6 +103,11 @@ button.highlight:active {
 }
 .loading {
   position: relative;
+}
+.loading::before {
+  content: '';
+  display: inline-block;
+  position: relative;
   width: calc(var(--height-percent) * 40px);
   height: calc(var(--height-percent) * 40px);
   border: calc(var(--height-percent) * 6px) solid transparent;
@@ -226,7 +231,41 @@ button.highlight:active {
   background: linear-gradient(120deg, rgba(177, 98, 224, 0.4) -10%, rgba(97, 169, 235, 0.4) 90%, rgba(91, 174, 236, 0.4));
 }
 .rks-low::before {
-  background: linear-gradient(#53B4FF, #E9A2F8);
+  background: linear-gradient(45deg, #53B4FF, #E9A2F8);
+}
+.rks-medium {
+  background: linear-gradient(110deg, rgba(115, 143, 254, 0.4) 0%, rgba(106, 165, 198, 0.4) 30%, rgba(115, 219, 153, 0.4) 82%, rgba(255, 231, 110, 0.4) 110%, rgba(223, 155, 130, 0.4) 145%);
+}
+.rks-medium::before {
+  background: linear-gradient(160deg, #9ECBE1 0%, #A9A1D4 48%, #6BE9A6 100%);
+}
+.rks-high {
+  background: linear-gradient(136deg, rgba(115, 143, 254, 0.4) 2%, rgba(106, 195, 168, 0.4) 24%, rgba(115, 219, 153, 0.4) 48%, rgba(255, 231, 110, 0.4) 72%, rgba(223, 155, 130, 0.4) 96%);
+}
+.rks-high::before {
+  background: linear-gradient(175deg, #DF9B82 8%, #FFE76E 22%, #73DB99 42%, #6AA5C6 72%, #738FFE 100%);
+}
+.level {
+  color: #FFF;
+  background: #867D62;
+}
+.level-easy {
+  background: #24CE63;
+}
+.level-hard {
+  background: #41BEF3;
+}
+.level-insane {
+  background: #F3D041;
+}
+.level-another {
+  background: #F35941;
+}
+.level-special {
+  background: #0091C7;
+}
+.level-legacy {
+  background: #867D62;
 }
 /*
 .container .image {
@@ -403,6 +442,7 @@ button.highlight:active {
   padding: calc(var(--height-percent) * 22px);
   font-family: 'MiSans';
   text-align: center;
+  border-radius: calc(var(--height-percent) * 18px);
   box-sizing: border-box;
   flex-direction: row;
   align-items: center;
@@ -490,7 +530,9 @@ button.highlight:active {
   bottom: calc(var(--height-percent) * 182px);
   height: calc(var(--height-percent) * 57px);
   padding: calc(var(--height-percent) * 14px) calc(var(--height-percent) * 46px);
-  font-size: calc(var(--line-scale) * 0.399306px);
+  font-size: calc(var(--line-scale) * 0.35px);
+  background: rgba(0, 0, 0, 0.38);
+  border: none;
   border-radius: calc(var(--height-percent) * 29px);
 }
 .select-song .song-start {
@@ -499,7 +541,7 @@ button.highlight:active {
   bottom: calc(var(--height-percent) * 97px);
   height: calc(var(--height-percent) * 73px);
   padding: calc(var(--height-percent) * 22px) calc(var(--height-percent) * 68px);
-  font-size: calc(var(--line-scale) * 0.399306px);
+  font-size: calc(var(--line-scale) * 0.35px);
   border-radius: calc(var(--height-percent) * 50px);
   box-sizing: border-box;
 }
