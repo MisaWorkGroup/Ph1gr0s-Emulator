@@ -377,9 +377,11 @@ button.highlight:active {
   font-size: calc(var(--line-scale) * 1.041667px);
 }
 .select-song .song-detail .song-higest-score {
+  font-family: 'MiSans';
   font-size: calc(var(--line-scale) * 0.434028px);
 }
 .select-song .song-detail .song-chart-designer {
+  font-family: 'MiSans';
   font-size: calc(var(--line-scale) * 0.347222px);
 }
 .select-song .song-start {
