@@ -6,6 +6,8 @@ We decided to rewrite the whole project with [MithrilJS](https://mithril.js.org/
 
 If you're interested in helping us for developing this fresh new version, you can contact me on [Telegram](https://t.me/HIMlaoS_Misa).
 
+Note that this version doesn't be published on neither GitHub Pages nor my own server.
+
 ## Warning!
 This project is still testing.
 
