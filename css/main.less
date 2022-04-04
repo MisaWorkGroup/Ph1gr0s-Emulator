@@ -394,6 +394,14 @@ button {
     background-repeat: no-repeat;
     background-position: center;
 
+    /* 定义通用 transition 属性 */
+    .transition {
+        transition-property: left,right,transform,-webkit-transform,opacity;
+        transition-duration: 0.5s;
+        transition-timing-function: cubic-bezier(0, 0, 0, 1);
+    }
+
+
     &::before {
         content: '';
         display: block;
@@ -417,6 +425,7 @@ button {
         -webkit-backdrop-filter: blur(50px);
         border-radius: calc(var(--line-scale) * 0.642361px);
         box-sizing: border-box;
+        .transition();
 
         /* 针对不支持高斯模糊的浏览器进行兼容样式处理 */
         @supports @support-backdrop-filter {
@@ -470,6 +479,7 @@ button {
         border-radius: calc(var(--line-scale) * 0.451389px);
         overflow: hidden;
         box-sizing: border-box;
+        .transition();
 
         /* 针对不支持高斯模糊的浏览器进行兼容样式处理 */
         @supports @support-backdrop-filter {
@@ -529,6 +539,8 @@ button {
         bottom: calc(var(--height-percent) * 95px);
         padding-left: calc(var(--height-percent) * 16px);
         box-sizing: border-box;
+        .transition();
+        transition-property: left, right, bottom, transform, -webkit-transform, opacity;
 
         &::before {
             content: '';
@@ -571,6 +583,7 @@ button {
         flex-wrap: nowrap;
         flex-direction: row;
         justify-content: space-between;
+        .transition();
 
         .user-name {
             font-size: calc(var(--line-scale) * 0.694444px);
@@ -603,6 +616,7 @@ button {
         background: rgba(0, 0, 0, .38);
         border: none;
         border-radius: calc(var(--height-percent) * 29px);
+        .transition();
     }
 
     .song-start {
@@ -614,5 +628,54 @@ button {
         font-size: calc(var(--line-scale) * 0.35px);
         border-radius: calc(var(--height-percent) * 50px);
         box-sizing: border-box;
+        .transition();
+    }
+
+    .song-loading-progress {
+        transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
+        -webkit-transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
+        opacity: 0;
+        .transition();
+    }
+
+
+    /* 曲目正式加载时，隐藏多余的元素并显示加载进度条 */
+    &.song-loading {
+        /* 统一定义一下 */
+        .hide-left {
+            left: 0;
+            transform: translateX(calc(-100% - 2px));
+            -webkit-transform: translateX(calc(-100% - 2px));
+        }
+        .hide-right {
+            right: 0;
+            transform: translateX(calc(100% + 2px));
+            -webkit-transform: translateX(calc(100% + 2px));
+        }
+
+        .song-list, .selected-song {
+            .hide-left();
+        }
+
+        .song-detail {
+            left: calc(var(--height-percent) * 109px);
+            bottom: calc(var(--height-percent) * 117px);
+        }
+
+        .user-info {
+            right: 0;
+            transform: translateX(calc(100% + var(--height-percent) * 41px));
+            -webkit-transform: translateX(calc(100% + var(--height-percent) * 41px));
+        }
+
+        .song-start, .game-settings {
+            .hide-right();
+        }
+        
+        .song-loading-progress {
+            transform: translateY(0);
+            -webkit-transform: translateY(0);
+            opacity: 1;
+        }
     }
 }
