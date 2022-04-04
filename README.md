@@ -1,6 +1,11 @@
 # Ph1gr0s-Emulator
 An emulator for the rhythm game 'Phigros', based on [Pixi.js](https://github.com/pixijs/pixijs), forked from [lchzh3473/lchzh3473.github.io](https://github.com/lchzh3473/lchzh3473.github.io).
 
+# This is a FRESH NEW VERSION!
+We decided to rewrite the whole project with [MithrilJS](https://mithril.js.org/) and our own-designed style!
+
+If you're interested in helping us for developing this fresh new version, you can contact me on [Telegram](https://t.me/HIMlaoS_Misa).
+
 ## Warning!
 This project is still testing.
 
