@@ -1,0 +1,11 @@
+@import url('./MiSans/main.css');
+
+@font-face {
+    font-family: 'A-OTF Shin Go Pr6N H';
+    src: url('./嗡阿吽－堅固大黑體（日系中文）.TTF');
+}
+
+@font-face {
+    font-family: 'FOT-RaglanPunch Std UB';
+    src: url('./FOT-RaglanPunchStd-UB.otf');
+}

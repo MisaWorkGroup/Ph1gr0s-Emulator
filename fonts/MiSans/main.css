@@ -1,0 +1,50 @@
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 100;
+    src: url('./MiSans-thin.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 200;
+    src: url('./MiSans-ExtraLight.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 300;
+    src: url('./MiSans-Light.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 400;
+    src: url('./MiSans-Normal.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 450;
+    src: url('./MiSans-Regular.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 500;
+    src: url('./MiSans-Medium.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 600;
+    src: url('./MiSans-Demibold.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 650;
+    src: url('./MiSans-Semibold.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 700;
+    src: url('./MiSans-Bold.ttf');
+}
+@font-face {
+    font-family: 'MiSans';
+    font-weight: 800;
+    src: url('./MiSans-Heavy.ttf');
+}

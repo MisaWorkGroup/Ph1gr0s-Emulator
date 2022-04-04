@@ -7,11 +7,15 @@
 		<meta name="description" content="An emulator for rhythm game 'Ph1gr0s'" />
 		<meta name="author" content="MisaLiu 2022，Origin by lchzh3473" />
 		<meta name="keywords" content="ph1gr0s,emulator,online" />
+
 		
-		<link rel="stylesheet" href="./css/font-mina.css" />
-		<link rel="stylesheet" href="./css/main.css?v=0.0.1" />
-		<link rel="stylesheet" href="./css/keyframes.css?v=0.0.1" />
 		
+		<link href="./fonts/main.css" rel="stylesheet" />
+		<link href="./css/font-mina.css" rel="stylesheet" />
+		<link href="./css/main.less?v=0.0.1" rel="stylesheet/less" type="text/css" />
+		<link href="./css/keyframes.css?v=0.0.1" rel="stylesheet" />
+		
+		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/3.11.1/less.min.js" ></script>
 		<script src="//cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
 		<script src="./js/stackblur.min.js?v=2.5.0"></script>
@@ -127,9 +131,30 @@
 					
 				</div>
 			</div>
+
 			<div class="selected-song">
-						
+				<div class="song-info">
+					<div class="title">energy trixxx</div>
+					<div class="subtitle">KAH</div>
+				</div>
+
+				<div class="song-diff">
+					<a class="diff-switch pre">-</a>
+					<div class="diff-info">
+						<div class="diff-value">12</div>
+						<div class="diff-type">Expert LV.</div>
+					</div>
+					<a class="diff-switch next">+</a>
+				</div>
 			</div>
+
+			<div class="song-detail">
+				<div class="song-title">energy trixxx</div>
+				<div class="song-higest-score">最好分数 987654</div>
+				<div class="song-chart-designer">Note Designer: 1145</div>
+			</div>
+
+			<button class="song-start highlight">开始游戏</button>
 		</div>
 
 		

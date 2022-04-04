@@ -1,0 +1,444 @@
+@support-backdrop-filter: ~"(not (backdrop-filter: blur(1px))) and (not (-webkit-backdrop-filter: blur(1px)))";
+
+:root {
+    --line-scale: 76.8;
+}
+
+/* ================================= 原生组件定义区 ================================= */
+/**
+ * 此处定义原生组件的样式，如 body, button 等组件的样式
+**/
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    color: #FFF;
+    background-color: #000;
+    overflow: hidden;
+}
+
+button {
+    padding: calc(var(--line-scale) * 0.3125px) calc(var(--line-scale) * 0.694444px);
+    color: #FFF;
+    background: none;
+    font-size: calc(var(--line-scale) * 0.347222px);
+    border: calc(var(--line-scale) * 0.034722px) solid #FFF;
+    outline: none;
+    border-radius: calc(var(--line-scale) * 0.555556px);
+    transition-property: background, color, border;
+    transition-duration: 0.2s;
+    transition-timing-function: linear;
+    -webkit-transition-property: background, color, border;
+    -webkit-transition-duration: 0.2s;
+    -webkit-transition-timing-function: linear;
+    cursor: pointer;
+    box-sizing: border-box;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    &:active {
+        color: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    &.highlight {
+        background: #FFF;
+        color: #000;
+        border: calc(var(--line-scale) * 0.034722px) solid rgba(255, 255, 255, 0);
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.8);
+            border: calc(var(--line-scale) * 0.034722px) solid #FFF;
+        }
+
+        &:active {
+            background: rgba(255, 255, 255, 0.6);
+        }
+    }
+}
+
+/* ================================= 自定义样式定义区 ================================= */
+/**
+ * 此处定义通用样式，如定义一次之后就可以在其他组件中使用的样式
+**/
+.game-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+}
+
+.container {
+    display: flex;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--fixed-width) * 0.828645);
+    height: 77.129630%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: calc(var(--line-scale) * 0.78125px);
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-content: stretch;
+
+    * {
+        position: relative;
+        padding: calc(var(--line-scale) * 0.381944px);
+        align-self: stretch;
+        flex-basis: 100%;
+    }
+
+    .content {
+        padding-bottom: calc(var(--line-scale) * 1.180556px * 2);
+
+        .title {
+            margin: calc(var(--line-scale) * 0.798611px) calc(var(--line-scale) * 1.006944px) 0;
+            font-size: calc(var(--line-scale) * 1.006944px);
+        }
+
+        .subtitle {
+            margin: 0 calc(var(--line-scale) * 1.180556px) 0;
+            font-size: calc(var(--line-scale) * 0.347222px);
+        }
+    }
+}
+
+.progress {
+    display: block;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: calc(var(--height-percent) * 13px);
+    font-size: calc(var(--line-scale) * 0.520833px);
+
+    &::before {
+        content: var(--content, '');
+        display: inline-block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: calc(var(--height-percent) * 7px);
+        transform: translateY(-100%);
+    }
+
+    &::after {
+        content: '';
+        display: inline-block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: var(--progress, 0%);
+        height: calc(var(--height-percent) * 13px);
+        background: rgba(255, 255, 255, .65);
+    }
+}
+
+.switch {
+    display: inline-block;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        display: none;
+    }
+
+    .switch-background {
+        display: inline-block;
+        position: relative;
+        width: calc(var(--line-scale) * 1.267361px);
+        height: calc(var(--line-scale) * 0.520833px);
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: calc(var( --line-scale) * 0.243056px);
+        transition-property: background;
+        transition-timing-function: ease-out;
+        transition-duration: 0.2s;
+    }
+
+    .switch-handle {
+        display: inline-block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: calc(var(--line-scale) * 0.590278px);
+        height: calc(var(--line-scale) * 0.520833px);
+        margin: calc(var(--line-scale) * 0.086806px);
+        transform: translate(0%);
+        -webkit-transform: translate(0%);
+        background: #FFF;
+        border-radius: calc(var(--line-scale) * 0.15625px);
+        transition-property: left,transform,-webkit-transform;
+        transition-duration: 0.2s;
+        transition-timing-function: ease-out;
+    }
+
+    /* 定义开关打开后的样式 */
+    input[type="checkbox"]:checked {
+        & + .switch-background {
+            background: rgba(100, 255, 100, 0.3);
+
+            .switch-handle {
+                left: 100%;
+                transform: translateX(calc(-100% - var(--line-scale) * 0.086806px * 2));
+                -webkit-transform: translateX(calc(-100% - var(--line-scale) * 0.086806px * 2));
+            }
+        }
+    }
+}
+
+/*
+.container .image {
+    先留空了
+}
+*/
+
+.container .image .image-media {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100% - var(--line-scale) * 0.381944px * 2);
+    height: calc(100% - var(--line-scale) * 0.381944px * 2);
+    margin: calc(var(--line-scale) * 0.381944px);
+    background: #000;
+    border-radius: calc(var(--line-scale) * 0.503472px);
+}
+
+.container .actions {
+    position: absolute;
+    width: calc(100% - var(--line-scale) * 1.180556px * 2);
+    left: 0;
+    bottom: 0;
+    padding: calc(var(--line-scale) * 1.180556px);
+    padding-top: 0;
+}
+.container .actions button + button {
+    margin-left: calc(var(--line-scale) * 0.138889px);
+}
+
+
+/**
+ * 此处定义非通用样式
+**/
+.loading {
+    background-image: url('/img/bg-loading.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    .loading-logo {
+        position: absolute;
+        top: calc(var(--line-scale) * 0.694444px);
+        left: calc(var(--line-scale) * -0.416667px);
+        width: calc(var(--line-scale) * 10.381944px);
+        height: calc(var(--line-scale) * 5.850694px);
+        background-image: url('/img/bg-logo.png');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+}
+
+.touch-to-start {
+    background-image: url('/img/bg-touchtostart.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    .touch-to-start-logo {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: calc(var(--line-scale) * 19.895833px);
+        height: calc(var(--line-scale) * 11.232639px);
+        transform: translate(-50%, -50%);
+        background-image: url('/img/bg-logo.png');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    .touch-to-start-prompt {
+        position: absolute;
+        left: 50%;
+        bottom: calc(var(--line-scale) * 0.954861px);
+        transform: translateX(-50%);
+        font-size: calc(var(--line-scale) * 0.607639px);
+    }
+
+    .touch-to-start-input {
+        display: none;
+    }
+}
+
+.select-song {
+    background-image: url('/img/testbg.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    &::before {
+        content: '';
+        display: block;
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 100%;
+        height: 2px;
+        box-shadow: 0px 0px calc(var(--height-percent) * 250px) calc(var(--height-percent) * 150px) #000;
+    }
+
+    .song-list {
+        position: absolute;
+        width: calc(var(--height-percent) * 607px);
+        height: calc(var(--height-percent) * 1001px);
+        top: calc(var(--height-percent) * 40px);
+        left: calc(var(--height-percent) * 39px);
+        padding: calc(var(--height-percent) * 46px) calc(var(--height-percent) * 44px);
+        background: rgba(0, 0, 0, .31);
+        backdrop-filter: blur(50px);
+        -webkit-backdrop-filter: blur(50px);
+        border-radius: calc(var(--line-scale) * 0.642361px);
+        box-sizing: border-box;
+
+        /* 针对不支持高斯模糊的浏览器进行兼容样式处理 */
+        @supports @support-backdrop-filter {
+            background: rgba(0, 0, 0, .91);
+        }
+    
+        .header {
+            position: relative;
+    
+            .title {
+                font-size: calc(var(--line-scale) * 0.659722px);
+                font-weight: bold;
+            }
+    
+            .subtitle {
+                font-size: calc(var(--line-scale) * 0.295139px);
+            }
+    
+            .actions {
+                position: absolute;
+                top: 0;
+                right: 0;
+    
+                button {
+                    padding: calc(var(--height-percent) * 14px) calc(var(--height-percent) * 46px);
+                    background: rgba(0, 0, 0, .38);
+                    font-size: calc(var(--line-scale) * 0.399306px);
+                    border: none;
+                    border-radius: calc(var(--line-scale) * 0.295139px);
+                }
+            }
+        }
+    }
+
+    .selected-song {
+        display: flex;
+        position: absolute;
+        top: calc(var(--height-percent) * 210px);
+        left: calc(var(--height-percent) * 39px + var(--height-percent) * 44px);
+        width: calc(var(--height-percent) * 720px);
+        height: calc(var(--height-percent) * 168px);
+        padding: calc(var(--height-percent) * 15px);
+        background: rgba(102, 102, 102, .45);
+        backdrop-filter: blur(30px);
+        border: 1px solid #707070;
+        border-radius: calc(var(--line-scale) * 0.451389px);
+        box-sizing: border-box;
+
+        /* 针对不支持高斯模糊的浏览器进行兼容样式处理 */
+        @supports @support-backdrop-filter {
+            background: rgb(102, 102, 102);
+        }
+
+        .song-info {
+            padding: calc(var(--height-percent) * 25px) calc(var(--height-percent) * 31px);
+            font-family: 'MiSans';
+            flex-grow: 1;
+
+            .title {
+                font-size: calc(var(--line-scale) * 0.694444px);
+                font-weight: bold;
+            }
+            .subtitle {
+                font-size: calc(var(--line-scale) * 0.347222px);
+            }
+        }
+
+        .song-diff {
+            display: flex;
+            width: calc(var(--height-percent) * 263px);
+            height: 100%;
+            padding: calc(var(--height-percent) * 22px);
+            font-family: 'MiSans';
+            text-align: center;
+            box-sizing: border-box;
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: nowrap;
+
+            .diff-switch {
+                font-size: calc(var(--line-scale) * 1.041667px);
+                cursor: pointer;
+            }
+
+            .diff-info {
+                width: 100%;
+
+                .diff-value {
+                    font-size: calc(var(--line-scale) * 0.833333px);
+                    font-weight: bold;
+                }
+
+                .diff-type {
+                    font-size: calc(var(--line-scale) * 0.3125px);
+                }
+            }
+        }
+    }
+
+    .song-detail {
+        position: absolute;
+        top: calc(var(--height-percent) * 846px);
+        left: calc(var(--height-percent) * 731px);
+        padding-left: calc(var(--height-percent) * 16px);
+        box-sizing: border-box;
+
+        &::before {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            left: 0;
+            bottom: calc(var(--height-percent) * 5px);
+            width: calc(var(--height-percent) * 8px);
+            height: calc(var(--height-percent) * 98px);
+            background: #FFF;
+            border-radius: calc(var(--height-percent) * 6px);
+        }
+
+        .song-title {
+            font-size: calc(var(--line-scale) * 1.041667px);
+        }
+
+        .song-higest-score {
+            font-size: calc(var(--line-scale) * 0.434028px);
+        }
+
+        .song-chart-designer {
+            font-size: calc(var(--line-scale) * 0.347222px);
+        }
+    }
+
+    .song-start {
+        position: absolute;
+        right: calc(var(--height-percent) * 74px);
+        bottom: calc(var(--height-percent) * 97px);
+    }
+}
