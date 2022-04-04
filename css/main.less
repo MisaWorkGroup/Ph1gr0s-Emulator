@@ -221,6 +221,40 @@ button {
     }
 }
 
+.rks {
+    position: relative;
+    padding: calc(var(--height-percent) * 6px) calc(var(--height-percent) * 13px);
+    font-size: calc(var(--line-scale) * 0.295139px);
+    font-family: 'MiSans';
+    border-radius: calc(var(--height-percent) * 10px);
+    box-sizing: border-box;
+
+    &::before {
+        content: '';
+        display: inline-block;
+        position: absolute;
+        top: 50%;
+        left: calc(var(--height-percent) * 6px);
+        width: calc(var(--height-percent) * 3px);
+        height: calc(var(--height-percent) * 32px);
+        transform: translateY(-50%);
+        border-radius: calc(var(--height-percent) * 2px);
+    }
+
+    .rks-type {
+        font-weight: bold;
+    }
+
+    &-low {
+        @alpha: 0.4;
+        background: linear-gradient(120deg, rgba(177, 98, 224, @alpha) -10%, rgba(97, 169, 235, @alpha) 90%, rgba(91, 174, 236, @alpha));
+
+        &::before {
+            background: linear-gradient(#53B4FF, #E9A2F8);
+        }
+    }
+}
+
 /*
 .container .image {
     先留空了
@@ -383,7 +417,7 @@ button {
         padding: calc(var(--height-percent) * 15px);
         background: rgba(102, 102, 102, .45);
         backdrop-filter: blur(30px);
-        border: 1px solid #707070;
+        border: calc(var(--height-percent) * 1px) solid #707070;
         border-radius: calc(var(--line-scale) * 0.451389px);
         overflow: hidden;
         box-sizing: border-box;
@@ -441,8 +475,8 @@ button {
 
     .song-detail {
         position: absolute;
-        top: calc(var(--height-percent) * 846px);
-        left: calc(var(--height-percent) * 731px);
+        left: calc(var(--height-percent) * 719px);
+        bottom: calc(var(--height-percent) * 95px);
         padding-left: calc(var(--height-percent) * 16px);
         box-sizing: border-box;
 
@@ -453,13 +487,9 @@ button {
             left: 0;
             bottom: calc(var(--height-percent) * 5px);
             width: calc(var(--height-percent) * 8px);
-            height: calc(var(--height-percent) * 98px);
+            height: calc(var(--height-percent) * 49px);
             background: #FFF;
             border-radius: calc(var(--height-percent) * 6px);
-        }
-
-        .song-title {
-            font-size: calc(var(--line-scale) * 1.041667px);
         }
 
         .song-higest-score {
@@ -473,9 +503,64 @@ button {
         }
     }
 
+    .user-info {
+        display: flex;
+        position: absolute;
+        top: calc(var(--height-percent) * 65px);
+        right: calc(var(--height-percent) * 39px);
+        min-width: calc(var(--height-percent) * 444px);
+        height: calc(var(--height-percent) * 114px);
+        padding: calc(var(--height-percent) * 30px);
+        padding-left: calc(var(--height-percent) * 135px);
+        background: rgba(0, 0, 0, .31);
+        font-family: 'MiSans';
+        border-radius: calc(var(--height-percent) * 37px);
+        backdrop-filter: blur(50px);
+        box-sizing: border-box;
+        align-items: center;
+        flex-wrap: nowrap;
+        flex-direction: row;
+        justify-content: space-between;
+
+        .user-name {
+            font-size: calc(var(--line-scale) * 0.694444px);
+            flex-grow: 1;
+        }
+
+        .user-rks {
+            width: calc(var(--height-percent) * 191px);
+            margin-left: calc(var(--height-percent) * 10px);
+        }
+
+        .user-avatar {
+            position: absolute;
+            top: 50%;
+            left: calc(var(--height-percent) * -41px);
+            width: calc(var(--height-percent) * 165px);
+            height: calc(var(--height-percent) * 165px);
+            transform: translateY(-50%);
+            border-radius: 50%;
+        }
+    }
+
+    .game-settings {
+        position: absolute;
+        right: calc(var(--height-percent) * 85px);
+        bottom: calc(var(--height-percent) * 182px);
+        height: calc(var(--height-percent) * 57px);
+        padding: calc(var(--height-percent) * 14px) calc(var(--height-percent) * 46px);
+        font-size: calc(var(--line-scale) * 0.399306px);
+        border-radius: calc(var(--height-percent) * 29px);
+    }
+
     .song-start {
         position: absolute;
         right: calc(var(--height-percent) * 74px);
         bottom: calc(var(--height-percent) * 97px);
+        height: calc(var(--height-percent) * 73px);
+        padding: calc(var(--height-percent) * 22px) calc(var(--height-percent) * 68px);
+        font-size: calc(var(--line-scale) * 0.399306px);
+        border-radius: calc(var(--height-percent) * 50px);
+        box-sizing: border-box;
     }
 }
