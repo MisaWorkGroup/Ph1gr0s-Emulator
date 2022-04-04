@@ -64,6 +64,13 @@ button {
 /**
  * 此处定义通用样式，如定义一次之后就可以在其他组件中使用的样式
 **/
+.center {
+    position: absolute !important;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 .game-screen {
     position: absolute;
     top: 0;
@@ -108,6 +115,28 @@ button {
             font-size: calc(var(--line-scale) * 0.347222px);
         }
     }
+}
+
+.loading {
+    position: relative;
+    width: calc(var(--height-percent) * 40px);
+    height: calc(var(--height-percent) * 40px);
+    border: calc(var(--height-percent) * 6px) solid transparent;
+    border-top: calc(var(--height-percent) * 6px) solid #FFF;
+    border-left: calc(var(--height-percent) * 6px) solid #FFF;
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: circle-loading 0.4s linear infinite;
+    -webkit-animation: circle-loading 0.4s linear infinite;
+}
+
+@keyframes circle-loading {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@-webkit-keyframes circle-loading {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .progress {
@@ -225,7 +254,7 @@ button {
 /**
  * 此处定义非通用样式
 **/
-.loading {
+.game-loading {
     background-image: url('/img/bg-loading.png');
     background-size: cover;
     background-repeat: no-repeat;
@@ -337,6 +366,11 @@ button {
                 }
             }
         }
+
+        .content {
+            height: calc(100% - var(--height-percent) * 220px - var(--height-percent) * 46px);
+            margin-top: calc(var(--height-percent) * 201px);
+        }
     }
 
     .selected-song {
@@ -351,6 +385,7 @@ button {
         backdrop-filter: blur(30px);
         border: 1px solid #707070;
         border-radius: calc(var(--line-scale) * 0.451389px);
+        overflow: hidden;
         box-sizing: border-box;
 
         /* 针对不支持高斯模糊的浏览器进行兼容样式处理 */
