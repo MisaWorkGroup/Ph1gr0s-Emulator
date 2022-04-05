@@ -5,18 +5,17 @@ var pixi;
 var textures = {};
 var sprites = {};
 var chart = {};
-var zipFiles = {
-    info: null,
-    line: null,
-    charts: {},
-    images: {},
-    audios: {}
-};
+var zipFiles = {};
 const doms = {
-    touchToStart: document.querySelector('.game-screen.touch-to-start'),
-    touchToStartInfo: document.querySelector('.game-screen.touch-to-start .touch-to-start-prompt'),
-    fileInput: document.querySelector('.game-screen.touch-to-start .touch-to-start-input'),
-    selectFile: document.querySelector('.game-screen.select-files')
+    loadingPage     : document.querySelector('.game-loading'),
+    loadingProgress : document.querySelector('.game-loading .progress'),
+
+    selectSongPage        : document.querySelector('.select-song'),
+    selectSongImportInput : document.querySelector('.select-song .song-list .header .actions input.import-file-input'),
+    selectSongImportBtn   : document.querySelector('.select-song .song-list .header .actions button.import-file'),
+
+    selectedSong : document.querySelector('.select-song .selected-song'),
+    songList     : document.querySelector('.select-song .song-list .content'),
 };
 const resources = [ // 需要使用的素材文件的位置和名称
     // 图像资源-游戏画面
@@ -62,23 +61,26 @@ const resources = [ // 需要使用的素材文件的位置和名称
 window.addEventListener('resize', ResizeWindow);
 
 // 监听 Touch To Start 被按下
-doms.touchToStart.addEventListener('click', () => {
-    /**
-    if (doms.touchToStart.getAttribute('disabled') == 'true') return;
-    doms.fileInput.click();
-    **/
+doms.loadingPage.addEventListener('click', () => {
+    if (doms.loadingPage.classList.contains('loaded')) {
+        showSongListScreen();
+    }
 });
 
-// 监听选择外部文件事件
-doms.fileInput.addEventListener('input', () => {
-    if (doms.fileInput.files.length <= 0 || !doms.fileInput.files[0]) return;
-    LoadZip(doms.fileInput.files[0]);
+// 监听导入文件按钮被按下
+doms.selectSongImportBtn.addEventListener('click', () => {
+    doms.selectSongImportInput.click();
 });
+// 监听导入新文件
+doms.selectSongImportInput.addEventListener('input', () => {
+    let file = doms.selectSongImportInput.files[0];
+    if (!file) return;
+    LoadZip(file);
+});
+
 
 /*** ==================== 全局初始化 ==================== ***/
 (async () => {
-    let loadingDetailDom = document.querySelector('.loading .loading-progress');
-
     pixi = new PIXI.Application({ // 创建舞台和 Renderer
         width       : document.documentElement.clientWidth,
         height      : document.documentElement.clientHeight,
@@ -91,8 +93,6 @@ doms.fileInput.addEventListener('input', () => {
     setTimeout(() => { // 稍等片刻后加载程序所需的所有资源
         pixi.loader.add(resources)
             .load((e) => {
-                loadingDetailDom.innerHTMl = '';
-
                 // 归档加载的素材到指定位置
                 for (let name in e.resources) {
                     let resource = e.resources[name];
@@ -138,21 +138,14 @@ doms.fileInput.addEventListener('input', () => {
                         textures[name] = resource.texture;
                     }
                 }
-                
-                // 显示 Touch To Start
-                doms.touchToStart.style.display = 'block';
-                doms.touchToStart.classList.add('fade-in');
 
-                // 播放加载画面消失动画并在播放完毕后移除它
-                loadingDetailDom.parentNode.classList.remove('fade-in');
-                loadingDetailDom.parentNode.classList.add('fade-out');
-                setTimeout(() => {
-                    loadingDetailDom.parentNode.style.display = 'none';
-                }, 1000);
+                // 显示 Touch To Start
+                doms.loadingPage.classList.remove('fade-in');
+                doms.loadingPage.classList.add('loaded');
             })
             .onProgress.add((e) => { // 推送加载进度到加载画面
-                loadingDetailDom.style.setProperty('--progress', e.progress.toFixed(0) + '%');
-                loadingDetailDom.style.setProperty('--content', '\'游戏资源加载中 ' + e.progress.toFixed(0) + '%\'');
+                doms.loadingProgress.style.setProperty('--content', '\'游戏资源加载中 ' + Math.ceil(e.progress) + '%\'');
+                doms.loadingProgress.style.setProperty('--progress', e.progress + '%');
             }
         );
     }, 1000);
@@ -166,8 +159,6 @@ function LoadZip(file) {
     let zip = new JSZip(); // https://github.com/Stuk/jszip
 
     reader.addEventListener('loadend', () => {
-        doms.touchToStartInfo.innerHTML = '正在解析压缩文件 0%...';
-
         zip.loadAsync(reader.result)
             .then(async (e) => {
                 const imageFormat = ('jpeg,jpg,gif,png,webp').split(',');
@@ -199,6 +190,15 @@ function LoadZip(file) {
 
                     files.push(file);
                 }
+
+                // 清空 zipFiles
+                zipFiles = {
+                    info: null,
+                    line: null,
+                    charts: {},
+                    images: {},
+                    audios: {}
+                };
 
                 for (let file of files) {
                     try {
@@ -248,23 +248,22 @@ function LoadZip(file) {
                             
                         }
 
-                        // 推送文件读取进度到 UI
-                        doms.touchToStartInfo.innerHTML = '正在读取压缩文件 ' + (fileLoadedCount / files.length * 100).toFixed(0) + '%...';
-
                     } catch (e) {
                         console.error(e);
                     }
                 }
 
+                doms.selectSongImportBtn.disabled = false;
+                doms.selectSongImportBtn.innerHTML = '导入文件';
 
-                // 全部文件解析完毕后，隐藏 Touch To Start ...
-                doms.touchToStart.classList.remove('fade-in');
-                doms.touchToStart.classList.add('fade-out');
-                setTimeout(() => { doms.touchToStart.style.display = 'none' }, 1000);
+                if (!zipFiles.info) {
+                    alert('缺少 info.csv，无法读取文件！');
+                    return;
+                }
 
-                // ...然后显示文件显示窗口
-                doms.selectFile.style.display = 'block';
-                doms.selectFile.classList.add('fade-in');
+
+                // 全部文件解析完毕后
+                
             })
             .catch((e) => {
 
@@ -277,7 +276,79 @@ function LoadZip(file) {
         return;
     }
 
-    doms.touchToStart.setAttribute('disabled', true);
-    doms.touchToStartInfo.innerHTML = '正在读取压缩文件...';
+    doms.selectSongImportBtn.disabled = true;
+    doms.selectSongImportBtn.innerHTML = '<div class="loading center"></div>';
     reader.readAsArrayBuffer(file);
 }
+
+
+
+
+
+function showSongListScreen() {
+    doms.loadingPage.classList.add('fade-out');
+
+    setTimeout(() => {
+        doms.loadingPage.style.display = 'none';
+
+        doms.selectSongPage.style.display = 'block';
+        doms.selectSongPage.classList.add('fade-in');
+
+        setTimeout(() => {
+            
+        }, 1000);
+    }, 1000);
+}
+
+function setSelectedSong(obj) {
+    let songInfo = document.querySelector('.select-song .selected-song .song-info') || document.createElement('div');
+    let songDiff = document.querySelector('.select-song .selected-song .song-diff') || document.createElement('div');
+    let songInfoTitle = document.querySelector('.select-song .selected-song .song-info .title') || document.createElement('div');
+    let songInfoSubtitle = document.querySelector('.select-song .selected-song .song-info .subtitle') || document.createElement('div');
+    let songDiffSwitchPre = document.querySelector('.select-song .selected-song .song-diff .diff-switch.pre') || document.createElement('a');
+    let songDiffSwitchNext = document.querySelector('.select-song .selected-song .song-diff .diff-switch.next') || document.createElement('a');
+    let songDiffInfo = document.querySelector('.select-song .selected-song .song-diff .diff-info') || document.createElement('div');
+    let songDiffType = document.querySelector('.select-song .selected-song .song-diff .diff-info .diff-type') || document.createElement('div');
+    let songDiffValue = document.querySelector('.select-song .selected-song .song-diff .diff-info .diff-value') || document.createElement('div');
+
+    songInfoTitle.innerHTML = obj.name;
+    songInfoSubtitle.innerHTML = obj.artist;
+
+    songDiffType.innerHTML = obj.diffType;
+    songDiffValue.innerHTML = obj.diffValue;
+
+    songDiff.className = 'song-diff level-' + obj.diffType;
+
+    if (!document.querySelector('.select-song .selected-song .song-info') || !document.querySelector('.select-song .selected-song .song-diff')) {
+        songDiffSwitchPre.innerHTML = '-';
+        songDiffSwitchNext.innerHTML = '+';
+
+        songInfo.className = 'song-info';
+        // songDiff.className = 'song-diff level';
+
+        songInfoTitle.className = 'title';
+        songInfoSubtitle.className = 'subtitle';
+
+        songDiffSwitchPre.className = 'diff-switch pre';
+        songDiffSwitchNext.className = 'diff-switch next';
+
+        songDiffInfo.className = 'diff-info';
+        songDiffType.className = 'diff-type';
+        songDiffValue.className = 'diff-value';
+
+        doms.selectedSong.innerHTML = '';
+        doms.selectedSong.appendChild(songInfo);
+        doms.selectedSong.appendChild(songDiff);
+
+        songInfo.appendChild(songInfoTitle);
+        songInfo.appendChild(songInfoSubtitle);
+
+        songDiff.appendChild(songDiffSwitchPre);
+        songDiff.appendChild(songDiffInfo);
+        songDiff.appendChild(songDiffSwitchNext);
+
+        songDiffInfo.appendChild(songDiffValue);
+        songDiffInfo.appendChild(songDiffType);
+    }
+}
+
