@@ -746,7 +746,10 @@ function Csv2Array(data, isObject) {
 	const resultObj = [];
 	for (let i = 1; i < col.length; i++) {
 		const obj = {};
-		for (let j = 0; j < col[0].length; j++) obj[col[0][j]] = col[i][j];
+		for (let j = 0; j < col[0].length; j++) {
+			let objName = /([\d\w]+)/.exec(col[0][j])[1].replace(/\"/g, '');
+			obj[objName] = col[i][j];
+		}
 		resultObj.push(obj);
 	}
 	return resultObj;

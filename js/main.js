@@ -6,6 +6,8 @@ var textures = {};
 var sprites = {};
 var chart = {};
 var zipFiles = {};
+var songList = {};
+var selectedSong = null;
 const doms = {
     loadingPage     : document.querySelector('.game-loading'),
     loadingProgress : document.querySelector('.game-loading .progress'),
@@ -16,6 +18,9 @@ const doms = {
 
     selectedSong : document.querySelector('.select-song .selected-song'),
     songList     : document.querySelector('.select-song .song-list .content'),
+
+    songHigestScore : document.querySelector('.select-song .song-extra-info .song-higest-score'),
+    songNoteDesigner : document.querySelector('.select-song .song-extra-info .song-chart-designer')
 };
 const resources = [ // 需要使用的素材文件的位置和名称
     // 图像资源-游戏画面
@@ -85,8 +90,9 @@ doms.songList.addEventListener('scroll', (e) => {
         if (!(item instanceof HTMLElement)) continue;
         if (-20 <= (doms.songList.scrollTop - item.offsetTop) && (doms.songList.scrollTop - item.offsetTop) <= 20) {
             if (doms.songList.currentSelected == item) break;
-            // Do something...
-            console.log(item);
+            selectedSong = songList[item.getAttribute('song')];
+            setSelectedSong(selectedSong);
+
             doms.songList.currentSelected = item;
             break;
         }
@@ -277,9 +283,66 @@ function LoadZip(file) {
                     return;
                 }
 
-
                 // 全部文件解析完毕后
-                
+                for (let info of zipFiles.info) {
+                    let diffPattern = /^([a-zA-Z]+) Lv\.([\d|\?]+)$/;
+                    let diffs = diffPattern.exec(info.Level);
+                    let songName = Date.now() + '_' + info.Chart;
+                    let song = {
+                        name: info.Name,
+                        artist: info.Artist || 'Unknown',
+                        designer: info.Designer,
+                        chart: zipFiles.charts[info.Chart],
+                        background: zipFiles.images[info.Image],
+                        music: zipFiles.audios[info.Music]
+                    };
+
+                    if (!song.chart) continue;  
+                    
+                    if (diffs.length == 3) {
+                        switch (diffs[1].toLowerCase()) {
+                            case 'ez': {
+                                song.diffType = 'easy';
+                                break;
+                            }
+                            case 'hd': {
+                                song.diffType = 'hard';
+                                break;
+                            }
+                            case 'in': {
+                                song.diffType = 'insane';
+                                break;
+                            }
+                            case 'at': {
+                                song.diffType = 'another';
+                                break;
+                            }
+                            case 'sp': {
+                                song.diffType = 'special';
+                                break;
+                            }
+                            case 'legacy': {
+                                song.diffType = 'legacy';
+                                break;
+                            }
+                            default: {
+                                song.diffType = 'insane';
+                            }
+                        }
+
+                        if (!isNaN(Number(diffs[2]))) {
+                            song.diffValue = Number(diffs[2]);
+                        } else {
+                            song.diffValue = -1;
+                        }
+                    } else {
+                        song.diffType = 'insane';
+                        song.diffValue = -1;
+                    }
+
+                    songList[songName] = song;
+                    addSong(songName, song);
+                }
             })
             .catch((e) => {
 
@@ -324,13 +387,26 @@ function selectSongDiff() {
 
 }
 
-function addSong() {
+function addSong(songName, songInfo) {
+    let songItem = document.createElement('div');
+
+    songItem.className = 'list-item';
+    songItem.innerHTML = `<div class="title">${songInfo.name}</div>
+    <div class="subtitle">${songInfo.artist}</div>
+    <div class="subtitle">${songInfo.diffType.toUpperCase()} Lv.${songInfo.diffValue}</div>`;
+
+    songItem.setAttribute('song', songName);
+
+    doms.songList.appendChild(songItem);
+
     for (let item of doms.songList.childNodes) {
         if (!(item instanceof HTMLElement)) continue;
         item.onclick = function () {
             doms.songList.scrollTo(0, item.offsetTop);
         }
     }
+
+    doms.songList.scrollTo(0, 0);
 }
 
 function setSelectedSong(obj) {
@@ -338,25 +414,21 @@ function setSelectedSong(obj) {
     let songDiff = document.querySelector('.select-song .selected-song .song-diff') || document.createElement('div');
     let songInfoTitle = document.querySelector('.select-song .selected-song .song-info .title') || document.createElement('div');
     let songInfoSubtitle = document.querySelector('.select-song .selected-song .song-info .subtitle') || document.createElement('div');
-    let songDiffSwitchPre = document.querySelector('.select-song .selected-song .song-diff .diff-switch.pre') || document.createElement('a');
-    let songDiffSwitchNext = document.querySelector('.select-song .selected-song .song-diff .diff-switch.next') || document.createElement('a');
-    let songDiffInfo = document.querySelector('.select-song .selected-song .song-diff .diff-info') || document.createElement('div');
-    let songDiffType = document.querySelector('.select-song .selected-song .song-diff .diff-info .diff-type') || document.createElement('div');
-    let songDiffValue = document.querySelector('.select-song .selected-song .song-diff .diff-info .diff-value') || document.createElement('div');
+    let songDiffType = document.querySelector('.select-song .selected-song .song-diff .diff-type') || document.createElement('div');
+    let songDiffValue = document.querySelector('.select-song .selected-song .song-diff .diff-value') || document.createElement('div');
 
     songInfoTitle.innerHTML = obj.name;
     songInfoSubtitle.innerHTML = obj.artist;
 
-    songDiffType.innerHTML = obj.diffType;
+    songDiffType.innerHTML = obj.diffType.toUpperCase() + ' Lv.';
     songDiffValue.innerHTML = obj.diffValue;
 
     songDiff.className = 'song-diff level-' + obj.diffType;
 
-    
+    doms.songHigestScore.innerHTML = '最佳成绩: 暂无';
+    doms.songNoteDesigner.innerHTML = '谱面设计: ' + obj.designer;
 
     if (!document.querySelector('.select-song .selected-song .song-info') || !document.querySelector('.select-song .selected-song .song-diff')) {
-        songDiffSwitchPre.innerHTML = '-';
-        songDiffSwitchNext.innerHTML = '+';
 
         songInfo.className = 'song-info';
         // songDiff.className = 'song-diff level';
@@ -364,10 +436,6 @@ function setSelectedSong(obj) {
         songInfoTitle.className = 'title';
         songInfoSubtitle.className = 'subtitle';
 
-        songDiffSwitchPre.className = 'diff-switch pre';
-        songDiffSwitchNext.className = 'diff-switch next';
-
-        songDiffInfo.className = 'diff-info';
         songDiffType.className = 'diff-type';
         songDiffValue.className = 'diff-value';
 
@@ -378,12 +446,8 @@ function setSelectedSong(obj) {
         songInfo.appendChild(songInfoTitle);
         songInfo.appendChild(songInfoSubtitle);
 
-        songDiff.appendChild(songDiffSwitchPre);
-        songDiff.appendChild(songDiffInfo);
-        songDiff.appendChild(songDiffSwitchNext);
-
-        songDiffInfo.appendChild(songDiffValue);
-        songDiffInfo.appendChild(songDiffType);
+        songDiff.appendChild(songDiffValue);
+        songDiff.appendChild(songDiffType);
     }
 }
 

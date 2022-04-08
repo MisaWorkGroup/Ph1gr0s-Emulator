@@ -590,38 +590,29 @@ button {
 
         .song-diff {
             display: flex;
-            width: calc(var(--height-percent) * 263px);
+            width: calc(var(--height-percent) * 201px);
             height: 100%;
-            padding: calc(var(--height-percent) * 22px);
+            padding: calc(var(--height-percent) * 25px);
             font-family: 'MiSans';
             text-align: center;
             border-radius: calc(var(--height-percent) * 18px);
             box-sizing: border-box;
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
             flex-wrap: nowrap;
 
-            .diff-switch {
-                font-size: calc(var(--line-scale) * 1.041667px);
-                cursor: pointer;
+            .diff-value {
+                font-size: calc(var(--line-scale) * 0.833333px);
+                font-weight: bold;
             }
 
-            .diff-info {
-                width: 100%;
-
-                .diff-value {
-                    font-size: calc(var(--line-scale) * 0.833333px);
-                    font-weight: bold;
-                }
-
-                .diff-type {
-                    font-size: calc(var(--line-scale) * 0.3125px);
-                }
+            .diff-type {
+                font-size: calc(var(--line-scale) * 0.3125px);
             }
         }
     }
 
-    .song-detail {
+    .song-extra-info {
         position: absolute;
         left: calc(var(--height-percent) * 719px);
         bottom: calc(var(--height-percent) * 95px);
@@ -719,6 +710,77 @@ button {
         .transition();
     }
 
+    .song-loading-info {
+        position: absolute;
+        display: flex;
+        left: calc(var(--height-percent) * 110px);
+        bottom: 0;
+        transform: translateY(calc(100% + 2px));
+        font-family: 'MiSans';
+        opacity: 0;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        .transition();
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: calc(var(--height-percent) * 643px);
+            height: calc(var(--height-percent) * 76px);
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: calc(var(--height-percent) * 16px);
+        }
+
+        .diff-info {
+            position: relative;
+            width: calc(var(--height-percent) * 130px);
+            height: calc(var(--height-percent) * 112px);
+            text-align: center;
+            border-radius: calc(var(--height-percent) * 16px);
+
+            .diff-type {
+                padding: calc(var(--height-percent) * 9px) calc(var(--height-percent) * 36px);
+                font-size: calc(var(--line-scale) * 0.260417px);
+            }
+
+            .diff-value {
+                position: relative;
+                padding: 0 calc(var(--height-percent) * 36px) calc(var(--height-percent) * 8px);
+                font-size: calc(var(--line-scale) * 0.868056px);
+                font-weight: bold;
+
+                &::after {
+                    content: '';
+                    position: absolute;
+                    display: inline-block;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.05);
+                    border-radius: 0 0 calc(var(--height-percent) * 16px) calc(var(--height-percent) * 16px);
+                }
+            }
+        }
+
+        .song-info {
+            margin-left: calc(var(--height-percent) * 27px);
+
+            .title {
+                font-family: 'A-OTF Shin Go Pr6N H';
+                font-size: calc(var(--line-scale) * 0.868056px);
+                line-height: calc(var(--height-percent) * 66px);
+            }
+
+            .subtitle {
+                font-size: calc(var(--line-scale) * 0.347222px);
+            }
+        }
+    }
+
     .song-loading-progress {
         transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
         -webkit-transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
@@ -744,9 +806,9 @@ button {
             .hide-left();
         }
 
-        .song-detail {
-            left: calc(var(--height-percent) * 109px);
-            bottom: calc(var(--height-percent) * 117px);
+        .song-extra-info {
+            bottom: 0;
+            transform: translateY(calc(100% + 2px))
         }
 
         .user-info {
@@ -757,6 +819,12 @@ button {
 
         .song-start, .game-settings {
             .hide-right();
+        }
+
+        .song-loading-info {
+            bottom: calc(var(--height-percent) * 127px);
+            transform: translateY(0);
+            opacity: 1;
         }
         
         .song-loading-progress {
@@ -770,9 +838,10 @@ button {
                 opacity: 0;
             }
 
-            .song-detail {
+            .song-loading-info {
                 bottom: 0;
-                transform: translateY(calc(100% + 2px))
+                transform: translateY(calc(100% + 2px));
+                opacity: 0;
             }
 
             .song-loading-progress {
