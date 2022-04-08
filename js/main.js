@@ -78,6 +78,21 @@ doms.selectSongImportInput.addEventListener('input', () => {
     LoadZip(file);
 });
 
+// 监听歌曲列表滚动事件
+doms.songList.addEventListener('scroll', (e) => {
+    let items = doms.songList.childNodes;
+    for (let item of items) {
+        if (!(item instanceof HTMLElement)) continue;
+        if (-20 <= (doms.songList.scrollTop - item.offsetTop) && (doms.songList.scrollTop - item.offsetTop) <= 20) {
+            if (doms.songList.currentSelected == item) break;
+            // Do something...
+            console.log(item);
+            doms.songList.currentSelected = item;
+            break;
+        }
+    }
+});
+
 
 /*** ==================== 全局初始化 ==================== ***/
 (async () => {
@@ -151,6 +166,7 @@ doms.selectSongImportInput.addEventListener('input', () => {
     }, 1000);
 
     ResizeWindow();
+    doms.songList.scrollTo(0, 0);
 })();
 
 // 加载并解析 ZIP 文件
@@ -300,6 +316,23 @@ function showSongListScreen() {
     }, 1000);
 }
 
+function selectSong(songZip) {
+
+}
+
+function selectSongDiff() {
+
+}
+
+function addSong() {
+    for (let item of doms.songList.childNodes) {
+        if (!(item instanceof HTMLElement)) continue;
+        item.onclick = function () {
+            doms.songList.scrollTo(0, item.offsetTop);
+        }
+    }
+}
+
 function setSelectedSong(obj) {
     let songInfo = document.querySelector('.select-song .selected-song .song-info') || document.createElement('div');
     let songDiff = document.querySelector('.select-song .selected-song .song-diff') || document.createElement('div');
@@ -318,6 +351,8 @@ function setSelectedSong(obj) {
     songDiffValue.innerHTML = obj.diffValue;
 
     songDiff.className = 'song-diff level-' + obj.diffType;
+
+    
 
     if (!document.querySelector('.select-song .selected-song .song-info') || !document.querySelector('.select-song .selected-song .song-diff')) {
         songDiffSwitchPre.innerHTML = '-';

@@ -106,14 +106,9 @@
 		<canvas id="stage"></canvas>
 		
 		<div class="game-screen game-loading fade-in">
-			<div class="loading-logo"></div>
-			<div class="loading-progress progress" style="--content:'游戏资源加载中'"></div>
-		</div>
-
-		<div class="game-screen touch-to-start" style="display:none">
-			<input class="touch-to-start-input" type="file" />
-			<div class="touch-to-start-logo"></div>
-			<div class="touch-to-start-prompt blank">轻触屏幕来开始</div>
+			<div class="logo"></div>
+			<div class="prompt blank">轻触屏幕来开始</div>
+			<div class="progress" style="--content:'游戏资源加载中'"></div>
 		</div>
 
 		<div class="game-screen select-song">
@@ -123,41 +118,70 @@
 					<div class="subtitle">准备好的话，就开始吧</div>
 
 					<div class="actions">
-						<button>返回</button>
+						<input class="import-file-input" type="file" />
+						<button class="import-file">导入文件</button>
 					</div>
 				</div>
 
 				<div class="content">
-					<div class="loading center"></div>
+					<div class="list-item">
+						<div class="title">energy trixxx</div>
+						<div class="subtitle">KAH</div>
+						<div class="subtitle">IN Lv.15</div>
+					</div>
+
+					<div class="list-item">
+						<div class="title">energy trixxx</div>
+						<div class="subtitle">KAH</div>
+						<div class="subtitle">IN Lv.15</div>
+					</div>
+
+					<div class="list-item">
+						<div class="title">energy trixxx</div>
+						<div class="subtitle">KAH</div>
+						<div class="subtitle">IN Lv.15</div>
+					</div>
+
+					<div class="list-item">
+						<div class="title">energy trixxx</div>
+						<div class="subtitle">KAH</div>
+						<div class="subtitle">IN Lv.15</div>
+					</div>
+
+					<div class="list-item">
+						<div class="title">energy trixxx</div>
+						<div class="subtitle">KAH</div>
+						<div class="subtitle">IN Lv.15</div>
+					</div>
+
+					<div class="list-item">
+						<div class="title">energy trixxx</div>
+						<div class="subtitle">KAH</div>
+						<div class="subtitle">IN Lv.15</div>
+					</div>
+
+					<div class="list-item">
+						<div class="title">energy trixxx</div>
+						<div class="subtitle">KAH</div>
+						<div class="subtitle">IN Lv.15</div>
+					</div>
 				</div>
 			</div>
 
 			<div class="selected-song">
-				<div class="song-info">
-					<div class="title">energy trixxx</div>
-					<div class="subtitle">KAH</div>
-				</div>
-
-				<div class="song-diff level">
-					<a class="diff-switch pre">-</a>
-					<div class="diff-info">
-						<div class="diff-value">12</div>
-						<div class="diff-type">Expert LV.</div>
-					</div>
-					<a class="diff-switch next">+</a>
-				</div>
+				<div class="loading center"></div>
 			</div>
 
 			<div class="song-detail">
-				<div class="song-higest-score">最好分数 987654</div>
-				<div class="song-chart-designer">Note Designer: 1145</div>
+				<div class="song-higest-score">数据加载中...</div>
+				<div class="song-chart-designer">数据加载中...</div>
 			</div>
 
 			<div class="user-info">
-				<div class="user-name">MisaLiu</div>
+				<div class="user-name">游客</div>
 				<div class="user-rks rks rks-high">
 					<div class="rks-type">RANKING</div>
-					<div class="rks-value">15.40</div>
+					<div class="rks-value">??.??</div>
 				</div>
 
 				<img class="user-avatar" src="./img/testuseravatar.jpg" />
@@ -169,31 +193,6 @@
 			<div class="progress song-loading-progress" style="--content:'少女祈祷中';--progress:0%"></div>
 		</div>
 
-		
-		<div class="game-screen select-files" style="display:none">
-			<div class="container">
-				<div class="content">
-					<div class="title">请选择文件</div>
-					<div class="subtitle">选择你想要游玩的文件</div>
-
-					<label class="switch">
-						<input type="checkbox">
-						<div class="switch-background">
-							<div class="switch-handle"></div>
-						</div>
-					</label>
-
-					<div class="actions">
-						<button class="highlight">添加文件</button>
-						<button>下一步</button>
-					</div>
-				</div>
-				<div class="image">
-					<div class="image-media"></div>
-					<div class="image-media"></div>
-				</div>
-			</div>
-		</div>
 		<script src="./js/main.js?v=0.0.1"></script>
 	</body>
 </html>

@@ -8,8 +8,8 @@
     -webkit-animation: var(--animate-time, 1s) linear 0s 1 normal forwards fade-out;
 }
 .blank {
-    animation: var(--animate-time, 1s) linear 0s infinite alternate fade-out;
-    -webkit-animation: var(--animate-time, 1s) linear 0s infinite alternate fade-out;
+    animation: var(--animate-time, 1s) linear 0s infinite alternate fade-in;
+    -webkit-animation: var(--animate-time, 1s) linear 0s infinite alternate fade-in;
 }
 
 

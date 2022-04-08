@@ -4,6 +4,13 @@
     --line-scale: 76.8;
 }
 
+/* 定义通用 transition 属性 */
+.transition {
+    transition-property: left, right, color, background, transform, -webkit-transform, opacity;
+    transition-duration: 0.5s;
+    transition-timing-function: cubic-bezier(0, 0, 0, 1);
+}
+
 /* ================================= 原生组件定义区 ================================= */
 /**
  * 此处定义原生组件的样式，如 body, button 等组件的样式
@@ -155,6 +162,7 @@ button {
     width: 100%;
     height: calc(var(--height-percent) * 13px);
     font-size: calc(var(--line-scale) * 0.520833px);
+    .transition();
 
     &::before {
         content: var(--content, '');
@@ -283,6 +291,7 @@ button {
 .level {
     color: #FFF;
     background: #867D62;
+    transition: background .2s linear;
 
     &-easy {
         background: #24CE63;
@@ -338,44 +347,49 @@ button {
  * 此处定义非通用样式
 **/
 .game-loading {
+    .bg();
     background-image: url('/img/bg-loading.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
 
-    .loading-logo {
+    .bg {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+    .bg-transition {
+        transition-property: opacity;
+        transition-timing-function: linear;
+        transition-duration: 1s;
+    }
+
+    &::before {
+        .bg();
+        background-image: url('/img/bg-touchtostart.png');
+        opacity: 0;
+        .bg-transition();
+    }
+
+    .logo {
         position: absolute;
         top: calc(var(--line-scale) * 0.694444px);
         left: calc(var(--line-scale) * -0.416667px);
         width: calc(var(--line-scale) * 10.381944px);
         height: calc(var(--line-scale) * 5.850694px);
-        background-image: url('/img/bg-logo.png');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
-    }
-}
-
-.touch-to-start {
-    background-image: url('/img/bg-touchtostart.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
-
-    .touch-to-start-logo {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: calc(var(--line-scale) * 19.895833px);
-        height: calc(var(--line-scale) * 11.232639px);
-        transform: translate(-50%, -50%);
+        transform: translate(0%, 0%);
+        -webkit-transform: translate(0%, 0%);
         background-image: url('/img/bg-logo.png');
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
     }
 
-    .touch-to-start-prompt {
+    .prompt {
+        display: none;
         position: absolute;
         left: 50%;
         bottom: calc(var(--line-scale) * 0.954861px);
@@ -383,8 +397,32 @@ button {
         font-size: calc(var(--line-scale) * 0.607639px);
     }
 
-    .touch-to-start-input {
-        display: none;
+    &.loaded {
+        &::before {
+            opacity: 1;
+        }
+
+        .logo {
+            top: 50%;
+            left: 50%;
+            width: calc(var(--line-scale) * 19.895833px);
+            height: calc(var(--line-scale) * 11.232639px);
+            transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            transition-property: top, left, width, height, transform, -webkit-transform;
+            transition-timing-function: ease-out;
+            transition-duration: 1s;
+        }
+
+        .progress {
+            transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
+            -webkit-transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
+            opacity: 0;
+        }
+
+        .prompt {
+            display: inline-block;
+        }
     }
 }
 
@@ -393,14 +431,6 @@ button {
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-
-    /* 定义通用 transition 属性 */
-    .transition {
-        transition-property: left,right,transform,-webkit-transform,opacity;
-        transition-duration: 0.5s;
-        transition-timing-function: cubic-bezier(0, 0, 0, 1);
-    }
-
 
     &::before {
         content: '';
@@ -423,6 +453,7 @@ button {
         padding: calc(var(--height-percent) * 46px) calc(var(--height-percent) * 44px);
         background: rgba(0, 0, 0, .31);
         backdrop-filter: blur(50px);
+        overflow: hidden;
         -webkit-backdrop-filter: blur(50px);
         border-radius: calc(var(--line-scale) * 0.642361px);
         box-sizing: border-box;
@@ -449,8 +480,14 @@ button {
                 position: absolute;
                 top: 0;
                 right: 0;
+
+                .import-file-input {
+                    display: none;
+                }
     
-                button {
+                button.import-file {
+                    min-width: calc(var(--height-percent) * 134px);
+                    min-height: calc(var(--height-percent) * 58px);
                     padding: calc(var(--height-percent) * 14px) calc(var(--height-percent) * 46px);
                     background: rgba(0, 0, 0, .38);
                     font-size: calc(var(--line-scale) * 0.399306px);
@@ -461,15 +498,65 @@ button {
         }
 
         .content {
-            height: calc(100% - var(--height-percent) * 220px - var(--height-percent) * 46px);
-            margin-top: calc(var(--height-percent) * 201px);
+            position: relative;
+            height: calc(100% - var(--height-percent) * 126px);
+            margin-top: calc(var(--height-percent) * 34px);
+            border-radius: calc(var(--line-scale) * 0.451389px);
+            overflow-x: hidden;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: y mandatory;
+
+            /* 替换默认的滚动条样式 */
+            scrollbar-width: thin;
+            scrollbar-color: c transparent;
+
+            &::-webkit-scrollbar {
+                width: calc(var(--height-percent) * 8px);
+            }
+            &::-webkit-scrollbar-thumb {
+                background-color: rgba(255, 255, 255, .5);
+            }
+            &::-webkit-scrollbar-button, &::-webkit-scrollbar-track {
+                display: none;
+            }
+
+            &::before, &::after {
+                content: '已经到头了 >_<||';
+                display: block;
+                position: relative;
+                width: 100%;
+                height: 100%;
+                color: rgba(255, 255, 255, .5);
+                font-size: calc(var(--line-scale) * 0.312500px);
+                line-height: calc(var(--height-percent) * 400px);
+                text-align: center;
+            }
+
+            .list-item {
+                position: relative;
+                padding: calc(var(--height-percent) * 37px) 0;
+                font-family: 'MiSans';
+                scroll-snap-align: start;
+                cursor: pointer;
+
+                .title {
+                    font-size: calc(var(--line-scale) * 0.694444px);
+                    font-weight: bolder;
+                }
+
+                .subtitle {
+                    font-size: calc(var(--line-scale) * 0.347222px);
+                }
+            }
         }
     }
 
     .selected-song {
         display: flex;
         position: absolute;
-        top: calc(var(--height-percent) * 210px);
+        top: calc(var(--height-percent) * 193px);
         left: calc(var(--height-percent) * 39px + var(--height-percent) * 44px);
         width: calc(var(--height-percent) * 720px);
         height: calc(var(--height-percent) * 168px);
@@ -636,7 +723,6 @@ button {
         transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
         -webkit-transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
         opacity: 0;
-        .transition();
     }
 
 
