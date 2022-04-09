@@ -20,7 +20,12 @@ const doms = {
     songList     : document.querySelector('.select-song .song-list .content'),
 
     songHigestScore : document.querySelector('.select-song .song-extra-info .song-higest-score'),
-    songNoteDesigner : document.querySelector('.select-song .song-extra-info .song-chart-designer')
+    songNoteDesigner : document.querySelector('.select-song .song-extra-info .song-chart-designer'),
+
+    songLoadingDiffType  : document.querySelector('.select-song .song-loading-info .diff-info .diff-type'),
+    songLoadingDiffValue : document.querySelector('.select-song .song-loading-info .diff-info .diff-value'),
+    songLoadingTitle     : document.querySelector('.select-song .song-loading-info .song-info .title'),
+    songLoadingSubtitle  : document.querySelector('.select-song .song-loading-info .song-info .subtitle')
 };
 const resources = [ // 需要使用的素材文件的位置和名称
     // 图像资源-游戏画面
@@ -90,8 +95,7 @@ doms.songList.addEventListener('scroll', (e) => {
         if (!(item instanceof HTMLElement)) continue;
         if (-20 <= (doms.songList.scrollTop - item.offsetTop) && (doms.songList.scrollTop - item.offsetTop) <= 20) {
             if (doms.songList.currentSelected == item) break;
-            selectedSong = songList[item.getAttribute('song')];
-            setSelectedSong(selectedSong);
+            selectSong(songList[item.getAttribute('song')]);
 
             doms.songList.currentSelected = item;
             break;
@@ -117,7 +121,7 @@ doms.songList.addEventListener('scroll', (e) => {
                 // 归档加载的素材到指定位置
                 for (let name in e.resources) {
                     let resource = e.resources[name];
-
+                    
                     if (name.indexOf('hitsound') >= 0) {
                         // 处理游戏中的各种音效
                         if (!(textures.sound instanceof Object)) textures.sound = {};
@@ -379,15 +383,8 @@ function showSongListScreen() {
     }, 1000);
 }
 
-function selectSong(songZip) {
-
-}
-
-function selectSongDiff() {
-
-}
-
 function addSong(songName, songInfo) {
+    let isListEmpty = (doms.songList.childNodes.length <= 0);
     let songItem = document.createElement('div');
 
     songItem.className = 'list-item';
@@ -406,7 +403,14 @@ function addSong(songName, songInfo) {
         }
     }
 
-    doms.songList.scrollTo(0, 0);
+    if (isListEmpty) doms.songList.scrollTo(0, 0);
+}
+
+function selectSong(songInfo) {
+    if (!(songInfo instanceof Object)) return;
+    if (songInfo == selectedSong) return;
+    selectedSong = songInfo;z
+    setSelectedSong(selectedSong);
 }
 
 function setSelectedSong(obj) {
@@ -451,3 +455,20 @@ function setSelectedSong(obj) {
     }
 }
 
+function startGame() {
+    if (!selectedSong) {
+        alert('请选择一个歌曲！');
+        return;
+    }
+
+    doms.songLoadingDiffType.parentNode.classList.add('level-' + selectedSong.diffType);
+
+    doms.songLoadingDiffType.innerHTML = selectedSong.diffType.toUpperCase();
+    doms.songLoadingDiffValue.innerHTML = selectedSong.diffValue;
+
+    doms.songLoadingTitle.innerHTML = selectedSong.name;
+    doms.songLoadingSubtitle.innerHTML = selectedSong.artist;
+
+    doms.selectSongPage.classList.remove('fade-in');
+    doms.selectSongPage.classList.add('song-loading');
+}
