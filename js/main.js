@@ -291,7 +291,7 @@ function LoadZip(file) {
                 for (let info of zipFiles.info) {
                     let diffPattern = /^([a-zA-Z]+) Lv\.([\d|\?]+)$/;
                     let diffs = diffPattern.exec(info.Level);
-                    let songName = Date.now() + '_' + info.Chart;
+                    let songName = Date.now() + '_' + encodeURIComponent(info.Chart);
                     let song = {
                         name: info.Name,
                         artist: info.Artist || 'Unknown',
@@ -301,9 +301,9 @@ function LoadZip(file) {
                         music: zipFiles.audios[info.Music]
                     };
 
-                    if (!song.chart) continue;  
+                    if (!(song.chart instanceof Object)) continue;
                     
-                    if (diffs.length == 3) {
+                    if (diffs && diffs.length == 3) {
                         switch (diffs[1].toLowerCase()) {
                             case 'ez': {
                                 song.diffType = 'easy';
@@ -390,7 +390,7 @@ function addSong(songName, songInfo) {
     songItem.className = 'list-item';
     songItem.innerHTML = `<div class="title">${songInfo.name}</div>
     <div class="subtitle">${songInfo.artist}</div>
-    <div class="subtitle">${songInfo.diffType.toUpperCase()} Lv.${songInfo.diffValue}</div>`;
+    <div class="subtitle">${songInfo.diffType.toUpperCase()} Lv.${songInfo.diffValue <= 0 ? '?' : songInfo.diffValue}</div>`;
 
     songItem.setAttribute('song', songName);
 
@@ -403,14 +403,24 @@ function addSong(songName, songInfo) {
         }
     }
 
-    if (isListEmpty) doms.songList.scrollTo(0, 0);
+    if (isListEmpty) {
+        doms.songList.classList.remove('no-items');
+        doms.songList.scrollTo(0, 0);
+    }
 }
 
 function selectSong(songInfo) {
     if (!(songInfo instanceof Object)) return;
     if (songInfo == selectedSong) return;
-    selectedSong = songInfo;z
+    switchSongBg(songInfo, selectedSong);
+    selectedSong = songInfo;
     setSelectedSong(selectedSong);
+
+    function switchSongBg(newSong, oldSong) {
+        let newBgUrl = newSong.background.baseTexture.resource.url;
+        let oldBgUrl = oldSong ? oldSong.background.baseTexture.resource.url : '';
+        if (newBgUrl != oldBgUrl) doms.selectSongPage.style.backgroundImage = 'url(' + newBgUrl + ')';
+    }
 }
 
 function setSelectedSong(obj) {
@@ -425,7 +435,7 @@ function setSelectedSong(obj) {
     songInfoSubtitle.innerHTML = obj.artist;
 
     songDiffType.innerHTML = obj.diffType.toUpperCase() + ' Lv.';
-    songDiffValue.innerHTML = obj.diffValue;
+    songDiffValue.innerHTML = obj.diffValue <= 0 ? '?' : obj.diffValue;
 
     songDiff.className = 'song-diff level-' + obj.diffType;
 
@@ -435,7 +445,6 @@ function setSelectedSong(obj) {
     if (!document.querySelector('.select-song .selected-song .song-info') || !document.querySelector('.select-song .selected-song .song-diff')) {
 
         songInfo.className = 'song-info';
-        // songDiff.className = 'song-diff level';
 
         songInfoTitle.className = 'title';
         songInfoSubtitle.className = 'subtitle';
@@ -464,7 +473,7 @@ function startGame() {
     doms.songLoadingDiffType.parentNode.classList.add('level-' + selectedSong.diffType);
 
     doms.songLoadingDiffType.innerHTML = selectedSong.diffType.toUpperCase();
-    doms.songLoadingDiffValue.innerHTML = selectedSong.diffValue;
+    doms.songLoadingDiffValue.innerHTML = selectedSong.diffValue <= 0 ? '?' : selectedSong.diffValue;
 
     doms.songLoadingTitle.innerHTML = selectedSong.name;
     doms.songLoadingSubtitle.innerHTML = selectedSong.artist;

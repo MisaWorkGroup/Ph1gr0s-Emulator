@@ -123,16 +123,16 @@
 					</div>
 				</div>
 
-				<div class="content"></div>
+				<div class="content no-items"></div>
 			</div>
 
 			<div class="selected-song">
-				<div class="loading center"></div>
+				<div class="center" style="color:rgba(255, 255, 255, 0.5);font-size:calc(var(--line-scale) * 0.3125px)">请选择一个曲目</div>
 			</div>
 
 			<div class="song-extra-info">
-				<div class="song-higest-score">数据加载中...</div>
-				<div class="song-chart-designer">数据加载中...</div>
+				<div class="song-higest-score">请选择一个曲目</div>
+				<div class="song-chart-designer">请选择一个曲目</div>
 			</div>
 
 			<div class="user-info">
@@ -146,7 +146,7 @@
 			</div>
 
 			<button class="game-settings">设置</button>
-			<button class="song-start highlight">开始游戏</button>
+			<button onclick="startGame()" class="song-start highlight">开始游戏</button>
 
 			<div class="song-loading-info">
 				<div class="diff-info">

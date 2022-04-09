@@ -5,10 +5,35 @@
 }
 
 /* 定义通用 transition 属性 */
-.transition {
+.transition-default() {
     transition-property: left, right, color, background, transform, -webkit-transform, opacity;
     transition-duration: 0.5s;
     transition-timing-function: cubic-bezier(0, 0, 0, 1);
+}
+
+/* 定义需要进行最大化兼容的 css 属性为函数 */
+.transform(@value) {
+            transform: @value;
+        -ms-transform: @value;
+    -webkit-transform: @value;
+}
+.transition(@value) {
+            transition: @value;
+        -ms-transition: @value;
+       -moz-transition: @value;
+    -webkit-transition: @value;
+}
+.backdropFilter(@value) {
+            backdrop-filter: @value;
+    -webkit-backdrop-filter: @value;
+}
+
+/* 定义需要频繁使用的方法 */
+.heightPercent(@pixel: 10px) {
+    @result: calc(var(--height-percent) * @pixel);
+}
+.lineScale(@pixel: 0.5px) {
+    @result: calc(var(--line-scale) * @pixel);
 }
 
 /* ================================= 原生组件定义区 ================================= */
@@ -25,13 +50,13 @@ html, body {
 }
 
 button {
-    padding: calc(var(--line-scale) * 0.3125px) calc(var(--line-scale) * 0.694444px);
+    padding: .lineScale(0.3125px)[] .lineScale(0.694444px)[];
     color: #FFF;
     background: none;
-    font-size: calc(var(--line-scale) * 0.347222px);
-    border: calc(var(--line-scale) * 0.034722px) solid #FFF;
+    font-size: .lineScale(0.347222px)[];
+    border: .lineScale(0.034722px)[] solid #FFF;
     outline: none;
-    border-radius: calc(var(--line-scale) * 0.555556px);
+    border-radius: .lineScale(0.555556px)[];
     transition-property: background, color, border;
     transition-duration: 0.2s;
     transition-timing-function: linear;
@@ -54,11 +79,11 @@ button {
     &.highlight {
         background: #FFF;
         color: #000;
-        border: calc(var(--line-scale) * 0.034722px) solid rgba(255, 255, 255, 0);
+        border: .lineScale(0.034722px)[] solid rgba(255, 255, 255, 0);
 
         &:hover {
             background: rgba(255, 255, 255, 0.8);
-            border: calc(var(--line-scale) * 0.034722px) solid #FFF;
+            border: .lineScale(0.034722px)[] solid #FFF;
         }
 
         &:active {
@@ -75,7 +100,7 @@ button {
     position: absolute !important;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    .transform(translate(-50%, -50%));
 }
 
 .game-screen {
@@ -85,6 +110,9 @@ button {
     width: 100%;
     height: 100%;
     background-color: #000;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .container {
@@ -92,11 +120,11 @@ button {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: calc(var(--fixed-width) * 0.828645);
+    width: .lineScale(0.828645px)[];
     height: 77.129630%;
     transform: translate(-50%, -50%);
     background: rgba(255, 255, 255, 0.2);
-    border-radius: calc(var(--line-scale) * 0.78125px);
+    border-radius: .lineScale(0.78125px)[];
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: center;
@@ -104,22 +132,22 @@ button {
 
     * {
         position: relative;
-        padding: calc(var(--line-scale) * 0.381944px);
+        padding: .lineScale(0.381944px)[];
         align-self: stretch;
         flex-basis: 100%;
     }
 
     .content {
-        padding-bottom: calc(var(--line-scale) * 1.180556px * 2);
+        padding-bottom: calc(.lineScale(1.180556px)[] * 2);
 
         .title {
-            margin: calc(var(--line-scale) * 0.798611px) calc(var(--line-scale) * 1.006944px) 0;
-            font-size: calc(var(--line-scale) * 1.006944px);
+            margin: .lineScale(0.798611px)[] .lineScale(1.006944px)[] 0;
+            font-size: .lineScale(1.006944px)[];
         }
 
         .subtitle {
-            margin: 0 calc(var(--line-scale) * 1.180556px) 0;
-            font-size: calc(var(--line-scale) * 0.347222px);
+            margin: 0 .lineScale(1.180556px)[] 0;
+            font-size: .lineScale(0.347222px)[];
         }
     }
 }
@@ -131,11 +159,11 @@ button {
         content: '';
         display: inline-block;
         position: relative;
-        width: calc(var(--height-percent) * 40px);
-        height: calc(var(--height-percent) * 40px);
-        border: calc(var(--height-percent) * 6px) solid transparent;
-        border-top: calc(var(--height-percent) * 6px) solid #FFF;
-        border-left: calc(var(--height-percent) * 6px) solid #FFF;
+        width: .heightPercent(40px)[];
+        height: .heightPercent(40px)[];
+        border: .heightPercent(6px)[] solid transparent;
+        border-top: .heightPercent(6px)[] solid #FFF;
+        border-left: .heightPercent(6px)[] solid #FFF;
         border-radius: 50%;
         box-sizing: border-box;
         animation: circle-loading 0.4s linear infinite;
@@ -160,9 +188,9 @@ button {
     left: 0;
     bottom: 0;
     width: 100%;
-    height: calc(var(--height-percent) * 13px);
-    font-size: calc(var(--line-scale) * 0.520833px);
-    .transition();
+    height: .heightPercent(13px)[];
+    font-size: .lineScale(0.520833px)[];
+    .transition-default();
 
     &::before {
         content: var(--content, '');
@@ -170,8 +198,8 @@ button {
         position: absolute;
         top: 0;
         left: 0;
-        padding: calc(var(--height-percent) * 7px);
-        transform: translateY(-100%);
+        padding: .heightPercent(7px)[];
+        .transform(translateY(-100%));
     }
 
     &::after {
@@ -181,7 +209,7 @@ button {
         top: 0;
         left: 0;
         width: var(--progress, 0%);
-        height: calc(var(--height-percent) * 13px);
+        height: .heightPercent(13px)[];
         background: rgba(255, 255, 255, .65);
     }
 }
@@ -197,8 +225,8 @@ button {
     .switch-background {
         display: inline-block;
         position: relative;
-        width: calc(var(--line-scale) * 1.267361px);
-        height: calc(var(--line-scale) * 0.520833px);
+        width: .lineScale(1.267361px)[];
+        height: .lineScale(0.520833px)[];
         background: rgba(255, 255, 255, 0.3);
         border-radius: calc(var( --line-scale) * 0.243056px);
         transition-property: background;
@@ -211,13 +239,12 @@ button {
         position: absolute;
         top: 0;
         left: 0;
-        width: calc(var(--line-scale) * 0.590278px);
-        height: calc(var(--line-scale) * 0.520833px);
-        margin: calc(var(--line-scale) * 0.086806px);
-        transform: translate(0%);
-        -webkit-transform: translate(0%);
+        width: .lineScale(0.590278px)[];
+        height: .lineScale(0.520833px)[];
+        margin: .lineScale(0.086806px)[];
+        .transform(translate(0%));
         background: #FFF;
-        border-radius: calc(var(--line-scale) * 0.15625px);
+        border-radius: .lineScale(0.15625px)[];
         transition-property: left,transform,-webkit-transform;
         transition-duration: 0.2s;
         transition-timing-function: ease-out;
@@ -230,8 +257,7 @@ button {
 
             .switch-handle {
                 left: 100%;
-                transform: translateX(calc(-100% - var(--line-scale) * 0.086806px * 2));
-                -webkit-transform: translateX(calc(-100% - var(--line-scale) * 0.086806px * 2));
+                .transform(translateX(calc(-100% - .lineScale(0.086806px)[] * 2)));
             }
         }
     }
@@ -239,10 +265,10 @@ button {
 
 .rks {
     position: relative;
-    padding: calc(var(--height-percent) * 6px) calc(var(--height-percent) * 13px);
-    font-size: calc(var(--line-scale) * 0.295139px);
+    padding: .heightPercent(6px)[] .heightPercent(13px)[];
+    font-size: .lineScale(0.295139px)[];
     font-family: 'MiSans';
-    border-radius: calc(var(--height-percent) * 10px);
+    border-radius: .heightPercent(10px)[];
     box-sizing: border-box;
 
     @alpha: 0.4;
@@ -252,11 +278,11 @@ button {
         display: inline-block;
         position: absolute;
         top: 50%;
-        left: calc(var(--height-percent) * 6px);
-        width: calc(var(--height-percent) * 3px);
-        height: calc(var(--height-percent) * 32px);
-        transform: translateY(-50%);
-        border-radius: calc(var(--height-percent) * 2px);
+        left: .heightPercent(6px)[];
+        width: .heightPercent(3px)[];
+        height: .heightPercent(32px)[];
+        .transform(translateY(-50%));
+        border-radius: .heightPercent(2px)[];
     }
 
     .rks-type {
@@ -291,7 +317,7 @@ button {
 .level {
     color: #FFF;
     background: #867D62;
-    transition: background .2s linear;
+    .transition(background .2s linear);
 
     &-easy {
         background: #24CE63;
@@ -323,23 +349,23 @@ button {
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(100% - var(--line-scale) * 0.381944px * 2);
-    height: calc(100% - var(--line-scale) * 0.381944px * 2);
-    margin: calc(var(--line-scale) * 0.381944px);
+    width: calc(100% - .lineScale(0.381944px)[] * 2);
+    height: calc(100% - .lineScale(0.381944px)[] * 2);
+    margin: .lineScale(0.381944px)[];
     background: #000;
-    border-radius: calc(var(--line-scale) * 0.503472px);
+    border-radius: .lineScale(0.503472px)[];
 }
 
 .container .actions {
     position: absolute;
-    width: calc(100% - var(--line-scale) * 1.180556px * 2);
+    width: calc(100% - .lineScale(1.180556px)[] * 2);
     left: 0;
     bottom: 0;
-    padding: calc(var(--line-scale) * 1.180556px);
+    padding: .lineScale(1.180556px)[];
     padding-top: 0;
 }
 .container .actions button + button {
-    margin-left: calc(var(--line-scale) * 0.138889px);
+    margin-left: .lineScale(0.138889px)[];
 }
 
 
@@ -350,7 +376,7 @@ button {
     .bg();
     background-image: url('/img/bg-loading.png');
 
-    .bg {
+    .bg() {
         content: '';
         position: absolute;
         top: 0;
@@ -361,7 +387,7 @@ button {
         background-repeat: no-repeat;
         background-position: center;
     }
-    .bg-transition {
+    .bg-transition() {
         transition-property: opacity;
         transition-timing-function: linear;
         transition-duration: 1s;
@@ -375,29 +401,30 @@ button {
     }
 
     .logo {
+        .bg();
         position: absolute;
-        top: calc(var(--line-scale) * 0.694444px);
-        left: calc(var(--line-scale) * -0.416667px);
-        width: calc(var(--line-scale) * 10.381944px);
-        height: calc(var(--line-scale) * 5.850694px);
-        transform: translate(0%, 0%);
-        -webkit-transform: translate(0%, 0%);
+        top: .lineScale(0.694444px)[];
+        left: .lineScale(-0.416667px)[];
+        width: .lineScale(10.381944px)[];
+        height: .lineScale(5.850694px)[];
+        .transform(translate(0%, 0%));
         background-image: url('/img/bg-logo.png');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
     }
 
     .prompt {
         display: none;
         position: absolute;
         left: 50%;
-        bottom: calc(var(--line-scale) * 0.954861px);
-        transform: translateX(-50%);
-        font-size: calc(var(--line-scale) * 0.607639px);
+        bottom: .lineScale(0.954861px)[];
+        .transform(translateX(-50%));
+        font-size: .lineScale(0.607639px)[];
     }
 
     &.loaded {
+        & {
+            cursor: pointer;
+        }
+        
         &::before {
             opacity: 1;
         }
@@ -405,18 +432,16 @@ button {
         .logo {
             top: 50%;
             left: 50%;
-            width: calc(var(--line-scale) * 19.895833px);
-            height: calc(var(--line-scale) * 11.232639px);
-            transform: translate(-50%, -50%);
-            -webkit-transform: translate(-50%, -50%);
+            width: .lineScale(19.895833px)[];
+            height: .lineScale(11.232639px)[];
+            .transform(translate(-50%, -50%));
             transition-property: top, left, width, height, transform, -webkit-transform;
             transition-timing-function: ease-out;
             transition-duration: 1s;
         }
 
         .progress {
-            transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
-            -webkit-transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
+            .transform(translateY(calc(100% + .lineScale(0.520833px)[])));
             opacity: 0;
         }
 
@@ -431,6 +456,7 @@ button {
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
+    .transition(background .2s linear);
 
     &::before {
         content: '';
@@ -440,24 +466,23 @@ button {
         bottom: -2px;
         width: 100%;
         height: 2px;
-        box-shadow: 0px 0px calc(var(--height-percent) * 250px) calc(var(--height-percent) * 150px) #000;
-        .transition();
+        box-shadow: 0px 0px .heightPercent(250px)[] .heightPercent(150px)[] #000;
+        .transition-default();
     }
 
     .song-list {
         position: absolute;
-        width: calc(var(--height-percent) * 607px);
-        height: calc(var(--height-percent) * 1001px);
-        top: calc(var(--height-percent) * 40px);
-        left: calc(var(--height-percent) * 39px);
-        padding: calc(var(--height-percent) * 46px) calc(var(--height-percent) * 44px);
+        width: .heightPercent(607px)[];
+        height: .heightPercent(1000px)[];
+        top: .heightPercent(40px)[];
+        left: .heightPercent(40px)[];
+        padding: .heightPercent(46px)[] .heightPercent(44px)[];
         background: rgba(0, 0, 0, .31);
-        backdrop-filter: blur(50px);
+        .backdropFilter(blur(50px));
         overflow: hidden;
-        -webkit-backdrop-filter: blur(50px);
-        border-radius: calc(var(--line-scale) * 0.642361px);
+        border-radius: .lineScale(0.642361px)[];
         box-sizing: border-box;
-        .transition();
+        .transition-default();
 
         /* 针对不支持高斯模糊的浏览器进行兼容样式处理 */
         @supports @support-backdrop-filter {
@@ -468,12 +493,12 @@ button {
             position: relative;
     
             .title {
-                font-size: calc(var(--line-scale) * 0.659722px);
+                font-size: .lineScale(0.659722px)[];
                 font-weight: bold;
             }
     
             .subtitle {
-                font-size: calc(var(--line-scale) * 0.295139px);
+                font-size: .lineScale(0.295139px)[];
             }
     
             .actions {
@@ -486,22 +511,22 @@ button {
                 }
     
                 button.import-file {
-                    min-width: calc(var(--height-percent) * 134px);
-                    min-height: calc(var(--height-percent) * 58px);
-                    padding: calc(var(--height-percent) * 14px) calc(var(--height-percent) * 46px);
+                    min-width: .heightPercent(134px)[];
+                    min-height: .heightPercent(58px)[];
+                    padding: .heightPercent(14px)[] .heightPercent(46px)[];
                     background: rgba(0, 0, 0, .38);
-                    font-size: calc(var(--line-scale) * 0.399306px);
+                    font-size: .lineScale(0.399306px)[];
                     border: none;
-                    border-radius: calc(var(--line-scale) * 0.295139px);
+                    border-radius: .lineScale(0.295139px)[];
                 }
             }
         }
 
         .content {
             position: relative;
-            height: calc(100% - var(--height-percent) * 126px);
-            margin-top: calc(var(--height-percent) * 34px);
-            border-radius: calc(var(--line-scale) * 0.451389px);
+            height: calc(100% - .heightPercent(126px)[]);
+            margin-top: .heightPercent(34px)[];
+            border-radius: .lineScale(0.451389px)[];
             overflow-x: hidden;
             overflow-y: auto;
             scroll-behavior: smooth;
@@ -513,7 +538,7 @@ button {
             scrollbar-color: c transparent;
 
             &::-webkit-scrollbar {
-                width: calc(var(--height-percent) * 8px);
+                width: .heightPercent(8px)[];
             }
             &::-webkit-scrollbar-thumb {
                 background-color: rgba(255, 255, 255, .5);
@@ -529,25 +554,31 @@ button {
                 width: 100%;
                 height: 100%;
                 color: rgba(255, 255, 255, .5);
-                font-size: calc(var(--line-scale) * 0.312500px);
-                line-height: calc(var(--height-percent) * 400px);
+                font-size: .lineScale(0.312500px)[];
+                line-height: .heightPercent(400px)[];
                 text-align: center;
+            }
+
+            &.no-items { /* 没有列表项的时候就不显示滚动条 */
+                overflow-y: hidden;
             }
 
             .list-item {
                 position: relative;
-                padding: calc(var(--height-percent) * 37px) 0;
+                padding: .heightPercent(37px)[] 0;
                 font-family: 'MiSans';
                 scroll-snap-align: start;
+                animation: fade-in .2s linear;
+                -webkit-animation: fade-in .2s linear;
                 cursor: pointer;
 
                 .title {
-                    font-size: calc(var(--line-scale) * 0.694444px);
+                    font-size: .lineScale(0.694444px)[];
                     font-weight: bolder;
                 }
 
                 .subtitle {
-                    font-size: calc(var(--line-scale) * 0.347222px);
+                    font-size: .lineScale(0.347222px)[];
                 }
             }
         }
@@ -556,18 +587,18 @@ button {
     .selected-song {
         display: flex;
         position: absolute;
-        top: calc(var(--height-percent) * 193px);
-        left: calc(var(--height-percent) * 39px + var(--height-percent) * 44px);
-        width: calc(var(--height-percent) * 720px);
-        height: calc(var(--height-percent) * 168px);
-        padding: calc(var(--height-percent) * 15px);
+        top: .heightPercent(193px)[];
+        left: .heightPercent(83px)[];
+        width: .heightPercent(720px)[];
+        height: .heightPercent(168px)[];
+        padding: .heightPercent(15px)[];
         background: rgba(102, 102, 102, .45);
-        backdrop-filter: blur(30px);
-        border: calc(var(--height-percent) * 1px) solid #707070;
-        border-radius: calc(var(--line-scale) * 0.451389px);
+        .backdropFilter(blur(30px));
+        border: .heightPercent(1px)[] solid #707070;
+        border-radius: .lineScale(0.451389px)[];
         overflow: hidden;
         box-sizing: border-box;
-        .transition();
+        .transition-default();
 
         /* 针对不支持高斯模糊的浏览器进行兼容样式处理 */
         @supports @support-backdrop-filter {
@@ -575,50 +606,52 @@ button {
         }
 
         .song-info {
-            padding: calc(var(--height-percent) * 25px) calc(var(--height-percent) * 31px);
+            padding: .heightPercent(25px)[] .heightPercent(31px)[];
             font-family: 'MiSans';
             flex-grow: 1;
 
             .title {
-                font-size: calc(var(--line-scale) * 0.694444px);
+                font-size: .lineScale(0.694444px)[];
                 font-weight: bold;
             }
             .subtitle {
-                font-size: calc(var(--line-scale) * 0.347222px);
+                font-size: .lineScale(0.347222px)[];
             }
         }
 
         .song-diff {
             display: flex;
-            width: calc(var(--height-percent) * 201px);
+            width: .heightPercent(201px)[];
             height: 100%;
-            padding: calc(var(--height-percent) * 25px);
+            padding: .heightPercent(25px)[];
             font-family: 'MiSans';
             text-align: center;
-            border-radius: calc(var(--height-percent) * 18px);
+            border-radius: .heightPercent(18px)[];
+            .transition(background .2s linear);
             box-sizing: border-box;
             flex-direction: column;
             align-items: center;
             flex-wrap: nowrap;
 
             .diff-value {
-                font-size: calc(var(--line-scale) * 0.833333px);
+                font-size: .lineScale(0.833333px)[];
                 font-weight: bold;
             }
 
             .diff-type {
-                font-size: calc(var(--line-scale) * 0.3125px);
+                font-size: .lineScale(0.3125px)[];
             }
         }
     }
 
     .song-extra-info {
         position: absolute;
-        left: calc(var(--height-percent) * 719px);
-        bottom: calc(var(--height-percent) * 95px);
-        padding-left: calc(var(--height-percent) * 16px);
+        left: .heightPercent(720px)[];
+        bottom: .heightPercent(96px)[];
+        padding-left: .heightPercent(16px)[];
+        font-family: 'MiSans';
         box-sizing: border-box;
-        .transition();
+        .transition-default();
         transition-property: left, right, bottom, transform, -webkit-transform, opacity;
 
         &::before {
@@ -626,130 +659,128 @@ button {
             display: inline-block;
             position: absolute;
             left: 0;
-            bottom: calc(var(--height-percent) * 5px);
-            width: calc(var(--height-percent) * 8px);
-            height: calc(var(--height-percent) * 49px);
+            bottom: .heightPercent(5px)[];
+            width: .heightPercent(8px)[];
+            height: .heightPercent(50px)[];
             background: #FFF;
-            border-radius: calc(var(--height-percent) * 6px);
+            border-radius: .heightPercent(6px)[];
         }
 
         .song-higest-score {
-            font-family: 'MiSans';
-            font-size: calc(var(--line-scale) * 0.434028px);
+            font-size: .lineScale(0.434028px)[];
         }
 
         .song-chart-designer {
-            font-family: 'MiSans';
-            font-size: calc(var(--line-scale) * 0.347222px);
+            font-size: .lineScale(0.347222px)[];
         }
     }
 
     .user-info {
         display: flex;
         position: absolute;
-        top: calc(var(--height-percent) * 65px);
-        right: calc(var(--height-percent) * 39px);
-        min-width: calc(var(--height-percent) * 444px);
-        height: calc(var(--height-percent) * 114px);
-        padding: calc(var(--height-percent) * 30px);
-        padding-left: calc(var(--height-percent) * 135px);
+        top: .heightPercent(65px)[];
+        right: .heightPercent(39px)[];
+        min-width: .heightPercent(444px)[];
+        height: .heightPercent(114px)[];
+        padding: .heightPercent(30px)[];
+        padding-left: .heightPercent(135px)[];
         background: rgba(0, 0, 0, .31);
         font-family: 'MiSans';
-        border-radius: calc(var(--height-percent) * 37px);
-        backdrop-filter: blur(50px);
+        border-radius: .heightPercent(37px)[];
+        .backdropFilter(blur(50px));
         box-sizing: border-box;
         align-items: center;
         flex-wrap: nowrap;
         flex-direction: row;
         justify-content: space-between;
-        .transition();
+        .transition-default();
 
         .user-name {
-            font-size: calc(var(--line-scale) * 0.694444px);
+            font-size: .lineScale(0.694444px)[];
             flex-grow: 1;
         }
 
         .user-rks {
-            width: calc(var(--height-percent) * 191px);
-            margin-left: calc(var(--height-percent) * 10px);
+            width: .heightPercent(191px)[];
+            margin-left: .heightPercent(10px)[];
         }
 
         .user-avatar {
             position: absolute;
             top: 50%;
             left: calc(var(--height-percent) * -41px);
-            width: calc(var(--height-percent) * 165px);
-            height: calc(var(--height-percent) * 165px);
-            transform: translateY(-50%);
+            width: .heightPercent(165px)[];
+            height: .heightPercent(165px)[];
+            .transform(translateY(-50%));
             border-radius: 50%;
         }
     }
 
     .game-settings {
         position: absolute;
-        right: calc(var(--height-percent) * 85px);
-        bottom: calc(var(--height-percent) * 182px);
-        height: calc(var(--height-percent) * 57px);
-        padding: calc(var(--height-percent) * 14px) calc(var(--height-percent) * 46px);
-        font-size: calc(var(--line-scale) * 0.35px);
+        right: .heightPercent(85px)[];
+        bottom: .heightPercent(182px)[];
+        height: .heightPercent(57px)[];
+        padding: .heightPercent(14px)[] .heightPercent(46px)[];
+        font-size: .lineScale(0.35px)[];
         background: rgba(0, 0, 0, .38);
         border: none;
-        border-radius: calc(var(--height-percent) * 29px);
-        .transition();
+        border-radius: .heightPercent(29px)[];
+        .transition-default();
     }
 
     .song-start {
         position: absolute;
-        right: calc(var(--height-percent) * 74px);
-        bottom: calc(var(--height-percent) * 97px);
-        height: calc(var(--height-percent) * 73px);
-        padding: calc(var(--height-percent) * 22px) calc(var(--height-percent) * 68px);
-        font-size: calc(var(--line-scale) * 0.35px);
-        border-radius: calc(var(--height-percent) * 50px);
+        right: .heightPercent(74px)[];
+        bottom: .heightPercent(97px)[];
+        height: .heightPercent(73px)[];
+        padding: .heightPercent(22px)[] .heightPercent(68px)[];
+        font-size: .lineScale(0.35px)[];
+        border-radius: .heightPercent(50px)[];
         box-sizing: border-box;
-        .transition();
+        .transition-default();
     }
 
     .song-loading-info {
         position: absolute;
         display: flex;
-        left: calc(var(--height-percent) * 110px);
+        left: .heightPercent(110px)[];
         bottom: 0;
-        transform: translateY(calc(100% + 2px));
+        .transform(translateY(calc(100% + 2px)));
         font-family: 'MiSans';
         opacity: 0;
         flex-direction: row;
         flex-wrap: nowrap;
         align-items: flex-start;
-        .transition();
+        .transition-default();
 
         &::before {
             content: '';
             position: absolute;
             left: 0;
             bottom: 0;
-            width: calc(var(--height-percent) * 643px);
-            height: calc(var(--height-percent) * 76px);
+            width: .heightPercent(643px)[];
+            height: .heightPercent(76px)[];
             background: rgba(255, 255, 255, 0.2);
-            border-radius: calc(var(--height-percent) * 16px);
+            border-radius: .heightPercent(16px)[];
         }
 
         .diff-info {
             position: relative;
-            width: calc(var(--height-percent) * 130px);
-            height: calc(var(--height-percent) * 112px);
+            width: .heightPercent(130px)[];
+            height: .heightPercent(112px)[];
             text-align: center;
-            border-radius: calc(var(--height-percent) * 16px);
+            border-radius: .heightPercent(16px)[];
 
             .diff-type {
-                padding: calc(var(--height-percent) * 9px);
-                font-size: calc(var(--line-scale) * 0.260417px);
+                padding: .heightPercent(9px)[];
+                font-size: .lineScale(0.260417px)[];
             }
 
             .diff-value {
                 position: relative;
-                padding: 0 calc(var(--height-percent) * 36px) calc(var(--height-percent) * 8px);
-                font-size: calc(var(--line-scale) * 0.868056px);
+                padding: 0 .heightPercent(36px)[] .heightPercent(8px)[];
+                font-size: .lineScale(0.868056px)[];
                 font-weight: bold;
 
                 &::after {
@@ -761,29 +792,28 @@ button {
                     width: 100%;
                     height: 100%;
                     background: rgba(0, 0, 0, 0.05);
-                    border-radius: 0 0 calc(var(--height-percent) * 16px) calc(var(--height-percent) * 16px);
+                    border-radius: 0 0 .heightPercent(16px)[] .heightPercent(16px)[];
                 }
             }
         }
 
         .song-info {
-            margin-left: calc(var(--height-percent) * 27px);
+            margin-left: .heightPercent(27px)[];
 
             .title {
                 font-family: 'A-OTF Shin Go Pr6N H';
-                font-size: calc(var(--line-scale) * 0.868056px);
-                line-height: calc(var(--height-percent) * 66px);
+                font-size: .lineScale(0.868056px)[];
+                line-height: .heightPercent(66px)[];
             }
 
             .subtitle {
-                font-size: calc(var(--line-scale) * 0.347222px);
+                font-size: .lineScale(0.347222px)[];
             }
         }
     }
 
     .song-loading-progress {
-        transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
-        -webkit-transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
+        .transform(translateY(calc(100% + .lineScale(0.520833px)[])));
         opacity: 0;
     }
 
@@ -793,13 +823,11 @@ button {
         /* 统一定义一下 */
         .hide-left {
             left: 0;
-            transform: translateX(calc(-100% - 2px));
-            -webkit-transform: translateX(calc(-100% - 2px));
+            .transform(translateX(calc(-100% - 2px)));
         }
         .hide-right {
             right: 0;
-            transform: translateX(calc(100% + 2px));
-            -webkit-transform: translateX(calc(100% + 2px));
+            .transform(translateX(calc(100% + 2px)));
         }
 
         .song-list, .selected-song {
@@ -808,13 +836,12 @@ button {
 
         .song-extra-info {
             bottom: 0;
-            transform: translateY(calc(100% + 2px))
+            .transform(translateY(calc(100% + 2px)));
         }
 
         .user-info {
             right: 0;
-            transform: translateX(calc(100% + var(--height-percent) * 41px));
-            -webkit-transform: translateX(calc(100% + var(--height-percent) * 41px));
+            .transform(translateX(calc(100% + .heightPercent(41px)[])));
         }
 
         .song-start, .game-settings {
@@ -822,14 +849,13 @@ button {
         }
 
         .song-loading-info {
-            bottom: calc(var(--height-percent) * 127px);
-            transform: translateY(0);
+            bottom: .heightPercent(127px)[];
+            .transform(translateY(0));
             opacity: 1;
         }
         
         .song-loading-progress {
-            transform: translateY(0);
-            -webkit-transform: translateY(0);
+            .transform(translateY(0));
             opacity: 1;
         }
 
@@ -840,13 +866,12 @@ button {
 
             .song-loading-info {
                 bottom: 0;
-                transform: translateY(calc(100% + 2px));
+                .transform(translateY(calc(100% + 2px)));
                 opacity: 0;
             }
 
             .song-loading-progress {
-                transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
-                -webkit-transform: translateY(calc(100% + var(--line-scale) * 0.520833px));
+                .transform(translateY(calc(100% + .lineScale(0.520833px)[])));
                 opacity: 0;
             }
         }
