@@ -1,0 +1,23 @@
+{
+    "game_init": {
+        "loading_resources": "Loading resources {{progress}}%",
+        "touch_to_start": "Touch to start"
+    },
+
+    "select_song": {
+        "title": "Select song",
+        "subtitle": "Just start if you're ready to go",
+        "not_correct_file": "Please select a correct .zip file",
+        "start_game": "Start"
+    },
+
+    "string": {
+        "visitor": "Visitor",
+        "settings": "Settings",
+        "import_file": "Import file",
+        "select_song_first": "Please select a song first",
+        "there_is_end": "There is end >_<||",
+        "high_score": "High score: ",
+        "note_designer": "Note Designer: "
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "game_init": {
+        "loading_resources": "正在加载游戏资源 {{progress}}%",
+        "touch_to_start": "轻触屏幕来开始"
+    },
+
+    "select_song": {
+        "title": "选择乐曲",
+        "subtitle": "准备好的话，就开始吧",
+        "not_correct_file": "请选择正确的 .zip 文件",
+        "start_game": "开始游戏"
+    },
+
+    "string": {
+        "visitor": "游客",
+        "settings": "设置",
+        "import_file": "导入文件",
+        "select_song_first": "请先选择一个歌曲",
+        "there_is_end": "已经到头了 >_<||",
+        "high_score": "最佳成绩: ",
+        "note_designer": "谱面设计: "
+    }
+}

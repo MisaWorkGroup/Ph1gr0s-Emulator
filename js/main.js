@@ -106,7 +106,29 @@ doms.songList.addEventListener('scroll', (e) => {
 
 /*** ==================== 全局初始化 ==================== ***/
 (async () => {
-    pixi = new PIXI.Application({ // 创建舞台和 Renderer
+    // 加载多语言文件到变量中
+    for (let name in langFiles) {
+        let response = await fetch(langFiles[name]);
+        response = await response.json();
+        langFiles[name] = {};
+        langFiles[name].translation = response;
+    }
+
+    // 初始化多语言框架 https://github.com/i18next/i18next
+    await i18next.init({
+        lng: 'zh_cn',
+        debug: true,
+        compatibilityJSON: 'v3',
+        resources: langFiles
+    });
+
+    // 清空语言文件变量
+    langFiles = undefined;
+    // 自动切换语言
+    await switchLanguage(undefined);
+
+    // 创建舞台和 Renderer
+    pixi = new PIXI.Application({
         width       : document.documentElement.clientWidth,
         height      : document.documentElement.clientHeight,
         antialias   : true,
@@ -115,7 +137,8 @@ doms.songList.addEventListener('scroll', (e) => {
         view        : document.getElementById('stage')
     });
 
-    setTimeout(() => { // 稍等片刻后加载程序所需的所有资源
+    // 稍等片刻后加载程序所需的所有资源
+    setTimeout(() => {
         pixi.loader.add(resources)
             .load((e) => {
                 // 归档加载的素材到指定位置
@@ -169,7 +192,7 @@ doms.songList.addEventListener('scroll', (e) => {
                 doms.loadingPage.classList.add('loaded');
             })
             .onProgress.add((e) => { // 推送加载进度到加载画面
-                doms.loadingProgress.style.setProperty('--content', '\'游戏资源加载中 ' + Math.ceil(e.progress) + '%\'');
+                doms.loadingProgress.style.setProperty('--content', '\'' + i18next.t('game_init.loading_resources', { progress: Math.ceil(e.progress) }) + '\'');
                 doms.loadingProgress.style.setProperty('--progress', e.progress + '%');
             }
         );
@@ -280,7 +303,7 @@ function LoadZip(file) {
                 }
 
                 doms.selectSongImportBtn.disabled = false;
-                doms.selectSongImportBtn.innerHTML = '导入文件';
+                doms.selectSongImportBtn.innerHTML = i18next.t('string.import_file');
 
                 if (!zipFiles.info) {
                     alert('缺少 info.csv，无法读取文件！');
@@ -355,7 +378,7 @@ function LoadZip(file) {
     });
 
     if (file.type.toLowerCase().indexOf('zip') < 0) {
-        alert('请选择正确的 .zip 文件！');
+        alert(i18next.t('select_song.not_correct_file'));
         return;
     }
 
@@ -365,6 +388,29 @@ function LoadZip(file) {
 }
 
 
+
+function switchLanguage(lang = 'zh_cn') {
+    return new Promise((resolve, reject) => {
+        i18next.changeLanguage(lang)
+            .then((t) => {
+                let langDoms = document.querySelectorAll('[i18n]');
+                let langDomsContent = document.querySelectorAll('[i18n-content]');
+                for (let langDom of langDoms) {
+                    langDom.innerHTML = t(langDom.getAttribute('i18n'));
+                }
+                for (let langDom of langDomsContent) {
+                    langDom.style.setProperty('--content', '\'' + t(langDom.getAttribute('i18n-content')) + '\'');
+                }
+                resolve(true);
+            })
+            .catch((e) => {
+                alert('There\'s an error while switch the language.');
+                console.error(e);
+                reject(e);
+            }
+        );
+    });
+}
 
 
 
@@ -439,8 +485,8 @@ function setSelectedSong(obj) {
 
     songDiff.className = 'song-diff level-' + obj.diffType;
 
-    doms.songHigestScore.innerHTML = '最佳成绩: 暂无';
-    doms.songNoteDesigner.innerHTML = '谱面设计: ' + obj.designer;
+    doms.songHigestScore.innerHTML = i18next.t('string.high_score') + '暂无';
+    doms.songNoteDesigner.innerHTML = i18next.t('string.note_designer') + obj.designer;
 
     if (!document.querySelector('.select-song .selected-song .song-info') || !document.querySelector('.select-song .selected-song .song-diff')) {
 
@@ -466,7 +512,7 @@ function setSelectedSong(obj) {
 
 function startGame() {
     if (!selectedSong) {
-        alert('请选择一个歌曲！');
+        alert(i18next.t('string.select_song_first'));
         return;
     }
 

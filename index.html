@@ -15,8 +15,9 @@
 		<link href="./css/main.less?v=0.0.1" rel="stylesheet/less" type="text/css" />
 		<link href="./css/keyframes.css?v=0.0.1" rel="stylesheet" />
 		
-		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/3.11.1/less.min.js" ></script>
-		<script src="//cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
+		<script src="//unpkg.com/i18next@21.6.15/dist/umd/i18next.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/3.11.1/less.min.js"></script>
+		<!--script src="//cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script-->
 		<script src="./js/jszip.min.js?v=3.7.1"></script>
 		<script src="./js/stackblur.min.js?v=2.5.0"></script>
 		
@@ -39,6 +40,10 @@
 				browserEngine  : BrowserInfo.engine,
 				**/
 				supportWebGL   : PIXI.utils.isWebGLSupported()
+			};
+			var langFiles = {
+				zh_cn: '/lang/zh_cn.json',
+				en_us: '/lang/en_us.json'
 			};
 			
 			// 用户设置数据
@@ -107,36 +112,36 @@
 		
 		<div class="game-screen game-loading fade-in">
 			<div class="logo"></div>
-			<div class="prompt blank">轻触屏幕来开始</div>
-			<div class="progress" style="--content:'游戏资源加载中'"></div>
+			<div class="prompt blank" i18n="game_init.touch_to_start">轻触屏幕来开始</div>
+			<div class="progress" style="--content:''"></div>
 		</div>
 
 		<div class="game-screen select-song" style="display:none">
 			<div class="song-list">
 				<div class="header">
-					<div class="title">选择乐曲</div>
-					<div class="subtitle">准备好的话，就开始吧</div>
+					<div class="title" i18n="select_song.title">选择乐曲</div>
+					<div class="subtitle" i18n="select_song.subtitle">准备好的话，就开始吧</div>
 
 					<div class="actions">
 						<input class="import-file-input" type="file" />
-						<button class="import-file">导入文件</button>
+						<button class="import-file" i18n="string.import_file">导入文件</button>
 					</div>
 				</div>
 
-				<div class="content no-items"></div>
+				<div class="content no-items" i18n-content="string.there_is_end"></div>
 			</div>
 
 			<div class="selected-song">
-				<div class="center" style="color:rgba(255, 255, 255, 0.5);font-size:calc(var(--line-scale) * 0.3125px)">请选择一个曲目</div>
+				<div class="center" style="color:rgba(255, 255, 255, 0.5);font-size:calc(var(--line-scale) * 0.3125px)" i18n="string.select_song_first">请选择一个曲目</div>
 			</div>
 
 			<div class="song-extra-info">
-				<div class="song-higest-score">请选择一个曲目</div>
-				<div class="song-chart-designer">请选择一个曲目</div>
+				<div class="song-higest-score" i18n="string.select_song_first">请选择一个曲目</div>
+				<div class="song-chart-designer" i18n="string.select_song_first">请选择一个曲目</div>
 			</div>
 
 			<div class="user-info">
-				<div class="user-name">游客</div>
+				<div class="user-name" i18n="string.visitor">游客</div>
 				<div class="user-rks rks rks-high">
 					<div class="rks-type">RANKING</div>
 					<div class="rks-value">??.??</div>
@@ -145,8 +150,8 @@
 				<img class="user-avatar" src="./img/testuseravatar.jpg" />
 			</div>
 
-			<button class="game-settings">设置</button>
-			<button onclick="startGame()" class="song-start highlight">开始游戏</button>
+			<button class="game-settings" i18n="string.settings">设置</button>
+			<button onclick="startGame()" class="song-start highlight" i18n="select_song.start_game">开始游戏</button>
 
 			<div class="song-loading-info">
 				<div class="diff-info">
@@ -159,7 +164,7 @@
 				</div>
 			</div>
 
-			<div class="progress song-loading-progress" style="--content:'少女祈祷中';--progress:0%"></div>
+			<div class="progress song-loading-progress" style="--content:'';--progress:0%"></div>
 		</div>
 
 		<script src="./js/main.js?v=0.0.1"></script>
