@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="./js/jszip.min.js"></script>
+        <script src="./js/pixi.min.js"></script>
+        <script src="./js/pixi-sound.js"></script>
+        <script src="./js/class.js"></script>
+        <style>
+            html, body {
+                padding: 0;
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="stage"></canvas>
+        <input type="file" oninput="selectFile(this)" id="input-file" />
+        <button>Draw</button> <button>Start Timer</button> <button onclick="if(chart)chart.start(pixi)">Start Music</button>
+        <div><span id="text-current-time"></span> <span id="text-current-beat"></span></div>
+        <input type="range" min="0" max="100" value="0" step="0.000001" id="input-time" oninput="changeTime(this.value)" style="width:calc(100% - 4px)" />
+        <script src="./rpe-test.js"></script>
+    </body>
+</html>
