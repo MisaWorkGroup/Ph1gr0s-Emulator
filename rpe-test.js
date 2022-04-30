@@ -162,7 +162,7 @@ function CreateChart(chartJSON) {
 				);
 
 
-				
+				note.sprite = new PIXI.Sprite();
 
 
 				judgeline.addNote(note);
